@@ -10,6 +10,7 @@ const tripsRoutes = require('./routes/trips');
 const passengersRoutes = require('./routes/passengers');
 const settingsRoutes = require('./routes/settings');
 const bootstrapRoutes = require('./routes/bootstrap');
+const activityRoutes = require('./routes/activity');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -49,6 +50,7 @@ app.use('/trips', tripsRoutes);
 app.use('/', passengersRoutes);   // owns /trips/:tripId/passengers and /passengers/:id
 app.use('/settings', settingsRoutes);
 app.use('/bootstrap', bootstrapRoutes);
+app.use('/activity', activityRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
