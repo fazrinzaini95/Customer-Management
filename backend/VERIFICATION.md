@@ -89,6 +89,22 @@ numbers correct.
   demoted successfully (the "last admin" check is dynamic, not a
   one-time flag) ✅
 
+## Activity log
+Ran a real sequence through a live server against real Postgres — signup,
+create/edit a trip, submit for approval, approve it, add a passenger,
+change its payment status, create/promote/delete a second user account,
+update numbering settings, delete the passenger, delete the trip — then
+fetched `GET /activity` and confirmed:
+- **All 12 actions logged**, in correct reverse-chronological order ✅
+- Correct actor name/email on every entry ✅
+- Correct before→after values (e.g. `trip.status_changed`:
+  `{"from":"Pending","to":"Approved"}`) ✅
+- Deleted trips/passengers/users still show their correct name/email in
+  the log — captured via `RETURNING *` on the delete itself, not a
+  separate lookup that would fail after the row is gone ✅
+- A plain User calling `GET /activity` → `403`, confirming it's genuinely
+  admin-only and not just hidden in the UI ✅
+
 ---
 
 Every one of the role/permission rules the frontend's UI hides or shows

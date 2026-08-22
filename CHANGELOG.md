@@ -250,6 +250,40 @@ before trusting it.
   login screen with the bad entry cleaned up, rather than hanging or
   erroring.
 
+## 19. Activity log — who created, edited, or deleted what
+New `activity_log` table plus an admin-only **Activity log** panel showing
+the most recent 200 changes across the whole app — who did it, what it
+was, and what changed.
+
+- Logged server-side, not just in the UI: every trip create/edit/delete/
+  status-change/bulk-import, passenger create/edit/delete/payment-status-
+  change, user create/role-change/delete, and settings/trip-sequence
+  update writes one row via a new `logActivity()` helper in `db.js`.
+  A logging failure never blocks or rolls back the action itself.
+- Actor name/email are snapshotted at write time (not joined live from
+  `users`), and deleted trips/passengers/users are captured via
+  `RETURNING *` on the delete statement itself — so the log stays
+  readable even after the thing it refers to no longer exists.
+- New `GET /activity` route, admin-only (`requireRole('admin')`, same as
+  Manage Users).
+- **Verified against a real server + Postgres**: ran all 12 action types
+  through a live local instance, confirmed every entry logged with
+  correct actor, correct before→after values, and correct labels even for
+  deleted records — full transcript in `backend/VERIFICATION.md`. Also
+  confirmed a plain User gets `403` on `GET /activity`.
+- `demoFetch()` mirrors this fully for parity — same action types, same
+  admin-only gate.
+- **Caught and fixed a real bug during testing**: demo mode's `bootstrap`
+  response returned live object references from `demoState` (a shallow
+  `.slice()`, not a deep clone), so the frontend's optimistic UI update
+  for payment status (setting the field *before* the "network" call
+  resolves) was silently mutating the same object `demoFetch` read the
+  "before" value from — logging `Paid → Paid` instead of
+  `Pending → Paid`. Fixed by making `demoFetch` deep-clone every response
+  via `JSON.parse(JSON.stringify(...))`, the same way a real HTTP
+  response naturally would. Re-ran the jsdom test that caught it —
+  confirmed the correct `Pending → Paid` transition now logs correctly.
+
 ---
 
 ## Data shapes (as returned by the API — see `backend/README.md` for full endpoint reference)
@@ -276,5 +310,12 @@ before trusting it.
 
 // Settings (GET /settings or the `settings` key in GET /bootstrap)
 { prefix, includeYear, padding, runningNumber, nextNumber }
+
+// Activity log entry (GET /activity, admin-only)
+{
+  id, actorId, actorName, actorEmail,
+  action, entityType: 'trip'|'passenger'|'user'|'settings'|'bulk_import',
+  entityId, entityLabel, details, createdAt
+}
 ```
 

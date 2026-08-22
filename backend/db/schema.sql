@@ -112,3 +112,25 @@ CREATE TABLE IF NOT EXISTS app_settings (
 INSERT INTO app_settings (id, data)
   VALUES (1, '{"prefix":"EXC","includeYear":true,"padding":3}')
   ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------
+-- Activity log
+-- Every create/edit/delete/status-change/role-change is recorded here —
+-- who did it, what it was, and a short detail of what changed. actor_name
+-- and actor_email are snapshotted at write time (not joined live) so the
+-- log stays readable even after an account is later deleted.
+-- ---------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS activity_log (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_id     UUID REFERENCES users(id) ON DELETE SET NULL,
+  actor_name   TEXT NOT NULL,
+  actor_email  TEXT NOT NULL,
+  action       TEXT NOT NULL,   -- e.g. 'trip.created', 'trip.status_changed', 'user.role_changed'
+  entity_type  TEXT NOT NULL,   -- 'trip' | 'passenger' | 'user' | 'settings' | 'bulk_import'
+  entity_id    TEXT,            -- nullable — settings/bulk_import aren't tied to one row
+  entity_label TEXT,            -- human-readable snapshot, e.g. the trip name or passenger name
+  details      JSONB NOT NULL DEFAULT '{}',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON activity_log(created_at DESC);

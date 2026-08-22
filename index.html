@@ -333,19 +333,40 @@ function ensureDemoState(){
     demoState = raw ? JSON.parse(raw) : null;
   }catch(e){ demoState = null; }
   if(!demoState){
-    demoState = { users:[], trips:[], passengers:[], settings:{prefix:'EXC',includeYear:true,padding:3}, tripSeq:0 };
+    demoState = { users:[], trips:[], passengers:[], settings:{prefix:'EXC',includeYear:true,padding:3}, tripSeq:0, activityLog:[] };
   }
+  if(!demoState.activityLog) demoState.activityLog = []; // upgrade older saved demo data
   return demoState;
 }
 function persistDemo(){
   try{ localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(demoState)); }catch(e){ /* demo data just won't survive a refresh */ }
 }
 function resetDemoData(){
-  demoState = { users:[], trips:[], passengers:[], settings:{prefix:'EXC',includeYear:true,padding:3}, tripSeq:0 };
+  demoState = { users:[], trips:[], passengers:[], settings:{prefix:'EXC',includeYear:true,padding:3}, tripSeq:0, activityLog:[] };
   persistDemo();
 }
+function logDemoActivity(state, actor, action, entityType, entityId, entityLabel, details){
+  state.activityLog.unshift({
+    id: demoId('log'), actorId: actor.id, actorName: actor.name, actorEmail: actor.email,
+    action, entityType, entityId: entityId ?? null, entityLabel: entityLabel ?? null,
+    details: details || {}, createdAt: new Date().toISOString()
+  });
+  if(state.activityLog.length > 200) state.activityLog.length = 200;
+}
 
+// Thin wrapper: deep-clones whatever demoFetchInner returns before handing
+// it back. Without this, response objects are the SAME references living
+// inside demoState — so an optimistic UI update in the frontend (setting
+// a field before the "network" call resolves) would silently mutate
+// demoState's copy too, corrupting things like activity-log before/after
+// values. A real HTTP API can't have this problem (JSON travels over the
+// wire), so this clone step is what makes demo mode behave like one.
 async function demoFetch(path, options = {}){
+  const result = await demoFetchInner(path, options);
+  return result == null ? result : JSON.parse(JSON.stringify(result));
+}
+
+async function demoFetchInner(path, options = {}){
   const state = ensureDemoState();
   const method = (options.method || 'GET').toUpperCase();
   const body = options.body ? JSON.parse(options.body) : {};
@@ -404,26 +425,31 @@ async function demoFetch(path, options = {}){
 
   // ---- Trips ----
   if(path==='/trips' && method==='POST'){
-    requireAuthed();
+    const u = requireAuthed();
     if(!body.name) fail(400,'Trip name is required');
     state.tripSeq += 1;
     const t = { id:demoId('trip'), seq:state.tripSeq, name:body.name, type:body.type||'open', destination:body.destination||null,
       startDate:body.startDate||null, endDate:body.endDate||null, status:'Draft',
       history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString() };
-    state.trips.push(t); persistDemo();
+    state.trips.push(t);
+    logDemoActivity(state, u, 'trip.created', 'trip', t.id, t.name, { type:t.type, destination:t.destination });
+    persistDemo();
     return t;
   }
   if((m=path.match(/^\/trips\/([^/]+)$/)) && method==='PUT'){
-    requireAuthed();
+    const u = requireAuthed();
     const t = state.trips.find(x=>x.id===m[1]); if(!t) fail(404,'Trip not found');
-    Object.assign(t, body); persistDemo();
+    Object.assign(t, body);
+    logDemoActivity(state, u, 'trip.updated', 'trip', t.id, t.name, { updatedFields:Object.keys(body) });
+    persistDemo();
     return t;
   }
   if((m=path.match(/^\/trips\/([^/]+)$/)) && method==='DELETE'){
-    requireRoleIn('admin');
+    const u = requireRoleIn('admin');
     const idx = state.trips.findIndex(x=>x.id===m[1]); if(idx<0) fail(404,'Trip not found');
-    state.trips.splice(idx,1);
+    const [removed] = state.trips.splice(idx,1);
     state.passengers = state.passengers.filter(p=>p.tripId!==m[1]);
+    logDemoActivity(state, u, 'trip.deleted', 'trip', removed.id, removed.name, { destination:removed.destination });
     persistDemo();
     return null;
   }
@@ -441,13 +467,15 @@ async function demoFetch(path, options = {}){
     const move = (TRANSITIONS[t.status]||[]).find(a=>a.to===body.status);
     if(!move) fail(400,`Can't move a trip from ${t.status} to ${body.status}`);
     if(!move.anyRole && !['approver','admin'].includes(u.role)) fail(403,'Only an approver or admin can do that');
+    const fromStatus = t.status;
     t.status = body.status;
     t.history.push({status:body.status, date:new Date().toISOString()});
+    logDemoActivity(state, u, 'trip.status_changed', 'trip', t.id, t.name, { from:fromStatus, to:body.status });
     persistDemo();
     return t;
   }
   if(path==='/trips/bulk-import' && method==='POST'){
-    requireAuthed();
+    const u = requireAuthed();
     const rows = body.rows || [];
     const groups = new Map();
     rows.forEach(r=>{
@@ -475,33 +503,43 @@ async function demoFetch(path, options = {}){
         importedCount += 1;
       });
     }
+    logDemoActivity(state, u, 'trip.bulk_import', 'bulk_import', null, `Bulk import (${importedCount} passenger${importedCount===1?'':'s'})`, { importedCount, createdTripCount });
     persistDemo();
     return { importedCount, createdTripCount, tripIds:[...new Set(tripIds)] };
   }
 
   // ---- Passengers ----
   if((m=path.match(/^\/trips\/([^/]+)\/passengers$/)) && method==='POST'){
-    requireAuthed();
+    const u = requireAuthed();
     const c = { id:demoId('cust'), tripId:m[1], amount:0, depositAmount:0, paymentStatus:'Pending', addedAt:new Date().toISOString(), ...body };
-    state.passengers.push(c); persistDemo();
+    state.passengers.push(c);
+    logDemoActivity(state, u, 'passenger.created', 'passenger', c.id, c.name, { tripId:c.tripId });
+    persistDemo();
     return c;
   }
   if((m=path.match(/^\/passengers\/([^/]+)$/)) && method==='PUT'){
-    requireAuthed();
+    const u = requireAuthed();
     const c = state.passengers.find(x=>x.id===m[1]); if(!c) fail(404,'Passenger not found');
-    Object.assign(c, body); persistDemo();
+    Object.assign(c, body);
+    logDemoActivity(state, u, 'passenger.updated', 'passenger', c.id, c.name, { updatedFields:Object.keys(body) });
+    persistDemo();
     return c;
   }
   if((m=path.match(/^\/passengers\/([^/]+)\/payment-status$/)) && method==='PUT'){
-    requireAuthed();
+    const u = requireAuthed();
     const c = state.passengers.find(x=>x.id===m[1]); if(!c) fail(404,'Passenger not found');
-    c.paymentStatus = body.paymentStatus; persistDemo();
+    const fromStatus = c.paymentStatus;
+    c.paymentStatus = body.paymentStatus;
+    logDemoActivity(state, u, 'passenger.payment_status_changed', 'passenger', c.id, c.name, { from:fromStatus, to:body.paymentStatus });
+    persistDemo();
     return c;
   }
   if((m=path.match(/^\/passengers\/([^/]+)$/)) && method==='DELETE'){
-    requireRoleIn('admin');
+    const u = requireRoleIn('admin');
     const idx = state.passengers.findIndex(x=>x.id===m[1]); if(idx<0) fail(404,'Passenger not found');
-    state.passengers.splice(idx,1); persistDemo();
+    const [removed] = state.passengers.splice(idx,1);
+    logDemoActivity(state, u, 'passenger.deleted', 'passenger', removed.id, removed.name, { tripId:removed.tripId });
+    persistDemo();
     return null;
   }
 
@@ -511,20 +549,25 @@ async function demoFetch(path, options = {}){
     return state.users.map(publicUser);
   }
   if(path==='/users' && method==='POST'){
-    requireRoleIn('admin');
+    const u = requireRoleIn('admin');
     const { name, email, password, role } = body;
     if(!name || !email) fail(400,'Name and email are required');
     if(!password || password.length<6) fail(400,'Password must be at least 6 characters');
-    if(state.users.some(u=>u.email.toLowerCase()===String(email).toLowerCase())) fail(409,'That email is already registered');
-    const u = { id:demoId('user'), name, email, passwordHash: await demoHash(password), role: role||'user', isTemp:false, createdAt:new Date().toISOString() };
-    state.users.push(u); persistDemo();
-    return publicUser(u);
+    if(state.users.some(x=>x.email.toLowerCase()===String(email).toLowerCase())) fail(409,'That email is already registered');
+    const newUser = { id:demoId('user'), name, email, passwordHash: await demoHash(password), role: role||'user', isTemp:false, createdAt:new Date().toISOString() };
+    state.users.push(newUser);
+    logDemoActivity(state, u, 'user.created', 'user', newUser.id, newUser.email, { role:newUser.role });
+    persistDemo();
+    return publicUser(newUser);
   }
   if((m=path.match(/^\/users\/([^/]+)\/role$/)) && method==='PUT'){
-    requireRoleIn('admin');
+    const u = requireRoleIn('admin');
     const target = state.users.find(x=>x.id===m[1]); if(!target) fail(404,'User not found');
     if(target.role==='admin' && body.role!=='admin' && adminCount()<=1) fail(400,'At least one admin is required');
-    target.role = body.role; persistDemo();
+    const fromRole = target.role;
+    target.role = body.role;
+    logDemoActivity(state, u, 'user.role_changed', 'user', target.id, target.email, { from:fromRole, to:body.role });
+    persistDemo();
     return publicUser(target);
   }
   if((m=path.match(/^\/users\/([^/]+)$/)) && method==='DELETE'){
@@ -532,7 +575,9 @@ async function demoFetch(path, options = {}){
     if(m[1]===admin.id) fail(400,"You can't remove your own account");
     const target = state.users.find(x=>x.id===m[1]); if(!target) fail(404,'User not found');
     if(target.role==='admin' && adminCount()<=1) fail(400,'At least one admin is required');
-    state.users = state.users.filter(x=>x.id!==m[1]); persistDemo();
+    state.users = state.users.filter(x=>x.id!==m[1]);
+    logDemoActivity(state, admin, 'user.deleted', 'user', target.id, target.email, { role:target.role });
+    persistDemo();
     return null;
   }
 
@@ -542,18 +587,27 @@ async function demoFetch(path, options = {}){
     return { ...state.settings, runningNumber: state.tripSeq, nextNumber: state.tripSeq+1 };
   }
   if(path==='/settings' && method==='PUT'){
-    requireRoleIn('admin');
+    const u = requireRoleIn('admin');
     state.settings = { prefix:body.prefix, includeYear:body.includeYear, padding:body.padding };
+    logDemoActivity(state, u, 'settings.updated', 'settings', null, 'Trip numbering format', state.settings);
     persistDemo();
     return state.settings;
   }
   if(path==='/settings/trip-sequence' && method==='POST'){
-    requireRoleIn('admin');
+    const u = requireRoleIn('admin');
     const maxExisting = state.trips.length ? Math.max(...state.trips.map(t=>t.seq||0)) : 0;
     const desired = body.nextNumber - 1;
     if(desired < maxExisting) fail(400, `Can't go below ${maxExisting+1} — that would collide with an existing trip.`);
-    state.tripSeq = desired; persistDemo();
+    state.tripSeq = desired;
+    logDemoActivity(state, u, 'trip_sequence.updated', 'settings', null, 'Trip numbering sequence', { nextNumber:body.nextNumber });
+    persistDemo();
     return { runningNumber: state.tripSeq, nextNumber: state.tripSeq+1 };
+  }
+
+  // ---- Activity log ----
+  if(path==='/activity' && method==='GET'){
+    requireRoleIn('admin');
+    return state.activityLog.slice(0, 200);
   }
 
   fail(404, 'Not found');
@@ -575,6 +629,7 @@ let uploadCtx = { mode:'existing', targetTripId:null, parsedRows:[], fileName:''
 let editingCustomerId = null; // null => creating new passenger
 let editingTripId = null;     // null => creating new trip
 let numberSettings = { prefix:'EXC', includeYear:true, padding:3, runningNumber:0, nextNumber:1 }; // from GET /settings
+let activityLog = []; // fetched fresh each time the Activity log panel opens
 let loaded = false;
 
 const TEMPLATE_BASE64 = "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";
@@ -678,7 +733,7 @@ function render(){
   if(API_NOT_CONFIGURED && !DEMO_MODE){ app.innerHTML = apiNotConfiguredHTML(); bindAuthEvents(); return; }
   if(authView==='signup'){ app.innerHTML = signupHTML(); bindAuthEvents(); return; }
   if(authView==='login'){ app.innerHTML = loginHTML(); bindAuthEvents(); return; }
-  app.innerHTML = headerHTML() + tempBannerHTML() + (view.mode==='detail' ? detailHTML() : listHTML()) + modalsHTML() + (isAdmin() ? manageUsersModalHTML() + settingsModalHTML() : '');
+  app.innerHTML = headerHTML() + tempBannerHTML() + (view.mode==='detail' ? detailHTML() : listHTML()) + modalsHTML() + (isAdmin() ? manageUsersModalHTML() + settingsModalHTML() + activityLogModalHTML() : '');
   bindEvents();
 }
 
@@ -777,7 +832,7 @@ function headerHTML(){
         <span class="badge" style="background:rgba(15,44,76,0.10);color:var(--navy);">${roleLabel(currentUser.role)}</span>
         ${DEMO_MODE ? `<span class="badge" style="background:rgba(244,185,60,0.25);color:#9C7A16;">🧪 Demo</span>` : ''}
       </div>
-      ${isAdmin() ? `<button class="btn btn-ghost" data-action="open-manage-users">Manage users</button><button class="btn btn-ghost" data-action="open-settings">Settings</button>` : ''}
+      ${isAdmin() ? `<button class="btn btn-ghost" data-action="open-manage-users">Manage users</button><button class="btn btn-ghost" data-action="open-settings">Settings</button><button class="btn btn-ghost" data-action="open-activity-log">Activity log</button>` : ''}
       <button class="btn btn-ghost" data-action="open-upload">Bulk upload</button>
       <button class="btn btn-primary" data-action="open-new-trip">+ New trip</button>
       ${DEMO_MODE ? `<button class="btn btn-ghost" data-action="reset-demo-data" title="Clear all demo data and start over">Reset demo data</button>` : ''}
@@ -986,6 +1041,79 @@ function settingsModalHTML(){
           <button class="btn btn-ghost" data-close="overlay-settings">Close</button>
           <button class="btn btn-primary" data-action="save-number-settings">Save</button>
         </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+const ACTIVITY_LABELS = {
+  'trip.created': 'created trip',
+  'trip.updated': 'edited trip',
+  'trip.deleted': 'deleted trip',
+  'trip.status_changed': 'changed status of trip',
+  'trip.bulk_import': 'bulk-imported passengers into',
+  'passenger.created': 'added passenger',
+  'passenger.updated': 'edited passenger',
+  'passenger.payment_status_changed': 'updated payment status for',
+  'passenger.deleted': 'removed passenger',
+  'user.created': 'created account for',
+  'user.role_changed': 'changed role for',
+  'user.deleted': 'removed account',
+  'settings.updated': 'updated numbering format',
+  'trip_sequence.updated': 'set the next trip number',
+};
+function activityDetailText(entry){
+  const d = entry.details || {};
+  if(entry.action==='trip.status_changed' || entry.action==='passenger.payment_status_changed' || entry.action==='user.role_changed'){
+    return `${d.from || '—'} → ${d.to || '—'}`;
+  }
+  if(entry.action==='trip.updated' || entry.action==='passenger.updated'){
+    return d.updatedFields && d.updatedFields.length ? `Changed: ${d.updatedFields.join(', ')}` : '';
+  }
+  if(entry.action==='trip.bulk_import'){
+    return `${d.importedCount||0} passenger(s), ${d.createdTripCount||0} new trip(s)`;
+  }
+  if(entry.action==='trip_sequence.updated'){
+    return `Next number: ${d.nextNumber}`;
+  }
+  if(entry.action==='user.created' || entry.action==='user.deleted'){
+    return d.role ? `Role: ${roleLabel(d.role)}` : '';
+  }
+  return '';
+}
+function activityLogModalHTML(){
+  const rows = activityLog.length ? activityLog.map(entry=>`
+    <tr>
+      <td>
+        <div class="cust-sub">${fmtDate(entry.createdAt)} ${new Date(entry.createdAt).toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'})}</div>
+      </td>
+      <td>
+        <div class="cust-name">${esc(entry.actorName)}</div>
+        <div class="cust-sub">${esc(entry.actorEmail)}</div>
+      </td>
+      <td>
+        <div>${ACTIVITY_LABELS[entry.action] || esc(entry.action)} <b>${esc(entry.entityLabel || '')}</b></div>
+        <div class="cust-sub">${esc(activityDetailText(entry))}</div>
+      </td>
+    </tr>`).join('') :
+    `<tr><td colspan="3" style="text-align:center;color:var(--ink-soft);padding:28px;">No activity recorded yet.</td></tr>`;
+
+  return `
+  <div class="overlay" id="overlay-activity">
+    <div class="modal" style="max-width:720px;">
+      <div class="modal-head"><h3>Activity log</h3><button class="modal-close" data-close="overlay-activity">✕</button></div>
+      <div class="modal-body">
+        <p class="hint" style="margin:0 0 14px;">The most recent 200 changes across trips, passengers, and accounts — who made each one and when.</p>
+        <div style="overflow-x:auto;max-height:60vh;overflow-y:auto;">
+          <table>
+            <thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <div></div>
+        <button class="btn btn-ghost" data-close="overlay-activity">Close</button>
       </div>
     </div>
   </div>`;
@@ -1618,6 +1746,18 @@ function bindEvents(){
   if(openSettings) openSettings.addEventListener('click', ()=>openOverlay('overlay-settings'));
   const saveSettingsBtn = app.querySelector('[data-action="save-number-settings"]');
   if(saveSettingsBtn) saveSettingsBtn.addEventListener('click', handleSaveNumberSettings);
+
+  const openActivityLog = app.querySelector('[data-action="open-activity-log"]');
+  if(openActivityLog) openActivityLog.addEventListener('click', async ()=>{
+    try{
+      activityLog = await apiFetch('/activity');
+    }catch(e){
+      showToast(e.message || 'Could not load the activity log');
+      activityLog = [];
+    }
+    render();
+    openOverlay('overlay-activity');
+  });
   const applyNextNumberBtn = app.querySelector('[data-action="apply-next-number"]');
   if(applyNextNumberBtn) applyNextNumberBtn.addEventListener('click', handleApplyNextNumber);
 

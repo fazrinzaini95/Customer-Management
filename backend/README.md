@@ -45,6 +45,7 @@ Check it's alive: `curl http://localhost:4000/health`
 | Passengers | `GET/POST /trips/:tripId/passengers`, `PUT/DELETE /passengers/:id`, `PUT /passengers/:id/payment-status` |
 | Users (admin only) | `GET/POST /users`, `PUT /users/:id/role`, `DELETE /users/:id` |
 | Settings | `GET /settings`, `PUT /settings` (admin), `POST /settings/trip-sequence` (admin) |
+| Activity log | `GET /activity` (admin) — who did what, when |
 | Bootstrap | `GET /bootstrap` — everything needed right after login, in one call |
 
 Full request/response shapes are in the route files themselves
