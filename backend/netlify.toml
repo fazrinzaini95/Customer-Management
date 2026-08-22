@@ -1,0 +1,28 @@
+# Deploys this backend as its own Netlify site: the Express API runs as a
+# single serverless Function, reachable at /api/*. This site's only real
+# job is serving that function — the `public` folder is just a placeholder
+# so Netlify has something to publish.
+
+[build]
+  functions = "netlify/functions"
+  publish = "public"
+  command = "echo 'no build step needed'"
+
+# Forwards every /api/... request to the single "api" function. Netlify
+# strips the "/api" prefix via :splat, so Express still sees the same
+# paths it always has (e.g. /auth/login, /trips, /bootstrap).
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["pg"]
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
