@@ -221,6 +221,35 @@ same-origin, so CORS is no longer needed at all.
   Express routing → Postgres) works end-to-end under the new layout
   before ever touching the live site.
 
+## 18. Persistent sessions — no more re-login on every page refresh
+The JWT was previously kept in memory only, by design — a page refresh
+meant signing in again every time. Now saved to `localStorage` and
+restored automatically on load, verified against the API (`GET /auth/me`)
+before trusting it.
+
+- `saveSession()` / `clearSession()` called from every sign-in path
+  (signup, login, temp-account) and on logout, storing `{ token,
+  demoMode }` so a demo-mode session restores back into demo mode, not
+  accidentally into real-API mode.
+- On load, `restoreSession()` checks for a saved session, and if found,
+  validates it against `GET /auth/me` before trusting it — an
+  expired/revoked token falls back to a clean login screen with the stale
+  entry removed, rather than getting stuck.
+- Added the missing `GET /auth/me` handler to `demoFetch()` (the client-
+  side mock), since session-restore now depends on it in both modes.
+- All `localStorage` calls are wrapped in `try/catch` — if storage is
+  unavailable (e.g. a sandboxed preview), the app just degrades to the
+  previous behavior (session doesn't survive a refresh) instead of
+  throwing.
+- **Verified with jsdom**, not just reasoned through: (1) signed up, created
+  a trip, then loaded a *second, completely separate* script execution
+  sharing the same simulated `localStorage` — confirmed it lands signed in
+  with the trip already visible, no login screen; (2) confirmed logout
+  actually clears the saved session; (3) seeded `localStorage` with a
+  stale/invalid token and confirmed the app correctly falls back to the
+  login screen with the bad entry cleaned up, rather than hanging or
+  erroring.
+
 ---
 
 ## Data shapes (as returned by the API — see `backend/README.md` for full endpoint reference)
