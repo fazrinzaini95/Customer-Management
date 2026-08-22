@@ -1,0 +1,29 @@
+version: "3.8"
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: manifest_user
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: manifest
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://manifest_user:changeme@db:5432/manifest
+      JWT_SECRET: local-dev-secret-change-in-production
+      JWT_EXPIRES_IN: 8h
+      PORT: 4000
+      CORS_ORIGIN: "*"
+      DB_POOL_MAX: 5
+    ports:
+      - "4000:4000"
+
+volumes:
+  pgdata:
