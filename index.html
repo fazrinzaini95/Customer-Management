@@ -246,14 +246,16 @@
    hosted database. Set API_BASE to your deployed API's URL once
    it's live (see backend/DEPLOYMENT.md).
    ========================================================= */
-const API_BASE = 'https://YOUR-API-SITE.netlify.app/api';
+const API_BASE = '/api';
 const API_NOT_CONFIGURED = API_BASE.includes('YOUR-API-SITE');
 
 let authToken = null; // JWT, kept in memory only — refreshing the page requires signing in again
+let DEMO_MODE = false; // true = every request is served locally by demoFetch(), nothing leaves the browser
 
 async function apiFetch(path, options = {}){
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if(authToken) headers['Authorization'] = 'Bearer ' + authToken;
+  if(DEMO_MODE) return demoFetch(path, { ...options, headers });
   let res;
   try{
     res = await fetch(API_BASE + path, { ...options, headers });
@@ -271,6 +273,253 @@ async function apiFetch(path, options = {}){
     throw err;
   }
   return body;
+}
+
+/* =========================================================
+   Demo mode
+   A complete mock of the backend's routes, running entirely in this
+   browser tab and persisted to localStorage — so the app can be tried
+   end-to-end (accounts, roles, approval workflow, bulk upload) before a
+   real API is deployed. Nothing here leaves the browser; nothing here is
+   shared between people. Mirrors backend/src/routes/*.js route-for-route
+   so switching to a real API later needs zero UI changes.
+   ========================================================= */
+const DEMO_STORAGE_KEY = 'excapism_demo_v1';
+let demoState = null;
+function demoId(prefix){ return prefix + '_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4); }
+async function demoHash(str){
+  const enc = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function ensureDemoState(){
+  if(demoState) return demoState;
+  try{
+    const raw = localStorage.getItem(DEMO_STORAGE_KEY);
+    demoState = raw ? JSON.parse(raw) : null;
+  }catch(e){ demoState = null; }
+  if(!demoState){
+    demoState = { users:[], trips:[], passengers:[], settings:{prefix:'EXC',includeYear:true,padding:3}, tripSeq:0 };
+  }
+  return demoState;
+}
+function persistDemo(){
+  try{ localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(demoState)); }catch(e){ /* demo data just won't survive a refresh */ }
+}
+function resetDemoData(){
+  demoState = { users:[], trips:[], passengers:[], settings:{prefix:'EXC',includeYear:true,padding:3}, tripSeq:0 };
+  persistDemo();
+}
+
+async function demoFetch(path, options = {}){
+  const state = ensureDemoState();
+  const method = (options.method || 'GET').toUpperCase();
+  const body = options.body ? JSON.parse(options.body) : {};
+  const authHeader = (options.headers && options.headers['Authorization']) || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const me = token ? state.users.find(u=>u.id===token) : null;
+
+  function fail(status, error){ const e = new Error(error); e.status = status; e.body = { error }; throw e; }
+  function requireAuthed(){ if(!me) fail(401,'Missing or invalid Authorization header'); return me; }
+  function requireRoleIn(...roles){ const u = requireAuthed(); if(!roles.includes(u.role)) fail(403,'You do not have permission to perform this action'); return u; }
+  function publicUser(u){ return { id:u.id, name:u.name, email:u.email, role:u.role, isTemp:!!u.isTemp, createdAt:u.createdAt }; }
+  function adminCount(){ return state.users.filter(u=>u.role==='admin').length; }
+  let m;
+
+  // ---- Auth ----
+  if(path==='/auth/signup' && method==='POST'){
+    const { name, email, password } = body;
+    if(!name || !email) fail(400,'Name and email are required');
+    if(!password || password.length<6) fail(400,'Password must be at least 6 characters');
+    if(state.users.some(u=>u.email.toLowerCase()===String(email).toLowerCase())) fail(409,'An account with that email already exists');
+    const role = state.users.length===0 ? 'admin' : 'user';
+    const u = { id:demoId('user'), name, email, passwordHash: await demoHash(password), role, isTemp:false, createdAt:new Date().toISOString() };
+    state.users.push(u); persistDemo();
+    return { token:u.id, user:publicUser(u) };
+  }
+  if(path==='/auth/login' && method==='POST'){
+    const { email, password } = body;
+    const u = state.users.find(x=>x.email.toLowerCase()===String(email||'').toLowerCase());
+    if(!u) fail(401,'Incorrect email or password');
+    if(await demoHash(password||'') !== u.passwordHash) fail(401,'Incorrect email or password');
+    return { token:u.id, user:publicUser(u) };
+  }
+  if(path==='/auth/temp-account' && method==='POST'){
+    const suffix = Math.random().toString(36).slice(2,10);
+    const email = `guest.${suffix}@temp.excapism`;
+    const password = Math.random().toString(36).slice(2,12);
+    const role = state.users.length===0 ? 'admin' : 'user';
+    const u = { id:demoId('user'), name:'Guest User', email, passwordHash: await demoHash(password), role, isTemp:true, createdAt:new Date().toISOString() };
+    state.users.push(u); persistDemo();
+    return { token:u.id, user:publicUser(u), tempPassword:password };
+  }
+
+  // ---- Bootstrap ----
+  if(path==='/bootstrap' && method==='GET'){
+    const u = requireAuthed();
+    return {
+      trips: state.trips.map(t=>({ ...t, passengerCount: state.passengers.filter(p=>p.tripId===t.id).length })),
+      passengers: state.passengers.slice(),
+      users: u.role==='admin' ? state.users.map(publicUser) : undefined,
+      settings: { ...state.settings, runningNumber: state.tripSeq, nextNumber: state.tripSeq+1 }
+    };
+  }
+
+  // ---- Trips ----
+  if(path==='/trips' && method==='POST'){
+    requireAuthed();
+    if(!body.name) fail(400,'Trip name is required');
+    state.tripSeq += 1;
+    const t = { id:demoId('trip'), seq:state.tripSeq, name:body.name, type:body.type||'open', destination:body.destination||null,
+      startDate:body.startDate||null, endDate:body.endDate||null, status:'Draft',
+      history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString() };
+    state.trips.push(t); persistDemo();
+    return t;
+  }
+  if((m=path.match(/^\/trips\/([^/]+)$/)) && method==='PUT'){
+    requireAuthed();
+    const t = state.trips.find(x=>x.id===m[1]); if(!t) fail(404,'Trip not found');
+    Object.assign(t, body); persistDemo();
+    return t;
+  }
+  if((m=path.match(/^\/trips\/([^/]+)$/)) && method==='DELETE'){
+    requireRoleIn('admin');
+    const idx = state.trips.findIndex(x=>x.id===m[1]); if(idx<0) fail(404,'Trip not found');
+    state.trips.splice(idx,1);
+    state.passengers = state.passengers.filter(p=>p.tripId!==m[1]);
+    persistDemo();
+    return null;
+  }
+  if((m=path.match(/^\/trips\/([^/]+)\/status$/)) && method==='POST'){
+    const u = requireAuthed();
+    const t = state.trips.find(x=>x.id===m[1]); if(!t) fail(404,'Trip not found');
+    const TRANSITIONS = {
+      Draft:[{to:'Pending',anyRole:true}],
+      Pending:[{to:'Approved',anyRole:false},{to:'Declined',anyRole:false}],
+      Approved:[{to:'Completed',anyRole:false},{to:'Cancelled',anyRole:false}],
+      Declined:[{to:'Draft',anyRole:true}],
+      Cancelled:[{to:'Draft',anyRole:true}],
+      Completed:[]
+    };
+    const move = (TRANSITIONS[t.status]||[]).find(a=>a.to===body.status);
+    if(!move) fail(400,`Can't move a trip from ${t.status} to ${body.status}`);
+    if(!move.anyRole && !['approver','admin'].includes(u.role)) fail(403,'Only an approver or admin can do that');
+    t.status = body.status;
+    t.history.push({status:body.status, date:new Date().toISOString()});
+    persistDemo();
+    return t;
+  }
+  if(path==='/trips/bulk-import' && method==='POST'){
+    requireAuthed();
+    const rows = body.rows || [];
+    const groups = new Map();
+    rows.forEach(r=>{
+      const type = /private/i.test(r.tripType||'') ? 'private' : 'open';
+      const location = (r.location||'').trim() || 'Unspecified destination';
+      const key = type+'|'+location.toLowerCase();
+      if(!groups.has(key)) groups.set(key,{type,location,rows:[]});
+      groups.get(key).rows.push(r);
+    });
+    let importedCount=0, createdTripCount=0; const tripIds=[];
+    for(const g of groups.values()){
+      let t = state.trips.find(x=>normType(x.type)===g.type && String(x.destination||'').trim().toLowerCase()===g.location.toLowerCase());
+      if(!t){
+        state.tripSeq += 1;
+        t = { id:demoId('trip'), seq:state.tripSeq, name:g.location, type:g.type, destination:g.location, startDate:null, endDate:null,
+          status:'Draft', history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString() };
+        state.trips.push(t); createdTripCount += 1;
+      }
+      tripIds.push(t.id);
+      g.rows.forEach(r=>{
+        state.passengers.push({ id:demoId('cust'), tripId:t.id, name:r.name, dob:r.dob||null, phone:r.phone||null,
+          idNumber:r.idNumber||null, medicalCondition:r.medicalCondition||null, passportNote:r.passportNote||null,
+          amount:0, depositAmount:0, paymentStatus:'Pending', notes:r.notes||null, submittedAt:r.timestamp||null,
+          addedAt:new Date().toISOString() });
+        importedCount += 1;
+      });
+    }
+    persistDemo();
+    return { importedCount, createdTripCount, tripIds:[...new Set(tripIds)] };
+  }
+
+  // ---- Passengers ----
+  if((m=path.match(/^\/trips\/([^/]+)\/passengers$/)) && method==='POST'){
+    requireAuthed();
+    const c = { id:demoId('cust'), tripId:m[1], amount:0, depositAmount:0, paymentStatus:'Pending', addedAt:new Date().toISOString(), ...body };
+    state.passengers.push(c); persistDemo();
+    return c;
+  }
+  if((m=path.match(/^\/passengers\/([^/]+)$/)) && method==='PUT'){
+    requireAuthed();
+    const c = state.passengers.find(x=>x.id===m[1]); if(!c) fail(404,'Passenger not found');
+    Object.assign(c, body); persistDemo();
+    return c;
+  }
+  if((m=path.match(/^\/passengers\/([^/]+)\/payment-status$/)) && method==='PUT'){
+    requireAuthed();
+    const c = state.passengers.find(x=>x.id===m[1]); if(!c) fail(404,'Passenger not found');
+    c.paymentStatus = body.paymentStatus; persistDemo();
+    return c;
+  }
+  if((m=path.match(/^\/passengers\/([^/]+)$/)) && method==='DELETE'){
+    requireRoleIn('admin');
+    const idx = state.passengers.findIndex(x=>x.id===m[1]); if(idx<0) fail(404,'Passenger not found');
+    state.passengers.splice(idx,1); persistDemo();
+    return null;
+  }
+
+  // ---- Users ----
+  if(path==='/users' && method==='GET'){
+    requireRoleIn('admin');
+    return state.users.map(publicUser);
+  }
+  if(path==='/users' && method==='POST'){
+    requireRoleIn('admin');
+    const { name, email, password, role } = body;
+    if(!name || !email) fail(400,'Name and email are required');
+    if(!password || password.length<6) fail(400,'Password must be at least 6 characters');
+    if(state.users.some(u=>u.email.toLowerCase()===String(email).toLowerCase())) fail(409,'That email is already registered');
+    const u = { id:demoId('user'), name, email, passwordHash: await demoHash(password), role: role||'user', isTemp:false, createdAt:new Date().toISOString() };
+    state.users.push(u); persistDemo();
+    return publicUser(u);
+  }
+  if((m=path.match(/^\/users\/([^/]+)\/role$/)) && method==='PUT'){
+    requireRoleIn('admin');
+    const target = state.users.find(x=>x.id===m[1]); if(!target) fail(404,'User not found');
+    if(target.role==='admin' && body.role!=='admin' && adminCount()<=1) fail(400,'At least one admin is required');
+    target.role = body.role; persistDemo();
+    return publicUser(target);
+  }
+  if((m=path.match(/^\/users\/([^/]+)$/)) && method==='DELETE'){
+    const admin = requireRoleIn('admin');
+    if(m[1]===admin.id) fail(400,"You can't remove your own account");
+    const target = state.users.find(x=>x.id===m[1]); if(!target) fail(404,'User not found');
+    if(target.role==='admin' && adminCount()<=1) fail(400,'At least one admin is required');
+    state.users = state.users.filter(x=>x.id!==m[1]); persistDemo();
+    return null;
+  }
+
+  // ---- Settings ----
+  if(path==='/settings' && method==='GET'){
+    requireAuthed();
+    return { ...state.settings, runningNumber: state.tripSeq, nextNumber: state.tripSeq+1 };
+  }
+  if(path==='/settings' && method==='PUT'){
+    requireRoleIn('admin');
+    state.settings = { prefix:body.prefix, includeYear:body.includeYear, padding:body.padding };
+    persistDemo();
+    return state.settings;
+  }
+  if(path==='/settings/trip-sequence' && method==='POST'){
+    requireRoleIn('admin');
+    const maxExisting = state.trips.length ? Math.max(...state.trips.map(t=>t.seq||0)) : 0;
+    const desired = body.nextNumber - 1;
+    if(desired < maxExisting) fail(400, `Can't go below ${maxExisting+1} — that would collide with an existing trip.`);
+    state.tripSeq = desired; persistDemo();
+    return { runningNumber: state.tripSeq, nextNumber: state.tripSeq+1 };
+  }
+
+  fail(404, 'Not found');
 }
 
 /* =========================================================
@@ -389,7 +638,7 @@ async function setTripStatus(tripId, newStatus){
 function render(){
   const app = document.getElementById('app');
   if(!loaded){ app.innerHTML = '<div class="empty"><p>Loading manifest…</p></div>'; return; }
-  if(API_NOT_CONFIGURED){ app.innerHTML = apiNotConfiguredHTML(); return; }
+  if(API_NOT_CONFIGURED && !DEMO_MODE){ app.innerHTML = apiNotConfiguredHTML(); bindAuthEvents(); return; }
   if(authView==='signup'){ app.innerHTML = signupHTML(); bindAuthEvents(); return; }
   if(authView==='login'){ app.innerHTML = loginHTML(); bindAuthEvents(); return; }
   app.innerHTML = headerHTML() + tempBannerHTML() + (view.mode==='detail' ? detailHTML() : listHTML()) + modalsHTML() + (isAdmin() ? manageUsersModalHTML() + settingsModalHTML() : '');
@@ -418,7 +667,11 @@ function apiNotConfiguredHTML(){
     <p style="font-size:13px;color:var(--ink-soft);margin:0 0 14px;">This copy of the app doesn't know where its API lives yet.</p>
     <p style="font-size:13px;color:var(--ink);margin:0 0 14px;">Deploy <code>backend/</code> to Netlify (see <code>backend/DEPLOYMENT.md</code>), then edit the <code>API_BASE</code> constant near the top of this file's <code>&lt;script&gt;</code> to point at it, e.g.:</p>
     <pre style="background:var(--paper-dim);border-radius:9px;padding:12px 14px;font-family:var(--font-mono);font-size:12px;overflow-x:auto;white-space:pre-wrap;">const API_BASE = 'https://your-api-site.netlify.app/api';</pre>
-    <p class="hint" style="margin-top:14px;">Until then, signing in or creating an account has nothing to talk to.</p>
+    <div style="text-align:center;margin-top:18px;padding-top:16px;border-top:1.5px dashed var(--line);">
+      <p class="hint" style="margin:0 0 10px;">Or skip that for now and click around first —</p>
+      <button type="button" class="btn btn-gold" data-action="enter-demo-mode">Try it in demo mode</button>
+      <p class="hint" style="margin-top:10px;">Everything works exactly the same, but data stays in this browser only — nothing is shared with a team, and nothing carries over once you switch to the real backend.</p>
+    </div>
   `);
 }
 function tempAccountPrompt(){
@@ -431,6 +684,7 @@ function tempAccountPrompt(){
 function signupHTML(){
   const isBootstrap = users.length===0;
   return authShell(`
+    ${DEMO_MODE ? `<div style="background:var(--paper-dim);border-radius:9px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:var(--navy-deep);font-weight:600;text-align:center;">🧪 Demo mode — nothing here leaves this browser</div>` : ''}
     <h3 style="font-family:var(--font-display);font-size:18px;margin:0 0 4px;color:var(--navy-deep);">Create an account</h3>
     <p style="font-size:13px;color:var(--ink-soft);margin:0 0 18px;">${isBootstrap ? "You're the first person here — this account will be the admin." : "New accounts start with basic User access; an admin can change your role later."}</p>
     ${authError ? `<p style="color:var(--coral);font-size:13px;margin:0 0 12px;font-weight:600;">${esc(authError)}</p>` : ''}
@@ -446,6 +700,7 @@ function signupHTML(){
 }
 function loginHTML(){
   return authShell(`
+    ${DEMO_MODE ? `<div style="background:var(--paper-dim);border-radius:9px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:var(--navy-deep);font-weight:600;text-align:center;">🧪 Demo mode — nothing here leaves this browser</div>` : ''}
     <h3 style="font-family:var(--font-display);font-size:18px;margin:0 0 4px;color:var(--navy-deep);">Sign in</h3>
     <p style="font-size:13px;color:var(--ink-soft);margin:0 0 18px;">Welcome back.</p>
     ${authError ? `<p style="color:var(--coral);font-size:13px;margin:0 0 12px;font-weight:600;">${esc(authError)}</p>` : ''}
@@ -483,10 +738,12 @@ function headerHTML(){
       <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft);margin-right:6px;">
         <span>Signed in as <b style="color:var(--ink);">${esc(currentUser.name)}</b></span>
         <span class="badge" style="background:rgba(15,44,76,0.10);color:var(--navy);">${roleLabel(currentUser.role)}</span>
+        ${DEMO_MODE ? `<span class="badge" style="background:rgba(244,185,60,0.25);color:#9C7A16;">🧪 Demo</span>` : ''}
       </div>
       ${isAdmin() ? `<button class="btn btn-ghost" data-action="open-manage-users">Manage users</button><button class="btn btn-ghost" data-action="open-settings">Settings</button>` : ''}
       <button class="btn btn-ghost" data-action="open-upload">Bulk upload</button>
       <button class="btn btn-primary" data-action="open-new-trip">+ New trip</button>
+      ${DEMO_MODE ? `<button class="btn btn-ghost" data-action="reset-demo-data" title="Clear all demo data and start over">Reset demo data</button>` : ''}
       <button class="btn btn-ghost" data-action="do-logout" title="Log out">Log out</button>
     </div>
   </div>`;
@@ -1119,6 +1376,9 @@ function bindAuthEvents(){
   const showLogin = app.querySelector('[data-action="show-login"]');
   if(showLogin) showLogin.addEventListener('click', ()=>{ authError=''; authView='login'; render(); });
 
+  const enterDemo = app.querySelector('[data-action="enter-demo-mode"]');
+  if(enterDemo) enterDemo.addEventListener('click', ()=>{ DEMO_MODE = true; authView='login'; render(); });
+
   app.querySelectorAll('input').forEach(inp=>{
     inp.addEventListener('keydown', (e)=>{
       if(e.key==='Enter'){
@@ -1290,6 +1550,14 @@ function bindEvents(){
 
   const logoutBtn = app.querySelector('[data-action="do-logout"]');
   if(logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+
+  const resetDemoBtn = app.querySelector('[data-action="reset-demo-data"]');
+  if(resetDemoBtn) resetDemoBtn.addEventListener('click', ()=>{
+    if(!confirm('Clear all demo trips, passengers, and accounts, and start over?')) return;
+    resetDemoData();
+    handleLogout();
+    showToast('Demo data cleared');
+  });
 
   const dismissBanner = app.querySelector('[data-action="dismiss-temp-banner"]');
   if(dismissBanner) dismissBanner.addEventListener('click', ()=>{ tempCredentialsBanner=null; render(); });

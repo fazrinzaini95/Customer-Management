@@ -1,0 +1,17 @@
+{
+  "name": "excapism-passenger-manifest",
+  "private": true,
+  "description": "Dependencies for the bundled Netlify Function that serves the API (see backend/src/app.js). The static frontend (index.html) has no build step of its own — this file exists purely so Netlify installs the API's dependencies where the function's module resolution can find them.",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.12.0",
+    "serverless-http": "^3.2.0",
+    "zod": "^3.23.8"
+  }
+}

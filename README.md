@@ -34,30 +34,38 @@ trips/passengers, saving changes. It does **not** store any app data in the
 browser — every trip, passenger, and account lives in Postgres, so
 everyone who signs in sees the same shared data.
 
+**Frontend and backend deploy as a single Netlify site.** The API runs as
+a Netlify Function (`backend/netlify/functions/api.js`) served from the
+same domain as the static frontend, via the `/api/*` redirect in
+`netlify.toml`. Same origin means `API_BASE` in `index.html` is just
+`/api` — no CORS configuration needed at all, since same-origin requests
+never trigger the browser's CORS checks in the first place. (An
+alternative two-site setup — API on its own separate Netlify site — is
+still documented in `backend/DEPLOYMENT.md` for anyone who'd rather split
+them, but the single-site setup is what this repo is configured for by
+default.)
+
 ## Running it locally
 
-**1. Get the backend running** (see `backend/README.md` for details):
+**1. Get Postgres + the API running** (see `backend/README.md` for
+details):
 ```bash
 cd backend
 cp .env.example .env      # point DATABASE_URL at local Postgres
 npm install
 npm run migrate
-npm run dev
+npm run dev                # runs on http://localhost:4000
 ```
 
 **2. Point the frontend at it.** Open `index.html` and edit the `API_BASE`
 constant near the top of the `<script>` tag:
 ```js
-const API_BASE = 'http://localhost:4000'; // or wherever the API is running
+const API_BASE = 'http://localhost:4000'; // local dev only — deployed, this is '/api'
 ```
 
 **3. Open `index.html`** in a browser (just double-click it, or serve it
 with any static file server). Sign up — the first account created becomes
 admin automatically.
-
-If `API_BASE` is still the placeholder value, the app shows a "Backend not
-configured" screen instead of the login form, so it's obvious what to fix
-rather than failing silently.
 
 ---
 
@@ -88,24 +96,38 @@ rather than failing silently.
   - Email/password sign-up (first account ever becomes admin
     automatically), or a one-click temporary/guest account for quick
     testing.
+- **Demo mode** — a client-side mock of the entire API, for trying the app
+  without any backend at all. Only reachable when `API_BASE` is left as
+  the placeholder value (see `docs/DEPLOYMENT.md`) — once pointed at a
+  real deployed API, as this repo now is, the app goes straight to sign-in.
 
 ---
 
 ## Deploying
 
-This is now a two-part deploy: the API (its own Netlify site, talking to
-Supabase) and the frontend (a second, separate Netlify site).
+One Netlify site serves both halves. In Netlify: **Add new site → Import
+an existing project** → this repo, then:
 
-1. **Backend first** — follow `backend/DEPLOYMENT.md` (Netlify + Supabase +
-   GitHub, step by step). Note its URL once it's live.
-2. **Frontend** — edit `API_BASE` in `index.html` to that URL, then deploy
-   this repo's root the same way (see `docs/DEPLOYMENT.md` for the two
-   Netlify deploy paths — drag-and-drop or Git-connected).
-3. Set the backend's `CORS_ORIGIN` environment variable to the frontend's
-   final URL — the API fails closed (blocks all cross-origin requests) if
-   this isn't set correctly, so this step isn't optional.
+| Field | Value |
+|---|---|
+| Base directory | *(leave empty — repo root)* |
+| Build command | *(leave empty — `netlify.toml` sets a no-op)* |
+| Publish directory | `.` |
+| Functions directory | `backend/netlify/functions` |
 
-Once both are live and pointed at each other, everyone who opens the
-frontend URL and signs in is looking at the same shared trips, passengers,
-and accounts — that's the part that didn't work before this was wired to a
-real backend.
+**Environment variables** (needed by the API function):
+- `DATABASE_URL` — Supabase's **pooler** connection string (port `6543`,
+  not `5432` — see `backend/DEPLOYMENT.md` for why)
+- `JWT_SECRET` — a long random string
+- `JWT_EXPIRES_IN` — `8h` (or your preference)
+
+`CORS_ORIGIN` isn't needed in this single-site setup — leave it unset.
+
+Before deploying, make sure the database schema has been applied to your
+Supabase project (`backend/db/schema.sql`, via the SQL Editor or `psql` —
+see `backend/DEPLOYMENT.md`), and that `index.html`'s `API_BASE` is set to
+`/api`.
+
+Once deployed, everyone who opens the site's URL and signs in is looking
+at the same shared trips, passengers, and accounts — that's the part that
+didn't work before this was wired to a real backend.

@@ -14,20 +14,36 @@
 -- - app_settings is a single-row table (id is CHECK'd to always be 1) that
 --   holds the trip-numbering format (prefix / includeYear / padding) — the
 --   same pattern the accounting app uses for its own settings.
+-- - Every statement below is safe to re-run: types use a DO block with
+--   exception handling (Postgres has no native "CREATE TYPE IF NOT
+--   EXISTS"), and everything else uses IF NOT EXISTS / ON CONFLICT. Paste
+--   the whole file and run it any number of times without worrying about
+--   what already landed from a previous partial run.
 -- ============================================================
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;  -- gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS citext;    -- case-insensitive email
 
-CREATE TYPE user_role       AS ENUM ('user', 'approver', 'admin');
-CREATE TYPE trip_type       AS ENUM ('open', 'private');
-CREATE TYPE trip_status     AS ENUM ('Draft', 'Pending', 'Approved', 'Declined', 'Cancelled', 'Completed');
-CREATE TYPE payment_status  AS ENUM ('Pending', 'Deposit', 'Paid', 'Cancelled');
+DO $$ BEGIN
+  CREATE TYPE user_role AS ENUM ('user', 'approver', 'admin');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE trip_type AS ENUM ('open', 'private');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE trip_status AS ENUM ('Draft', 'Pending', 'Approved', 'Declined', 'Cancelled', 'Completed');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE payment_status AS ENUM ('Pending', 'Deposit', 'Paid', 'Cancelled');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ---------------------------------------------------------------
 -- Users & auth
 -- ---------------------------------------------------------------
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name          TEXT NOT NULL,
   email         CITEXT UNIQUE NOT NULL,
@@ -41,12 +57,12 @@ CREATE TABLE users (
 -- ---------------------------------------------------------------
 -- Trip numbering
 -- ---------------------------------------------------------------
-CREATE SEQUENCE trip_seq START 1;
+CREATE SEQUENCE IF NOT EXISTS trip_seq START 1;
 
 -- ---------------------------------------------------------------
 -- Trips
 -- ---------------------------------------------------------------
-CREATE TABLE trips (
+CREATE TABLE IF NOT EXISTS trips (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   seq          INT NOT NULL UNIQUE DEFAULT nextval('trip_seq'),
   name         TEXT NOT NULL,
@@ -60,13 +76,13 @@ CREATE TABLE trips (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_trips_status ON trips(status);
-CREATE INDEX idx_trips_type_destination ON trips(type, destination);  -- for bulk-import grouping lookups
+CREATE INDEX IF NOT EXISTS idx_trips_status ON trips(status);
+CREATE INDEX IF NOT EXISTS idx_trips_type_destination ON trips(type, destination);  -- for bulk-import grouping lookups
 
 -- ---------------------------------------------------------------
 -- Passengers
 -- ---------------------------------------------------------------
-CREATE TABLE passengers (
+CREATE TABLE IF NOT EXISTS passengers (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   trip_id            UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
   name               TEXT NOT NULL,
@@ -83,12 +99,12 @@ CREATE TABLE passengers (
   added_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_passengers_trip_id ON passengers(trip_id);
+CREATE INDEX IF NOT EXISTS idx_passengers_trip_id ON passengers(trip_id);
 
 -- ---------------------------------------------------------------
 -- App settings (trip-numbering format)
 -- ---------------------------------------------------------------
-CREATE TABLE app_settings (
+CREATE TABLE IF NOT EXISTS app_settings (
   id         INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),  -- enforces exactly one row
   data       JSONB NOT NULL DEFAULT '{"prefix":"EXC","includeYear":true,"padding":3}',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

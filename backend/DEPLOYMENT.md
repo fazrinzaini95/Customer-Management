@@ -1,8 +1,17 @@
 # Deploying the API — Netlify + Supabase + GitHub
 
-This backend deploys as its **own Netlify site** (separate from the
-frontend's), running as a single serverless Function, talking to a
-Supabase Postgres database.
+> **This describes the two-site setup (API on its own separate Netlify
+> site).** The repo is actually configured for the simpler single-site
+> setup by default — one Netlify site serving both the frontend and this
+> API together, no CORS configuration needed at all. See the root
+> `README.md`'s "Deploying" section for that path; it's what's currently
+> deployed. Steps 1–3 below (Supabase setup + schema) are identical either
+> way — only the Netlify site configuration in step 4 differs.
+
+This backend can also deploy as its **own Netlify site** (separate from
+the frontend's), running as a single serverless Function, talking to a
+Supabase Postgres database. Useful if you'd rather keep the two
+independently deployable, or scale/manage them separately later.
 
 ## 1. Create the Supabase project
 

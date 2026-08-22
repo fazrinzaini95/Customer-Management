@@ -157,6 +157,72 @@ entire `window.storage`/`localStorage` adapter with a real API client:
 
 ---
 
+## 16. Demo mode — try it without deploying a backend first
+Added a complete client-side mock of the entire API (`demoFetch()`), so the
+app can be tried end-to-end with zero setup — no Supabase, no Netlify
+deploy for the backend, nothing.
+
+- On the "Backend not configured" screen, a **"Try it in demo mode"**
+  button switches every request over to `demoFetch()`, which replicates
+  every backend route (auth, trips, passengers, users, settings,
+  bulk-import) route-for-route against `localStorage` instead of Postgres.
+  Same request/response shapes as the real API, same role rules (a demo
+  User still can't approve a trip or delete a passenger), same trip-number
+  sequencing logic.
+- A "🧪 Demo" badge appears in the header and on the auth screens whenever
+  it's active, plus a **"Reset demo data"** button to clear everything and
+  start over.
+- Data persists across page refreshes (via `localStorage`) but never
+  leaves the browser and is never shared between people — this is
+  explicitly a single-browser sandbox, not a substitute for the real
+  backend once actually going live with a team.
+- No changes needed to any handler function (`handleSaveTrip`,
+  `handleSignup`, etc.) — they all already went through the single
+  `apiFetch()` chokepoint, so demo mode only required teaching that one
+  function to route to the mock instead of the network.
+- **Caught and fixed a real bug while verifying this**: `apiFetch()`
+  originally short-circuited to the demo router *before* attaching the
+  `Authorization` header (that only happened in the real-fetch branch
+  below it), so every demo-mode request after login looked
+  unauthenticated. Found via an actual jsdom test that clicks through
+  demo mode end-to-end — sign up → create a trip → add a passenger →
+  submit for approval → approve it → log out → log back in → confirm the
+  trip is still there — with `fetch()` itself stubbed to throw if demo
+  mode ever tried to use the network. All steps pass now.
+
+## 17. Consolidated to a single Netlify site (frontend + API together)
+Previously deployed as two separate Netlify sites with CORS between them.
+Reconfigured to one site: the API runs as a Netlify Function served from
+the same domain as the static frontend, via an `/api/*` redirect —
+same-origin, so CORS is no longer needed at all.
+
+- Added root-level `package.json` — exists purely so Netlify's install
+  step populates `node_modules` at the repo root, where the API function's
+  dependencies (`express`, `pg`, etc.) resolve to via normal upward
+  Node module resolution, since `backend/` itself carries no
+  `node_modules` of its own.
+- `netlify.toml` (root) now sets `functions = "backend/netlify/functions"`
+  alongside the existing static-publish config, plus the `/api/*` →
+  function redirect and esbuild bundler settings (previously only in
+  `backend/netlify.toml`, which remains as documentation for anyone who'd
+  rather split the two sites again).
+- `index.html`'s `API_BASE` simplified from a full cross-origin URL to
+  `/api`.
+- **Verified locally before handing off**, not just reasoned through:
+  built a temp directory mirroring the exact deploy layout (root
+  `package.json`, zero `node_modules` under `backend/`), ran a real `npm
+  install` at that root, then loaded `backend/netlify/functions/api.js`
+  directly to confirm module resolution actually reaches the root
+  `node_modules` — it does. Then invoked the Lambda-style `handler()`
+  function directly (the same interface Netlify calls) against a real
+  local Postgres database for both `/health` and `/auth/signup` — both
+  returned correct `200`/`201` responses with a real issued JWT,
+  confirming the whole chain (function loading → dependency resolution →
+  Express routing → Postgres) works end-to-end under the new layout
+  before ever touching the live site.
+
+---
+
 ## Data shapes (as returned by the API — see `backend/README.md` for full endpoint reference)
 
 ```js
