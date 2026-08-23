@@ -40,6 +40,14 @@ DO $$ BEGIN
   CREATE TYPE payment_status AS ENUM ('Pending', 'Deposit', 'Paid', 'Cancelled');
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
+DO $$ BEGIN
+  CREATE TYPE ticket_purchaser AS ENUM ('Self Purchase', 'Excapism');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE ticket_status AS ENUM ('Pending', 'Purchased');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
 -- ---------------------------------------------------------------
 -- Users & auth
 -- ---------------------------------------------------------------
@@ -94,12 +102,23 @@ CREATE TABLE IF NOT EXISTS passengers (
   amount             NUMERIC(12,2) NOT NULL DEFAULT 0,
   deposit_amount     NUMERIC(12,2) NOT NULL DEFAULT 0,
   payment_status     payment_status NOT NULL DEFAULT 'Pending',
+  ticket_purchaser   ticket_purchaser,             -- who's buying the flight ticket — set once the trip is Approved
+  ticket_status      ticket_status NOT NULL DEFAULT 'Pending',
+  airline            TEXT,
+  booking_reference  TEXT,
   notes              TEXT,
   submitted_at       TIMESTAMPTZ,  -- from the source form/sheet, if provided
   added_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_passengers_trip_id ON passengers(trip_id);
+
+-- Migration path for databases that already had the passengers table
+-- before flight-ticket tracking was added — safe to re-run.
+ALTER TABLE passengers ADD COLUMN IF NOT EXISTS ticket_purchaser ticket_purchaser;
+ALTER TABLE passengers ADD COLUMN IF NOT EXISTS ticket_status ticket_status NOT NULL DEFAULT 'Pending';
+ALTER TABLE passengers ADD COLUMN IF NOT EXISTS airline TEXT;
+ALTER TABLE passengers ADD COLUMN IF NOT EXISTS booking_reference TEXT;
 
 -- ---------------------------------------------------------------
 -- App settings (trip-numbering format)

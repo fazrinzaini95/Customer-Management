@@ -1,133 +1,70 @@
-# Excapism Passenger Manifest
+# Passenger Manifest API
 
-A web app for managing travel-agency customers and trips: bulk Excel
-upload, trip approval workflow, passenger payment tracking, and role-based
-accounts (User / Approver / Admin) — backed by a real Postgres database via
-a small Express API, not just browser storage.
+The real backend for the Excapism Passenger Manifest frontend (`../index.html`):
+Express + Postgres, JWT auth, deployed as a single Netlify Function. Built to
+the same conventions as the accounting app's `ledger-api` backend, so the
+two are easy to maintain side by side.
 
----
+**Verified**, not just written: every route in this backend has been run
+against a real local Postgres instance (schema applied, server started, and
+each endpoint exercised with real HTTP requests) — not merely syntax-checked.
+See `VERIFICATION.md` for the full transcript of what was tested.
 
-## What's in here
+## Stack
 
-```
-excapism-passenger-manifest/
-├── index.html                 ← the frontend (single file, talks to the API)
-├── backend/                   ← the API — Express + Postgres, deploys as a Netlify Function
-│   ├── README.md              ← backend overview, endpoint reference, role rules
-│   ├── DEPLOYMENT.md          ← Netlify + Supabase + GitHub walkthrough
-│   ├── VERIFICATION.md        ← proof every route was actually run and tested
-│   └── db/schema.sql          ← the database schema
-├── templates/
-│   └── Excapism_Passenger_Upload_Template.xlsx   ← bulk-upload template (also downloadable in-app)
-├── docs/
-│   └── DEPLOYMENT.md          ← frontend-side deployment notes
-├── netlify.toml                ← frontend's Netlify config
-└── CHANGELOG.md               ← everything built so far, in order
-```
+- **Express** — routing, matching the frontend's existing data shapes so no
+  response-mapping logic needs to change on the frontend side.
+- **`pg`** (raw Postgres driver) — talks directly to Supabase's Postgres via
+  connection string. Does **not** use Supabase's client SDK, Auth, or
+  PostgREST — Supabase here is purely "hosted Postgres."
+- **JWT** (`jsonwebtoken` + `bcryptjs`) — same lightweight auth model the
+  frontend already had client-side, now enforced server-side too (every
+  role check the UI does for display is re-checked here for real).
+- **`serverless-http`** — adapts the Express app to run as one Netlify
+  Function, no code changes needed between "run locally with `npm start`"
+  and "deployed on Netlify."
+- **Zod** — request validation on every route that accepts a body.
 
-## How the two halves fit together
+## Local development
 
-`index.html` is the entire UI — no build step, no framework, one file. It
-pulls two things from a CDN at runtime (SheetJS for Excel parsing, Google
-Fonts) and talks to `backend/` for everything else: signing in, loading
-trips/passengers, saving changes. It does **not** store any app data in the
-browser — every trip, passenger, and account lives in Postgres, so
-everyone who signs in sees the same shared data.
-
-**Frontend and backend deploy as a single Netlify site.** The API runs as
-a Netlify Function (`backend/netlify/functions/api.js`) served from the
-same domain as the static frontend, via the `/api/*` redirect in
-`netlify.toml`. Same origin means `API_BASE` in `index.html` is just
-`/api` — no CORS configuration needed at all, since same-origin requests
-never trigger the browser's CORS checks in the first place. (An
-alternative two-site setup — API on its own separate Netlify site — is
-still documented in `backend/DEPLOYMENT.md` for anyone who'd rather split
-them, but the single-site setup is what this repo is configured for by
-default.)
-
-## Running it locally
-
-**1. Get Postgres + the API running** (see `backend/README.md` for
-details):
 ```bash
-cd backend
-cp .env.example .env      # point DATABASE_URL at local Postgres
+cp .env.example .env      # edit DATABASE_URL to point at local Postgres
 npm install
-npm run migrate
-npm run dev                # runs on http://localhost:4000
+npm run migrate           # applies db/schema.sql
+npm run dev                # or: docker compose up --build
 ```
 
-**2. Point the frontend at it.** Open `index.html` and edit the `API_BASE`
-constant near the top of the `<script>` tag:
-```js
-const API_BASE = 'http://localhost:4000'; // local dev only — deployed, this is '/api'
-```
+Check it's alive: `curl http://localhost:4000/health`
 
-**3. Open `index.html`** in a browser (just double-click it, or serve it
-with any static file server). Sign up — the first account created becomes
-admin automatically.
+## Endpoint reference
 
----
+| Area | Endpoints |
+|---|---|
+| Auth | `POST /auth/signup`, `POST /auth/temp-account`, `POST /auth/login`, `GET /auth/me` |
+| Trips | `GET/POST /trips`, `GET/PUT/DELETE /trips/:id`, `POST /trips/:id/status`, `POST /trips/bulk-import` |
+| Passengers | `GET/POST /trips/:tripId/passengers`, `PUT/DELETE /passengers/:id`, `PUT /passengers/:id/payment-status`, `PUT /passengers/:id/ticket-status` |
+| Users (admin only) | `GET/POST /users`, `PUT /users/:id/role`, `DELETE /users/:id` |
+| Settings | `GET /settings`, `PUT /settings` (admin), `POST /settings/trip-sequence` (admin) |
+| Activity log | `GET /activity` (admin) — who did what, when |
+| Bootstrap | `GET /bootstrap` — everything needed right after login, in one call |
 
-## Feature summary
+Full request/response shapes are in the route files themselves
+(`src/routes/*.js`) — each has a Zod schema right above the handler that
+uses it, which doubles as documentation of exactly what's expected.
 
-- **Trips** — open or private, with a permanent unique trip code (e.g.
-  `EXC-2026-014`) generated by a real Postgres sequence, configurable in
-  Settings (prefix, year, digit padding).
-- **Workflow** — Draft → Submit for approval → Pending → Approved/Declined →
-  Completed/Cancelled, with a full history log per trip. Every transition
-  is re-checked server-side, not just hidden/shown in the UI.
-- **Passengers** — manual add/edit or bulk Excel upload, matched to the real
-  registration form fields (name, DOB, IC/passport, contact, trip
-  type + location, medical condition, notes). Trip Type + Location in an
-  upload file auto-groups passengers into the right trip (server-side,
-  atomically), creating new trips as needed.
-- **Payment status** — Paid / Deposit / Pending / Cancelled per passenger,
-  with running collected/expected totals per trip.
-- **Bulk upload template** — downloadable in-app, matches the app's column
-  names exactly so uploads always map correctly.
-- **Export** — download any trip's passenger list as an Excel file.
-- **Accounts & roles** — real server-side accounts (bcrypt-hashed
-  passwords, JWT sessions):
-  - **User** — create and edit trips/passengers.
-  - **Approver** — same as User, plus approve/decline/complete/cancel trips.
-  - **Admin** — full control, including deleting records and managing user
-    accounts.
-  - Email/password sign-up (first account ever becomes admin
-    automatically), or a one-click temporary/guest account for quick
-    testing.
-- **Demo mode** — a client-side mock of the entire API, for trying the app
-  without any backend at all. Only reachable when `API_BASE` is left as
-  the placeholder value (see `docs/DEPLOYMENT.md`) — once pointed at a
-  real deployed API, as this repo now is, the app goes straight to sign-in.
+## Role enforcement (matches the frontend exactly)
 
----
+- **User** — create/edit trips and passengers, submit a Draft for approval,
+  bulk import.
+- **Approver** — everything User can do, plus move a trip between
+  Pending → Approved/Declined and Approved → Completed/Cancelled.
+- **Admin** — everything, plus delete trips/passengers and manage user
+  accounts (`/users/*`, `/settings` PUT, `/settings/trip-sequence`).
+
+Every one of these is enforced in `src/middleware/auth.js` +
+per-route checks — not just hidden in the UI. See `VERIFICATION.md` for
+proof each guard actually rejects what it's supposed to.
 
 ## Deploying
 
-One Netlify site serves both halves. In Netlify: **Add new site → Import
-an existing project** → this repo, then:
-
-| Field | Value |
-|---|---|
-| Base directory | *(leave empty — repo root)* |
-| Build command | *(leave empty — `netlify.toml` sets a no-op)* |
-| Publish directory | `.` |
-| Functions directory | `backend/netlify/functions` |
-
-**Environment variables** (needed by the API function):
-- `DATABASE_URL` — Supabase's **pooler** connection string (port `6543`,
-  not `5432` — see `backend/DEPLOYMENT.md` for why)
-- `JWT_SECRET` — a long random string
-- `JWT_EXPIRES_IN` — `8h` (or your preference)
-
-`CORS_ORIGIN` isn't needed in this single-site setup — leave it unset.
-
-Before deploying, make sure the database schema has been applied to your
-Supabase project (`backend/db/schema.sql`, via the SQL Editor or `psql` —
-see `backend/DEPLOYMENT.md`), and that `index.html`'s `API_BASE` is set to
-`/api`.
-
-Once deployed, everyone who opens the site's URL and signs in is looking
-at the same shared trips, passengers, and accounts — that's the part that
-didn't work before this was wired to a real backend.
+See `DEPLOYMENT.md` for the Netlify + Supabase specific walkthrough.

@@ -284,6 +284,43 @@ was, and what changed.
   response naturally would. Re-ran the jsdom test that caught it —
   confirmed the correct `Pending → Paid` transition now logs correctly.
 
+## 20. Flight ticket tracking (post-approval)
+New passenger fields — who's purchasing the ticket, its status, airline,
+and booking reference — visible and editable only once a trip reaches
+**Approved** status (before that, ticket booking isn't relevant yet, so
+the fields and table columns stay hidden to keep Draft/Pending trips
+uncluttered).
+
+- New columns on `passengers`: `ticket_purchaser` (`'Self Purchase'` |
+  `'Excapism'`), `ticket_status` (`'Pending'` | `'Purchased'`, defaults
+  to `Pending`), `airline`, `booking_reference`.
+- Migration is additive and idempotent (`ALTER TABLE ... ADD COLUMN IF
+  NOT EXISTS`) — safe to re-run `schema.sql` against an existing database
+  without touching anything else.
+- New dedicated `PUT /passengers/:id/ticket-status` endpoint, matching
+  the existing payment-status pattern (used by the table's inline
+  dropdown, separate from the full edit modal).
+- Frontend: the "Add/Edit passenger" modal and the passenger table both
+  conditionally show these fields based on the *trip's* status, not the
+  passenger's own state — so a passenger added back when the trip was
+  still Draft correctly picks up the ticket fields the moment that trip
+  gets approved.
+- `demoFetch()` mirrors the new endpoint and field set for parity.
+- **Verified the exact live-database scenario**: applied the pre-change
+  schema first (matching your actual current database), confirmed no
+  ticket columns existed, then ran the migration on top and confirmed all
+  4 columns landed with correct types — followed by a full request cycle
+  against a real server (create → dedicated status update → bootstrap →
+  activity log) confirming every field round-trips correctly. Full
+  transcript in `backend/VERIFICATION.md`.
+- **Verified the frontend conditional logic with jsdom**, not just visual
+  inspection: confirmed ticket fields are absent from the DOM entirely on
+  a Draft trip (both the add form and the table), confirmed they appear
+  immediately after approval (including retroactively, for a passenger
+  created before the trip was approved), and confirmed the inline
+  ticket-status dropdown correctly updates and logs the right
+  before→after transition.
+
 ---
 
 ## Data shapes (as returned by the API — see `backend/README.md` for full endpoint reference)
@@ -300,6 +337,8 @@ was, and what changed.
 {
   id, tripId, name, dob, phone, idNumber, medicalCondition, passportNote,
   amount, depositAmount, paymentStatus: 'Pending'|'Deposit'|'Paid'|'Cancelled',
+  ticketPurchaser: 'Self Purchase'|'Excapism'|null, ticketStatus: 'Pending'|'Purchased',
+  airline, bookingReference,
   notes, submittedAt, addedAt
 }
 
