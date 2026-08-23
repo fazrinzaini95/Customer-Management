@@ -105,6 +105,24 @@ fetched `GET /activity` and confirmed:
 - A plain User calling `GET /activity` → `403`, confirming it's genuinely
   admin-only and not just hidden in the UI ✅
 
+## Flight ticket fields (migration + new columns)
+Verified the exact scenario your live database is in: an existing
+`passengers` table with no ticket columns, migrated in place.
+- Applied the pre-ticket-fields schema first (simulating the live DB),
+  confirmed via `\d passengers` that no ticket columns existed yet ✅
+- Ran the updated `schema.sql` on top — the 4 new `ALTER TABLE ADD COLUMN
+  IF NOT EXISTS` statements ran cleanly, everything else was silently
+  skipped as already existing ✅
+- Confirmed via `\d passengers` afterward that all 4 new columns exist
+  with the correct enum/text types and defaults ✅
+- Started a real server against that migrated database: created a
+  passenger with all 4 ticket fields set → correct values in the
+  response; updated via the dedicated `PUT
+  /passengers/:id/ticket-status` endpoint → correct; confirmed via `GET
+  /bootstrap` that all 4 fields round-trip correctly; confirmed the
+  status change appears in the activity log with the correct
+  `{"from":"Pending","to":"Purchased"}` detail ✅
+
 ---
 
 Every one of the role/permission rules the frontend's UI hides or shows

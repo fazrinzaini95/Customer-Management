@@ -19,6 +19,13 @@
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["pg"]
+  # Netlify's function bundler can be stricter than plain Node about
+  # tracing require() calls that reach outside the configured functions
+  # directory — backend/netlify/functions/api.js requires
+  # ../../src/app.js, which itself requires ./routes/*.js, one level
+  # further out again. This makes sure everything under backend/src is
+  # explicitly included in the deployed function bundle regardless.
+  included_files = ["backend/src/**"]
 
 [[headers]]
   for = "/*"

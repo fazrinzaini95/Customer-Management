@@ -534,6 +534,15 @@ async function demoFetchInner(path, options = {}){
     persistDemo();
     return c;
   }
+  if((m=path.match(/^\/passengers\/([^/]+)\/ticket-status$/)) && method==='PUT'){
+    const u = requireAuthed();
+    const c = state.passengers.find(x=>x.id===m[1]); if(!c) fail(404,'Passenger not found');
+    const fromStatus = c.ticketStatus;
+    c.ticketStatus = body.ticketStatus;
+    logDemoActivity(state, u, 'passenger.ticket_status_changed', 'passenger', c.id, c.name, { from:fromStatus, to:body.ticketStatus });
+    persistDemo();
+    return c;
+  }
   if((m=path.match(/^\/passengers\/([^/]+)$/)) && method==='DELETE'){
     const u = requireRoleIn('admin');
     const idx = state.passengers.findIndex(x=>x.id===m[1]); if(idx<0) fail(404,'Passenger not found');
@@ -636,6 +645,8 @@ const TEMPLATE_BASE64 = "UEsDBBQAAAAIANBBFV1Gx01IlQAAAM0AAAAQAAAAZG9jUHJvcHMvYXB
 
 const TRIP_STATUSES = ['Draft','Pending','Approved','Declined','Cancelled','Completed'];
 const PAY_STATUSES = ['Pending','Deposit','Paid','Cancelled'];
+const TICKET_PURCHASER_OPTIONS = ['Self Purchase','Excapism'];
+const TICKET_STATUS_OPTIONS = ['Pending','Purchased'];
 
 /* =========================================================
    Bootstrap
@@ -922,6 +933,10 @@ function detailHTML(){
     ? visibleActions.map(a=>`<button class="btn btn-sm ${a.cls}" data-trip-action="${a.to}">${a.label}</button>`).join('')
     : (allActions.length ? `<span class="hint" style="color:rgba(255,255,255,0.6);">Awaiting an approver</span>` : '');
 
+  const showTicketCols = t.status==='Approved' || t.status==='Completed';
+  const ticketHeaderCells = showTicketCols ? `<th>Ticket purchaser</th><th>Airline / Ref</th><th>Ticket status</th>` : '';
+  const colCount = showTicketCols ? 9 : 6;
+
   const rows = cs.length ? cs.map(c=>`
     <tr data-cust-row="${c.id}">
       <td>
@@ -939,6 +954,17 @@ function detailHTML(){
           ${PAY_STATUSES.map(s=>`<option value="${s}" ${c.paymentStatus===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </td>
+      ${showTicketCols ? `
+      <td>${c.ticketPurchaser ? esc(c.ticketPurchaser) : '<span class="cust-sub">Not set</span>'}</td>
+      <td>
+        <div>${esc(c.airline||'—')}</div>
+        ${c.bookingReference ? `<div class="cust-sub">${esc(c.bookingReference)}</div>` : ''}
+      </td>
+      <td>
+        <select class="status-select" data-ticket-status="${c.id}">
+          ${TICKET_STATUS_OPTIONS.map(s=>`<option value="${s}" ${c.ticketStatus===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>` : ''}
       <td>
         <div class="row-actions">
           <button class="icon-btn" data-edit-cust="${c.id}" title="Edit">✎</button>
@@ -946,7 +972,7 @@ function detailHTML(){
         </div>
       </td>
     </tr>`).join('') :
-    `<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:28px;">No passengers yet. Add one or bulk-upload an Excel sheet.</td></tr>`;
+    `<tr><td colspan="${colCount}" style="text-align:center;color:var(--ink-soft);padding:28px;">No passengers yet. Add one or bulk-upload an Excel sheet.</td></tr>`;
 
   return `
   <button class="back-link" data-action="back-to-list">← All trips</button>
@@ -981,7 +1007,7 @@ function detailHTML(){
     </div>
     <div style="overflow-x:auto;">
       <table>
-        <thead><tr><th>Name / DOB</th><th>Contact</th><th>Amount</th><th>Deposit paid</th><th>Payment status</th><th></th></tr></thead>
+        <thead><tr><th>Name / DOB</th><th>Contact</th><th>Amount</th><th>Deposit paid</th><th>Payment status</th>${ticketHeaderCells}<th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -1055,6 +1081,7 @@ const ACTIVITY_LABELS = {
   'passenger.created': 'added passenger',
   'passenger.updated': 'edited passenger',
   'passenger.payment_status_changed': 'updated payment status for',
+  'passenger.ticket_status_changed': 'updated ticket status for',
   'passenger.deleted': 'removed passenger',
   'user.created': 'created account for',
   'user.role_changed': 'changed role for',
@@ -1064,7 +1091,7 @@ const ACTIVITY_LABELS = {
 };
 function activityDetailText(entry){
   const d = entry.details || {};
-  if(entry.action==='trip.status_changed' || entry.action==='passenger.payment_status_changed' || entry.action==='user.role_changed'){
+  if(entry.action==='trip.status_changed' || entry.action==='passenger.payment_status_changed' || entry.action==='passenger.ticket_status_changed' || entry.action==='user.role_changed'){
     return `${d.from || '—'} → ${d.to || '—'}`;
   }
   if(entry.action==='trip.updated' || entry.action==='passenger.updated'){
@@ -1226,7 +1253,9 @@ function tripModal(){
 
 function customerModal(){
   const editing = editingCustomerId ? customers.find(c=>c.id===editingCustomerId) : null;
-  const v = editing || {name:'',dob:'',phone:'',idNumber:'',medicalCondition:'',passportNote:'',amount:0,depositAmount:0,paymentStatus:'Pending',notes:''};
+  const v = editing || {name:'',dob:'',phone:'',idNumber:'',medicalCondition:'',passportNote:'',amount:0,depositAmount:0,paymentStatus:'Pending',ticketPurchaser:'',ticketStatus:'Pending',airline:'',bookingReference:'',notes:''};
+  const trip = trips.find(t=>t.id===(editing ? editing.tripId : view.tripId));
+  const showTicketFields = trip && (trip.status==='Approved' || trip.status==='Completed');
   return `
   <div class="overlay" id="overlay-customer">
     <div class="modal">
@@ -1248,7 +1277,28 @@ function customerModal(){
           <label>Payment status</label>
           <select id="cu-status">${PAY_STATUSES.map(s=>`<option value="${s}" ${v.paymentStatus===s?'selected':''}>${s}</option>`).join('')}</select>
         </div>
-        <div class="field"><label>Notes</label><textarea id="cu-notes" rows="2">${esc(v.notes)}</textarea></div>
+        ${showTicketFields ? `
+        <div style="border-top:1.5px dashed var(--line);padding-top:14px;margin-top:6px;">
+          <label style="display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:10px;">Flight ticket</label>
+          <div class="field-row">
+            <div class="field">
+              <label>Ticket purchased by</label>
+              <select id="cu-ticket-purchaser">
+                <option value="">Not set</option>
+                ${TICKET_PURCHASER_OPTIONS.map(o=>`<option value="${o}" ${v.ticketPurchaser===o?'selected':''}>${o}</option>`).join('')}
+              </select>
+            </div>
+            <div class="field">
+              <label>Ticket status</label>
+              <select id="cu-ticket-status">${TICKET_STATUS_OPTIONS.map(o=>`<option value="${o}" ${v.ticketStatus===o?'selected':''}>${o}</option>`).join('')}</select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Airline</label><input id="cu-airline" placeholder="e.g. AirAsia" value="${esc(v.airline)}"></div>
+            <div class="field"><label>Booking reference</label><input id="cu-booking-ref" placeholder="e.g. ABC123" value="${esc(v.bookingReference)}"></div>
+          </div>
+        </div>` : ''}
+        <div class="field" style="margin-top:14px;"><label>Notes</label><textarea id="cu-notes" rows="2">${esc(v.notes)}</textarea></div>
       </div>
       <div class="modal-foot">
         <div>${editing && isAdmin() ? `<button class="btn btn-sm btn-danger" data-action="delete-customer-modal">Remove passenger</button>` : '<span></span>'}</div>
@@ -1379,6 +1429,10 @@ function exportTripToExcel(tripId){
     'Payment Status': c.paymentStatus || 'Pending',
     'Amount (RM)': Number(c.amount)||0,
     'Deposit Paid (RM)': Number(c.depositAmount)||0,
+    'Ticket Purchased By': c.ticketPurchaser || '',
+    'Ticket Status': c.ticketStatus || 'Pending',
+    'Airline': c.airline || '',
+    'Booking Reference': c.bookingReference || '',
     'Notes': c.notes || '',
     'Submitted': c.submittedAt || ''
   }));
@@ -1386,7 +1440,7 @@ function exportTripToExcel(tripId){
   const ws = XLSX.utils.json_to_sheet(rows);
   ws['!cols'] = [
     {wch:26},{wch:14},{wch:16},{wch:16},{wch:12},{wch:20},
-    {wch:30},{wch:26},{wch:14},{wch:12},{wch:14},{wch:24},{wch:14}
+    {wch:30},{wch:26},{wch:14},{wch:12},{wch:14},{wch:18},{wch:14},{wch:16},{wch:18},{wch:24},{wch:14}
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Passengers');
@@ -1837,6 +1891,22 @@ function bindEvents(){
       render();
     });
   });
+  app.querySelectorAll('[data-ticket-status]').forEach(el=>{
+    el.addEventListener('change', async ()=>{
+      const c = customers.find(x=>x.id===el.dataset.ticketStatus);
+      if(!c) return;
+      const prev = c.ticketStatus;
+      c.ticketStatus = el.value; // optimistic
+      try{
+        await apiFetch(`/passengers/${c.id}/ticket-status`, { method:'PUT', body: JSON.stringify({ ticketStatus: el.value }) });
+        showToast('Ticket status updated');
+      }catch(e){
+        c.ticketStatus = prev;
+        showToast(e.message || 'Could not update ticket status');
+      }
+      render();
+    });
+  });
   app.querySelectorAll('[data-del-cust]').forEach(el=>{
     el.addEventListener('click', ()=>handleDeleteCustomer(el.dataset.delCust, false));
   });
@@ -1944,6 +2014,16 @@ async function handleSaveCustomer(){
     paymentStatus: document.getElementById('cu-status').value,
     notes: document.getElementById('cu-notes').value.trim()
   };
+  // Ticket fields only render in the modal once the trip is Approved+ —
+  // guard each lookup so this doesn't break when they're absent.
+  const ticketPurchaserEl = document.getElementById('cu-ticket-purchaser');
+  const ticketStatusEl = document.getElementById('cu-ticket-status');
+  const airlineEl = document.getElementById('cu-airline');
+  const bookingRefEl = document.getElementById('cu-booking-ref');
+  if(ticketPurchaserEl) payload.ticketPurchaser = ticketPurchaserEl.value;
+  if(ticketStatusEl) payload.ticketStatus = ticketStatusEl.value;
+  if(airlineEl) payload.airline = airlineEl.value.trim();
+  if(bookingRefEl) payload.bookingReference = bookingRefEl.value.trim();
   if(editingCustomerId){
     try{
       const updated = await apiFetch(`/passengers/${editingCustomerId}`, { method:'PUT', body: JSON.stringify(payload) });
