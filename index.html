@@ -571,7 +571,7 @@ async function demoFetchInner(path, options = {}){
     return c;
   }
   if((m=path.match(/^\/passengers\/([^/]+)$/)) && method==='DELETE'){
-    const u = requireRoleIn('admin');
+    const u = requireAuthed();
     const idx = state.passengers.findIndex(x=>x.id===m[1]); if(idx<0) fail(404,'Passenger not found');
     const [removed] = state.passengers.splice(idx,1);
     logDemoActivity(state, u, 'passenger.deleted', 'passenger', removed.id, removed.name, { tripId:removed.tripId });
@@ -1019,7 +1019,7 @@ function detailHTML(){
       <td>
         <div class="row-actions">
           <button class="icon-btn" data-edit-cust="${c.id}" title="Edit">✎</button>
-          ${isAdmin() ? `<button class="icon-btn danger" data-del-cust="${c.id}" title="Remove">✕</button>` : ''}
+          <button class="icon-btn danger" data-del-cust="${c.id}" title="Remove">✕</button>
         </div>
       </td>
     </tr>`).join('') :
@@ -1222,7 +1222,7 @@ function manageUsersModalHTML(){
     <div class="modal" style="max-width:640px;">
       <div class="modal-head"><h3>Manage users</h3><button class="modal-close" data-close="overlay-users">✕</button></div>
       <div class="modal-body">
-        <p class="hint" style="margin:0 0 14px;">Users can create and edit trips/passengers. Approvers can also approve, decline, complete, or cancel trips. Admins have full control, including deleting records and managing accounts.</p>
+        <p class="hint" style="margin:0 0 14px;">Users can create, edit, and remove passengers, and can create/edit trips. Approvers can also approve, decline, complete, or cancel trips. Admins have full control, including deleting trips and managing accounts.</p>
         <div style="overflow-x:auto;margin-bottom:20px;">
           <table>
             <thead><tr><th>Name</th><th>Role</th><th></th></tr></thead>
@@ -1356,7 +1356,7 @@ function customerModal(){
         <div class="field" style="margin-top:14px;"><label>Notes</label><textarea id="cu-notes" rows="2">${esc(v.notes)}</textarea></div>
       </div>
       <div class="modal-foot">
-        <div>${editing && isAdmin() ? `<button class="btn btn-sm btn-danger" data-action="delete-customer-modal">Remove passenger</button>` : '<span></span>'}</div>
+        <div>${editing ? `<button class="btn btn-sm btn-danger" data-action="delete-customer-modal">Remove passenger</button>` : '<span></span>'}</div>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-ghost" data-close="overlay-customer">Cancel</button>
           <button class="btn btn-primary" data-action="save-customer">${editing ? 'Save changes' : 'Add passenger'}</button>

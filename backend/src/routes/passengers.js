@@ -2,7 +2,7 @@ const router = require('express').Router();
 const { z } = require('zod');
 const { query, logActivity } = require('../db');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth');
 
 router.use(requireAuth);
 
@@ -132,8 +132,10 @@ router.put('/passengers/:id/ticket-status', asyncHandler(async (req, res) => {
   logActivity({ actor: req.user, action: 'passenger.ticket_status_changed', entityType: 'passenger', entityId: rows[0].id, entityLabel: rows[0].name, details: { from: before.rows[0].ticket_status, to: ticketStatus } });
 }));
 
-// Admin-only, matching the frontend's delete gating.
-router.delete('/passengers/:id', requireRole('admin'), asyncHandler(async (req, res) => {
+// Delete is open to User/Approver/Admin (any authenticated role) —
+// unlike trips, which stay admin-only. requireAuth (applied to the whole
+// router above) is the only gate needed here.
+router.delete('/passengers/:id', asyncHandler(async (req, res) => {
   const { rows } = await query('DELETE FROM passengers WHERE id = $1 RETURNING *', [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: 'Passenger not found' });
   res.status(204).send();
