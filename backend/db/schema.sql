@@ -81,11 +81,25 @@ CREATE TABLE IF NOT EXISTS trips (
   status       trip_status NOT NULL DEFAULT 'Draft',
   history      JSONB NOT NULL DEFAULT '[]',  -- [{ "status": "Draft", "date": "2026-08-22T..." }, ...]
   created_by   UUID REFERENCES users(id) ON DELETE SET NULL,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- A separate, unguessable token for the public self-registration link —
+  -- deliberately NOT the trip's real id, so it can be shared publicly
+  -- without exposing (or letting anyone guess) internal identifiers, and
+  -- so it could be regenerated/revoked later without renumbering the trip.
+  public_token TEXT UNIQUE DEFAULT encode(gen_random_bytes(16), 'hex')
 );
 
 CREATE INDEX IF NOT EXISTS idx_trips_status ON trips(status);
 CREATE INDEX IF NOT EXISTS idx_trips_type_destination ON trips(type, destination);  -- for bulk-import grouping lookups
+-- No separate index for public_token: its UNIQUE constraint below already
+-- creates one automatically (visible as trips_public_token_key).
+
+-- Migration path for databases that already had the trips table before
+-- self-registration links existed — safe to re-run. Because
+-- gen_random_bytes() is volatile, Postgres evaluates it fresh per
+-- existing row during this ALTER, so every pre-existing trip gets its
+-- own distinct token too, not one shared value.
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS public_token TEXT UNIQUE DEFAULT encode(gen_random_bytes(16), 'hex');
 
 -- ---------------------------------------------------------------
 -- Passengers

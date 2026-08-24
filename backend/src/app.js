@@ -11,6 +11,7 @@ const passengersRoutes = require('./routes/passengers');
 const settingsRoutes = require('./routes/settings');
 const bootstrapRoutes = require('./routes/bootstrap');
 const activityRoutes = require('./routes/activity');
+const publicRoutes = require('./routes/public');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -40,9 +41,22 @@ const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20 });
 app.use('/auth/login', authLimiter);
 app.use('/auth/signup', authLimiter);
 app.use('/auth/temp-account', authLimiter);
+// /public has no login to brute-force, but it's the one surface reachable
+// by anyone with a link and no account at all — a tighter, dedicated
+// limit keeps it from being a spam vector without affecting staff traffic.
+app.use('/public', rateLimit({ windowMs: 15 * 60 * 1000, max: 30 }));
 app.use(rateLimit({ windowMs: 60 * 1000, max: 300 }));
 
 app.get('/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+
+// /public MUST be registered before passengersRoutes (mounted at '/'
+// below) — passengersRoutes applies requireAuth unconditionally to
+// anything that reaches it, and mounting a router at '/' means every
+// request reaches it first, in registration order, regardless of
+// whether any of its own routes actually match. Registering /public
+// first means Express fully handles and responds to those requests here,
+// so they never fall through into passengersRoutes' auth gate at all.
+app.use('/public', publicRoutes);
 
 app.use('/auth', authRoutes);
 app.use('/users', usersRoutes);

@@ -309,6 +309,33 @@ async function apiFetch(path, options = {}){
   return body;
 }
 
+// Used only by the public self-registration page — a visitor filling this
+// out was never logged in, so this never attaches an Authorization header
+// and never depends on this tab's DEMO_MODE state (which reflects a
+// staff member's own local testing, not the site's actual configuration).
+// If the real API is genuinely configured (the normal deployed case),
+// this always talks to it directly; only falls back to the local demo
+// mock when the whole site is still unconfigured, for template preview.
+async function publicApiFetch(path, options = {}){
+  if(API_NOT_CONFIGURED) return demoFetch(path, options);
+  let res;
+  try{
+    res = await fetch(API_BASE + path, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
+  }catch(networkErr){
+    const err = new Error('Could not reach the server — check your connection and try again.');
+    err.network = true;
+    throw err;
+  }
+  let body = null;
+  try{ body = await res.json(); }catch(e){ /* empty body */ }
+  if(!res.ok){
+    const err = new Error((body && body.error) || `Request failed (${res.status})`);
+    err.status = res.status;
+    throw err;
+  }
+  return body;
+}
+
 /* =========================================================
    Demo mode
    A complete mock of the backend's routes, running entirely in this
@@ -430,7 +457,7 @@ async function demoFetchInner(path, options = {}){
     state.tripSeq += 1;
     const t = { id:demoId('trip'), seq:state.tripSeq, name:body.name, type:body.type||'open', destination:body.destination||null,
       startDate:body.startDate||null, endDate:body.endDate||null, status:'Draft',
-      history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString() };
+      history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), publicToken:demoId('tok') };
     state.trips.push(t);
     logDemoActivity(state, u, 'trip.created', 'trip', t.id, t.name, { type:t.type, destination:t.destination });
     persistDemo();
@@ -491,7 +518,7 @@ async function demoFetchInner(path, options = {}){
       if(!t){
         state.tripSeq += 1;
         t = { id:demoId('trip'), seq:state.tripSeq, name:g.location, type:g.type, destination:g.location, startDate:null, endDate:null,
-          status:'Draft', history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString() };
+          status:'Draft', history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), publicToken:demoId('tok') };
         state.trips.push(t); createdTripCount += 1;
       }
       tripIds.push(t.id);
@@ -617,6 +644,30 @@ async function demoFetchInner(path, options = {}){
   if(path==='/activity' && method==='GET'){
     requireRoleIn('admin');
     return state.activityLog.slice(0, 200);
+  }
+
+  // ---- Public self-registration (no auth) ----
+  if((m=path.match(/^\/public\/trips\/([^/]+)$/)) && method==='GET'){
+    const t = state.trips.find(x=>x.publicToken===m[1]);
+    if(!t) fail(404,'Registration link not found');
+    const closed = ['Declined','Cancelled','Completed'].includes(t.status);
+    return { name:t.name, type:t.type, destination:t.destination, startDate:t.startDate, endDate:t.endDate, acceptingRegistrations:!closed };
+  }
+  if((m=path.match(/^\/public\/trips\/([^/]+)\/register$/)) && method==='POST'){
+    const t = state.trips.find(x=>x.publicToken===m[1]);
+    if(!t) fail(404,'Registration link not found');
+    const closed = ['Declined','Cancelled','Completed'].includes(t.status);
+    if(closed) fail(400,'Registration is closed for this trip');
+    if(!body.name) fail(400,'Name is required');
+    const c = { id:demoId('cust'), tripId:t.id, name:body.name, dob:body.dob||null, phone:body.phone||null,
+      idNumber:body.idNumber||null, medicalCondition:body.medicalCondition||null, passportNote:body.passportNote||null,
+      amount:0, depositAmount:0, paymentStatus:'Pending', ticketPurchaser:null, ticketStatus:'Pending', airline:null,
+      bookingReference:null, notes:body.notes||null, addedAt:new Date().toISOString() };
+    state.passengers.push(c);
+    logDemoActivity(state, { id:null, name:`${c.name} (self-registered)`, email:'public-registration@excapism.local' },
+      'passenger.self_registered', 'passenger', c.id, c.name, { tripId:t.id, tripName:t.name });
+    persistDemo();
+    return { name:c.name };
   }
 
   fail(404, 'Not found');
@@ -1001,6 +1052,7 @@ function detailHTML(){
       <h3>Passenger list</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-sm btn-ghost" data-action="export-trip" ${cs.length ? '' : 'disabled'}>⬇ Export to Excel</button>
+        <button class="btn btn-sm btn-ghost" data-action="share-registration-link" data-trip-token="${esc(t.publicToken||'')}">🔗 Share registration link</button>
         <button class="btn btn-sm btn-ghost" data-action="open-upload-for-trip">Bulk upload here</button>
         <button class="btn btn-sm btn-primary" data-action="open-add-customer">+ Add passenger</button>
       </div>
@@ -1935,6 +1987,19 @@ function bindEvents(){
 
   const exportTripBtn = app.querySelector('[data-action="export-trip"]');
   if(exportTripBtn) exportTripBtn.addEventListener('click', ()=>exportTripToExcel(view.tripId));
+
+  const shareLinkBtn = app.querySelector('[data-action="share-registration-link"]');
+  if(shareLinkBtn) shareLinkBtn.addEventListener('click', async ()=>{
+    const token = shareLinkBtn.dataset.tripToken;
+    if(!token){ showToast('This trip has no registration link yet'); return; }
+    const link = `${location.origin}${location.pathname}?register=${token}`;
+    try{
+      await navigator.clipboard.writeText(link);
+      showToast('Registration link copied to clipboard');
+    }catch(e){
+      window.prompt('Copy this registration link:', link);
+    }
+  });
 }
 
 function renderListOnly(){
@@ -2158,6 +2223,113 @@ async function handleConfirmUpload(){
 }
 
 /* =========================================================
+   Public self-registration page
+   A completely separate, unauthenticated view — reached via
+   ?register=TOKEN in the URL. Never touches currentUser, trips,
+   customers, or any other app state; only ever knows about the one
+   trip its token points to.
+   ========================================================= */
+let publicReg = { status:'loading', trip:null, error:'', submittedName:'' }; // status: loading|form|closed|invalid|success
+
+function publicRegShell(inner){
+  return `
+  <div style="max-width:460px;margin:60px auto 0;">
+    <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:26px;">
+      <div class="brand-badge">EX</div>
+      <div>
+        <h1 style="font-family:var(--font-display);font-weight:700;font-size:20px;margin:0;color:var(--navy-deep);">Excapism Passenger Manifest</h1>
+        <p style="margin:0;font-size:12.5px;color:var(--ink-soft);">Passenger registration</p>
+      </div>
+    </div>
+    <div class="panel" style="padding:26px 24px;">${inner}</div>
+  </div>`;
+}
+function publicRegistrationHTML(){
+  if(publicReg.status==='loading'){
+    return publicRegShell(`<p style="text-align:center;color:var(--ink-soft);margin:20px 0;">Loading…</p>`);
+  }
+  if(publicReg.status==='invalid'){
+    return publicRegShell(`
+      <h3 style="font-family:var(--font-display);font-size:18px;margin:0 0 8px;color:var(--navy-deep);">Link not found</h3>
+      <p style="font-size:13.5px;color:var(--ink-soft);margin:0;">This registration link isn't valid. Please double-check the link, or contact whoever sent it to you.</p>
+    `);
+  }
+  if(publicReg.status==='closed'){
+    const t = publicReg.trip;
+    return publicRegShell(`
+      <h3 style="font-family:var(--font-display);font-size:18px;margin:0 0 8px;color:var(--navy-deep);">${esc(t.name)}</h3>
+      <p style="font-size:13.5px;color:var(--ink-soft);margin:0;">Registration is closed for this trip. Please contact your travel coordinator if you believe this is a mistake.</p>
+    `);
+  }
+  if(publicReg.status==='success'){
+    return publicRegShell(`
+      <h3 style="font-family:var(--font-display);font-size:18px;margin:0 0 8px;color:var(--navy-deep);">You're registered! 🎉</h3>
+      <p style="font-size:13.5px;color:var(--ink);margin:0;">Thanks, <b>${esc(publicReg.submittedName)}</b> — your details have been received. Your travel coordinator will be in touch with next steps.</p>
+    `);
+  }
+
+  const t = publicReg.trip;
+  return publicRegShell(`
+    <div style="margin-bottom:16px;">
+      <h3 style="font-family:var(--font-display);font-size:18px;margin:0 0 4px;color:var(--navy-deep);">${esc(t.name)}</h3>
+      <p style="font-size:13px;color:var(--ink-soft);margin:0;">${esc(t.destination||'Destination TBC')} ${t.startDate ? '· ' + fmtDate(t.startDate) + ' → ' + fmtDate(t.endDate) : ''}</p>
+    </div>
+    ${publicReg.error ? `<p style="color:var(--coral);font-size:13px;margin:0 0 12px;font-weight:600;">${esc(publicReg.error)}</p>` : ''}
+    <div class="field"><label>Full name (as per IC)</label><input id="pr-name" placeholder="As per IC / passport"></div>
+    <div class="field-row">
+      <div class="field"><label>Date of birth</label><input type="date" id="pr-dob"></div>
+      <div class="field"><label>Contact number</label><input id="pr-phone"></div>
+    </div>
+    <div class="field"><label>IC / Passport no. <span style="font-weight:400;">(optional)</span></label><input id="pr-idnum"></div>
+    <div class="field"><label>Medical condition / history <span style="font-weight:400;">(if applicable)</span></label><textarea id="pr-medical" rows="2" placeholder="Leave blank if none"></textarea></div>
+    <div class="field"><label>Passport front page <span style="font-weight:400;">(link, optional)</span></label><input id="pr-passport" placeholder="Drive link or similar"></div>
+    <div class="field"><label>Notes</label><textarea id="pr-notes" rows="2"></textarea></div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" data-action="submit-public-registration">Submit registration</button>
+    <p class="hint" style="margin-top:14px;">Your details are only visible to your travel coordinator's team — this link doesn't show you anyone else's information.</p>
+  `);
+}
+async function loadPublicTrip(token){
+  try{
+    const trip = await publicApiFetch(`/public/trips/${token}`);
+    publicReg.trip = trip;
+    publicReg.status = trip.acceptingRegistrations ? 'form' : 'closed';
+  }catch(e){
+    publicReg.status = 'invalid';
+  }
+  render();
+}
+async function handlePublicRegistrationSubmit(token){
+  const name = document.getElementById('pr-name').value.trim();
+  if(!name){ publicReg.error = 'Full name is required.'; render(); return; }
+  const payload = {
+    name,
+    dob: document.getElementById('pr-dob').value,
+    phone: document.getElementById('pr-phone').value.trim(),
+    idNumber: document.getElementById('pr-idnum').value.trim(),
+    medicalCondition: document.getElementById('pr-medical').value.trim(),
+    passportNote: document.getElementById('pr-passport').value.trim(),
+    notes: document.getElementById('pr-notes').value.trim(),
+  };
+  try{
+    const result = await publicApiFetch(`/public/trips/${token}/register`, { method:'POST', body: JSON.stringify(payload) });
+    publicReg.status = 'success';
+    publicReg.submittedName = result.name || name;
+    publicReg.error = '';
+  }catch(e){
+    publicReg.error = e.message || 'Could not submit your registration — please try again.';
+  }
+  render();
+}
+function bindPublicRegistrationEvents(token){
+  const app = document.getElementById('app');
+  const btn = app.querySelector('[data-action="submit-public-registration"]');
+  if(btn) btn.addEventListener('click', ()=>handlePublicRegistrationSubmit(token));
+  app.querySelectorAll('input, textarea').forEach(inp=>{
+    inp.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && e.target.tagName==='INPUT'){ const b = app.querySelector('[data-action="submit-public-registration"]'); if(b) b.click(); } });
+  });
+}
+
+/* =========================================================
    Init
    If a saved session exists (from a previous sign-in) and its token
    still checks out against the API, restore it straight into the app
@@ -2165,6 +2337,21 @@ async function handleConfirmUpload(){
    ========================================================= */
 (async function init(){
   loaded = true;
+  const registerToken = new URLSearchParams(location.search).get('register');
+  if(registerToken){
+    // Public registration is a fully separate flow — never touches
+    // login state, never calls restoreSession/loadBootstrap.
+    render = (function(originalRender){
+      return function(){
+        const app = document.getElementById('app');
+        app.innerHTML = publicRegistrationHTML();
+        bindPublicRegistrationEvents(registerToken);
+      };
+    })(render);
+    render();
+    await loadPublicTrip(registerToken);
+    return;
+  }
   const restored = await restoreSession();
   if(!restored) authView = 'login';
   render();

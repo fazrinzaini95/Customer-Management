@@ -18,6 +18,7 @@ function mapTrip(row, passengerCount) {
     status: row.status,
     history: row.history,
     createdAt: row.created_at,
+    publicToken: row.public_token,
     ...(passengerCount !== undefined ? { passengerCount: Number(passengerCount) } : {}),
   };
 }
