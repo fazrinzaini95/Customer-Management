@@ -112,7 +112,6 @@ CREATE TABLE IF NOT EXISTS passengers (
   phone              TEXT,
   id_number          TEXT,
   medical_condition  TEXT,
-  passport_note      TEXT,
   amount             NUMERIC(12,2) NOT NULL DEFAULT 0,
   deposit_amount     NUMERIC(12,2) NOT NULL DEFAULT 0,
   payment_status     payment_status NOT NULL DEFAULT 'Pending',
@@ -120,6 +119,8 @@ CREATE TABLE IF NOT EXISTS passengers (
   ticket_status      ticket_status NOT NULL DEFAULT 'Pending',
   airline            TEXT,
   booking_reference  TEXT,
+  passport_number    TEXT,
+  passport_expiry    DATE,
   notes              TEXT,
   submitted_at       TIMESTAMPTZ,  -- from the source form/sheet, if provided
   added_at           TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -133,6 +134,13 @@ ALTER TABLE passengers ADD COLUMN IF NOT EXISTS ticket_purchaser ticket_purchase
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS ticket_status ticket_status NOT NULL DEFAULT 'Pending';
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS airline TEXT;
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS booking_reference TEXT;
+-- Replaces the old passport_note (a link/filename field) with real
+-- passport data instead. The old column is left in place, unused —
+-- nothing reads or writes it anymore, but dropping a column is
+-- irreversible, so it stays as harmless dead weight rather than risking
+-- any data loss for anyone who'd already filled it in.
+ALTER TABLE passengers ADD COLUMN IF NOT EXISTS passport_number TEXT;
+ALTER TABLE passengers ADD COLUMN IF NOT EXISTS passport_expiry DATE;
 
 -- ---------------------------------------------------------------
 -- App settings (trip-numbering format)

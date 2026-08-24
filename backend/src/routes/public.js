@@ -33,7 +33,8 @@ const registerSchema = z.object({
   phone: z.string().optional().or(z.literal('')),
   idNumber: z.string().optional().or(z.literal('')),
   medicalCondition: z.string().optional().or(z.literal('')),
-  passportNote: z.string().optional().or(z.literal('')),
+  passportNumber: z.string().optional().or(z.literal('')),
+  passportExpiry: z.string().optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
 });
 
@@ -55,9 +56,9 @@ router.post('/trips/:token/register', asyncHandler(async (req, res) => {
   // here, regardless of anything in the request body.
   const { rows } = await query(
     `INSERT INTO passengers
-       (trip_id, name, dob, phone, id_number, medical_condition, passport_note, notes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id, name`,
-    [trip.id, d.name, d.dob || null, d.phone || null, d.idNumber || null, d.medicalCondition || null, d.passportNote || null, d.notes || null]
+       (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry, notes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id, name`,
+    [trip.id, d.name, d.dob || null, d.phone || null, d.idNumber || null, d.medicalCondition || null, d.passportNumber || null, d.passportExpiry || null, d.notes || null]
   );
 
   logActivity({

@@ -38,7 +38,7 @@ router.get('/', asyncHandler(async (req, res) => {
     })),
     passengers: passengersRes.rows.map((r) => ({
       id: r.id, tripId: r.trip_id, name: r.name, dob: r.dob, phone: r.phone,
-      idNumber: r.id_number, medicalCondition: r.medical_condition, passportNote: r.passport_note,
+      idNumber: r.id_number, medicalCondition: r.medical_condition, passportNumber: r.passport_number, passportExpiry: r.passport_expiry,
       amount: Number(r.amount), depositAmount: Number(r.deposit_amount), paymentStatus: r.payment_status,
       ticketPurchaser: r.ticket_purchaser, ticketStatus: r.ticket_status, airline: r.airline, bookingReference: r.booking_reference,
       notes: r.notes, submittedAt: r.submitted_at, addedAt: r.added_at,

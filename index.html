@@ -524,7 +524,7 @@ async function demoFetchInner(path, options = {}){
       tripIds.push(t.id);
       g.rows.forEach(r=>{
         state.passengers.push({ id:demoId('cust'), tripId:t.id, name:r.name, dob:r.dob||null, phone:r.phone||null,
-          idNumber:r.idNumber||null, medicalCondition:r.medicalCondition||null, passportNote:r.passportNote||null,
+          idNumber:r.idNumber||null, medicalCondition:r.medicalCondition||null, passportNumber:r.passportNumber||null, passportExpiry:r.passportExpiry||null,
           amount:0, depositAmount:0, paymentStatus:'Pending', notes:r.notes||null, submittedAt:r.timestamp||null,
           addedAt:new Date().toISOString() });
         importedCount += 1;
@@ -660,7 +660,7 @@ async function demoFetchInner(path, options = {}){
     if(closed) fail(400,'Registration is closed for this trip');
     if(!body.name) fail(400,'Name is required');
     const c = { id:demoId('cust'), tripId:t.id, name:body.name, dob:body.dob||null, phone:body.phone||null,
-      idNumber:body.idNumber||null, medicalCondition:body.medicalCondition||null, passportNote:body.passportNote||null,
+      idNumber:body.idNumber||null, medicalCondition:body.medicalCondition||null, passportNumber:body.passportNumber||null, passportExpiry:body.passportExpiry||null,
       amount:0, depositAmount:0, paymentStatus:'Pending', ticketPurchaser:null, ticketStatus:'Pending', airline:null,
       bookingReference:null, notes:body.notes||null, addedAt:new Date().toISOString() };
     state.passengers.push(c);
@@ -996,7 +996,7 @@ function detailHTML(){
       </td>
       <td>
         <div>${esc(c.phone||'—')}</div>
-        ${c.passportNote ? `<div class="cust-sub">📎 ${esc(c.passportNote)}</div>` : ''}
+        ${c.passportNumber ? `<div class="cust-sub">🛂 ${esc(c.passportNumber)}${c.passportExpiry ? ' · exp ' + fmtDate(c.passportExpiry) : ''}</div>` : ''}
       </td>
       <td>${fmtMoney(c.amount)}</td>
       <td>${c.paymentStatus==='Deposit' ? fmtMoney(c.depositAmount) : '—'}</td>
@@ -1305,7 +1305,7 @@ function tripModal(){
 
 function customerModal(){
   const editing = editingCustomerId ? customers.find(c=>c.id===editingCustomerId) : null;
-  const v = editing || {name:'',dob:'',phone:'',idNumber:'',medicalCondition:'',passportNote:'',amount:0,depositAmount:0,paymentStatus:'Pending',ticketPurchaser:'',ticketStatus:'Pending',airline:'',bookingReference:'',notes:''};
+  const v = editing || {name:'',dob:'',phone:'',idNumber:'',medicalCondition:'',passportNumber:'',passportExpiry:'',amount:0,depositAmount:0,paymentStatus:'Pending',ticketPurchaser:'',ticketStatus:'Pending',airline:'',bookingReference:'',notes:''};
   const trip = trips.find(t=>t.id===(editing ? editing.tripId : view.tripId));
   const showTicketFields = trip && (trip.status==='Approved' || trip.status==='Completed');
   return `
@@ -1320,7 +1320,10 @@ function customerModal(){
         </div>
         <div class="field"><label>IC / Passport no. <span style="font-weight:400;">(optional)</span></label><input id="cu-idnum" value="${esc(v.idNumber)}"></div>
         <div class="field"><label>Medical condition / history <span style="font-weight:400;">(if applicable)</span></label><textarea id="cu-medical" rows="2" placeholder="Leave blank if none">${esc(v.medicalCondition)}</textarea></div>
-        <div class="field"><label>Passport front page <span style="font-weight:400;">(link or filename)</span></label><input id="cu-passport" placeholder="Drive link, filename, or reference" value="${esc(v.passportNote)}"></div>
+        <div class="field-row">
+          <div class="field"><label>Passport number <span style="font-weight:400;">(optional)</span></label><input id="cu-passport-number" placeholder="e.g. A12345678" value="${esc(v.passportNumber)}"></div>
+          <div class="field"><label>Passport expiry date</label><input type="date" id="cu-passport-expiry" value="${esc(v.passportExpiry)}"></div>
+        </div>
         <div class="field-row">
           <div class="field"><label>Package amount (RM)</label><input type="number" id="cu-amount" min="0" step="0.01" value="${v.amount||0}"></div>
           <div class="field"><label>Deposit paid (RM)</label><input type="number" id="cu-deposit" min="0" step="0.01" value="${v.depositAmount||0}"></div>
@@ -1412,7 +1415,7 @@ function uploadModal(){
               `<p><strong>Click to browse</strong> or drag a file here<br>.xlsx, .xls or .csv</p>`}
           </div>
           <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none;">
-          <p class="hint">Recognised columns: Timestamp, Full Name (as per IC), Date of Birth, Contact Number, Trip Type, Location, Medical Condition/history, Passport upload. If Trip Type + Location are present, passengers are grouped into trips automatically.</p>
+          <p class="hint">Recognised columns: Timestamp, Full Name (as per IC), Date of Birth, Contact Number, Trip Type, Location, Medical Condition/history, Passport Number, Passport Expiry. If Trip Type + Location are present, passengers are grouped into trips automatically.</p>
         </div>
 
         ${needsTargetPicker ? `
@@ -1477,7 +1480,8 @@ function exportTripToExcel(tripId){
     'Trip Type': t.type === 'private' ? 'Private Trip' : 'Open Trip',
     'Location': t.destination || '',
     'Medical Condition/ history if applicable': c.medicalCondition || '',
-    'Upload Passport front page': c.passportNote || '',
+    'Passport Number': c.passportNumber || '',
+    'Passport Expiry': c.passportExpiry || '',
     'Payment Status': c.paymentStatus || 'Pending',
     'Amount (RM)': Number(c.amount)||0,
     'Deposit Paid (RM)': Number(c.depositAmount)||0,
@@ -1492,7 +1496,7 @@ function exportTripToExcel(tripId){
   const ws = XLSX.utils.json_to_sheet(rows);
   ws['!cols'] = [
     {wch:26},{wch:14},{wch:16},{wch:16},{wch:12},{wch:20},
-    {wch:30},{wch:26},{wch:14},{wch:12},{wch:14},{wch:18},{wch:14},{wch:16},{wch:18},{wch:24},{wch:14}
+    {wch:30},{wch:16},{wch:14},{wch:14},{wch:12},{wch:14},{wch:18},{wch:14},{wch:16},{wch:18},{wch:24},{wch:14}
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Passengers');
@@ -1542,8 +1546,9 @@ const HEADER_MAP = {
   tripType: ['trip type','type'],
   location: ['location','destination'],
   medicalCondition: ['medical condition/ history if applicable','medical condition/history if applicable','medical condition','medical history','medical condition/ history'],
-  passportNote: ['upload passport front page','passport front page','passport upload','passport'],
-  idNumber: ['ic','ic no','ic number','passport no','ic/passport','identification','id no'],
+  passportNumber: ['passport number','passport no','passport num'],
+  passportExpiry: ['passport expiry','passport expiry date','passport exp','expiry date'],
+  idNumber: ['ic','ic no','ic number','identification','id no'],
   notes: ['notes','remarks','remark','note']
 };
 function normalizeHeader(h){ return String(h||'').trim().toLowerCase(); }
@@ -1595,7 +1600,8 @@ function parseWorkbookFile(file){
             tripType: map.tripType!==undefined ? String(r[map.tripType]||'').trim() : 'Open',
             location: map.location!==undefined ? String(r[map.location]||'').trim() : '',
             medicalCondition: map.medicalCondition!==undefined ? String(r[map.medicalCondition]||'').trim() : '',
-            passportNote: map.passportNote!==undefined ? String(r[map.passportNote]||'').trim() : '',
+            passportNumber: map.passportNumber!==undefined ? String(r[map.passportNumber]||'').trim() : '',
+            passportExpiry: map.passportExpiry!==undefined ? excelDateToStr(r[map.passportExpiry]) : '',
             idNumber: map.idNumber!==undefined ? String(r[map.idNumber]||'').trim() : '',
             notes: map.notes!==undefined ? String(r[map.notes]||'').trim() : ''
           });
@@ -2073,7 +2079,8 @@ async function handleSaveCustomer(){
     phone: document.getElementById('cu-phone').value.trim(),
     idNumber: document.getElementById('cu-idnum').value.trim(),
     medicalCondition: document.getElementById('cu-medical').value.trim(),
-    passportNote: document.getElementById('cu-passport').value.trim(),
+    passportNumber: document.getElementById('cu-passport-number').value.trim(),
+    passportExpiry: document.getElementById('cu-passport-expiry').value,
     amount: Number(document.getElementById('cu-amount').value)||0,
     depositAmount: Number(document.getElementById('cu-deposit').value)||0,
     paymentStatus: document.getElementById('cu-status').value,
@@ -2205,7 +2212,7 @@ async function handleConfirmUpload(){
       method:'POST',
       body: JSON.stringify({
         name: r.name, dob: r.dob, phone: r.phone, idNumber: r.idNumber,
-        medicalCondition: r.medicalCondition, passportNote: r.passportNote, notes: r.notes,
+        medicalCondition: r.medicalCondition, passportNumber: r.passportNumber, passportExpiry: r.passportExpiry, notes: r.notes,
       })
     })));
     customers = customers.concat(created);
@@ -2282,7 +2289,10 @@ function publicRegistrationHTML(){
     </div>
     <div class="field"><label>IC / Passport no. <span style="font-weight:400;">(optional)</span></label><input id="pr-idnum"></div>
     <div class="field"><label>Medical condition / history <span style="font-weight:400;">(if applicable)</span></label><textarea id="pr-medical" rows="2" placeholder="Leave blank if none"></textarea></div>
-    <div class="field"><label>Passport front page <span style="font-weight:400;">(link, optional)</span></label><input id="pr-passport" placeholder="Drive link or similar"></div>
+    <div class="field-row">
+      <div class="field"><label>Passport number <span style="font-weight:400;">(optional)</span></label><input id="pr-passport-number"></div>
+      <div class="field"><label>Passport expiry date</label><input type="date" id="pr-passport-expiry"></div>
+    </div>
     <div class="field"><label>Notes</label><textarea id="pr-notes" rows="2"></textarea></div>
     <button class="btn btn-primary" style="width:100%;justify-content:center;" data-action="submit-public-registration">Submit registration</button>
     <p class="hint" style="margin-top:14px;">Your details are only visible to your travel coordinator's team — this link doesn't show you anyone else's information.</p>
@@ -2307,7 +2317,8 @@ async function handlePublicRegistrationSubmit(token){
     phone: document.getElementById('pr-phone').value.trim(),
     idNumber: document.getElementById('pr-idnum').value.trim(),
     medicalCondition: document.getElementById('pr-medical').value.trim(),
-    passportNote: document.getElementById('pr-passport').value.trim(),
+    passportNumber: document.getElementById('pr-passport-number').value.trim(),
+    passportExpiry: document.getElementById('pr-passport-expiry').value,
     notes: document.getElementById('pr-notes').value.trim(),
   };
   try{

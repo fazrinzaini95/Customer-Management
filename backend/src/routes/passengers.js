@@ -15,7 +15,8 @@ function mapPassenger(row) {
     phone: row.phone,
     idNumber: row.id_number,
     medicalCondition: row.medical_condition,
-    passportNote: row.passport_note,
+    passportNumber: row.passport_number,
+    passportExpiry: row.passport_expiry,
     amount: Number(row.amount),
     depositAmount: Number(row.deposit_amount),
     paymentStatus: row.payment_status,
@@ -35,7 +36,8 @@ const passengerSchema = z.object({
   phone: z.string().optional().or(z.literal('')),
   idNumber: z.string().optional().or(z.literal('')),
   medicalCondition: z.string().optional().or(z.literal('')),
-  passportNote: z.string().optional().or(z.literal('')),
+  passportNumber: z.string().optional().or(z.literal('')),
+  passportExpiry: z.string().optional().or(z.literal('')),
   amount: z.number().nonnegative().default(0),
   depositAmount: z.number().nonnegative().default(0),
   paymentStatus: z.enum(['Pending', 'Deposit', 'Paid', 'Cancelled']).default('Pending'),
@@ -58,14 +60,14 @@ router.post('/trips/:tripId/passengers', asyncHandler(async (req, res) => {
   const d = passengerSchema.parse(req.body);
   const { rows } = await query(
     `INSERT INTO passengers
-       (trip_id, name, dob, phone, id_number, medical_condition, passport_note, amount, deposit_amount, payment_status,
-        ticket_purchaser, ticket_status, airline, booking_reference, notes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+       (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry,
+        amount, deposit_amount, payment_status, ticket_purchaser, ticket_status, airline, booking_reference, notes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
     [
       req.params.tripId, d.name, d.dob || null, d.phone || null, d.idNumber || null,
-      d.medicalCondition || null, d.passportNote || null, d.amount, d.depositAmount,
-      d.paymentStatus, d.ticketPurchaser || null, d.ticketStatus, d.airline || null,
-      d.bookingReference || null, d.notes || null,
+      d.medicalCondition || null, d.passportNumber || null, d.passportExpiry || null,
+      d.amount, d.depositAmount, d.paymentStatus, d.ticketPurchaser || null, d.ticketStatus,
+      d.airline || null, d.bookingReference || null, d.notes || null,
     ]
   );
   res.status(201).json(mapPassenger(rows[0]));
@@ -76,7 +78,7 @@ router.put('/passengers/:id', asyncHandler(async (req, res) => {
   const d = passengerSchema.partial().parse(req.body);
   const colMap = {
     name: 'name', dob: 'dob', phone: 'phone', idNumber: 'id_number',
-    medicalCondition: 'medical_condition', passportNote: 'passport_note',
+    medicalCondition: 'medical_condition', passportNumber: 'passport_number', passportExpiry: 'passport_expiry',
     amount: 'amount', depositAmount: 'deposit_amount',
     paymentStatus: 'payment_status', ticketPurchaser: 'ticket_purchaser',
     ticketStatus: 'ticket_status', airline: 'airline', bookingReference: 'booking_reference',
