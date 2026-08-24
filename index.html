@@ -457,7 +457,7 @@ async function demoFetchInner(path, options = {}){
     state.tripSeq += 1;
     const t = { id:demoId('trip'), seq:state.tripSeq, name:body.name, type:body.type||'open', destination:body.destination||null,
       startDate:body.startDate||null, endDate:body.endDate||null, status:'Draft',
-      history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), publicToken:demoId('tok') };
+      history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), createdByName:u.name, publicToken:demoId('tok') };
     state.trips.push(t);
     logDemoActivity(state, u, 'trip.created', 'trip', t.id, t.name, { type:t.type, destination:t.destination });
     persistDemo();
@@ -518,7 +518,7 @@ async function demoFetchInner(path, options = {}){
       if(!t){
         state.tripSeq += 1;
         t = { id:demoId('trip'), seq:state.tripSeq, name:g.location, type:g.type, destination:g.location, startDate:null, endDate:null,
-          status:'Draft', history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), publicToken:demoId('tok') };
+          status:'Draft', history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), createdByName:u.name, publicToken:demoId('tok') };
         state.trips.push(t); createdTripCount += 1;
       }
       tripIds.push(t.id);
@@ -1032,6 +1032,7 @@ function detailHTML(){
       <div class="eyebrow">${tripCode(t)} · ${t.type} trip</div>
       <h2>${esc(t.name)}</h2>
       <div class="mh-sub">${esc(t.destination||'Destination TBC')} · ${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}</div>
+      ${t.createdByName ? `<div class="mh-sub" style="margin-top:2px;opacity:0.8;">Created by ${esc(t.createdByName)}</div>` : ''}
       <button class="mh-edit" data-action="open-edit-trip">Edit trip details</button>
     </div>
     <div class="mh-right">

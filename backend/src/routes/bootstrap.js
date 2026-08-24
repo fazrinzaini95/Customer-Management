@@ -15,9 +15,12 @@ router.get('/', asyncHandler(async (req, res) => {
 
   const [tripsRes, passengersRes, settingsRes, seqRes, usersRes] = await Promise.all([
     query(`
-      SELECT t.*, COUNT(p.id) AS passenger_count
-      FROM trips t LEFT JOIN passengers p ON p.trip_id = t.id
-      GROUP BY t.id ORDER BY t.created_at DESC
+      SELECT t.*, COUNT(p.id) AS passenger_count, u.name AS creator_name
+      FROM trips t
+      LEFT JOIN passengers p ON p.trip_id = t.id
+      LEFT JOIN users u ON u.id = t.created_by
+      GROUP BY t.id, u.name
+      ORDER BY t.created_at DESC
     `),
     query('SELECT * FROM passengers ORDER BY added_at DESC'),
     query('SELECT data FROM app_settings WHERE id = 1'),
@@ -34,7 +37,7 @@ router.get('/', asyncHandler(async (req, res) => {
     trips: tripsRes.rows.map((r) => ({
       id: r.id, seq: r.seq, name: r.name, type: r.type, destination: r.destination,
       startDate: r.start_date, endDate: r.end_date, status: r.status, history: r.history,
-      createdAt: r.created_at, passengerCount: Number(r.passenger_count), publicToken: r.public_token,
+      createdAt: r.created_at, createdByName: r.creator_name || null, passengerCount: Number(r.passenger_count), publicToken: r.public_token,
     })),
     passengers: passengersRes.rows.map((r) => ({
       id: r.id, tripId: r.trip_id, name: r.name, dob: r.dob, phone: r.phone,

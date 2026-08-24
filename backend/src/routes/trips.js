@@ -18,6 +18,7 @@ function mapTrip(row, passengerCount) {
     status: row.status,
     history: row.history,
     createdAt: row.created_at,
+    createdByName: row.creator_name || null,
     publicToken: row.public_token,
     ...(passengerCount !== undefined ? { passengerCount: Number(passengerCount) } : {}),
   };
@@ -39,17 +40,23 @@ const TRANSITIONS = {
 
 router.get('/', asyncHandler(async (req, res) => {
   const { rows } = await query(`
-    SELECT t.*, COUNT(p.id) AS passenger_count
+    SELECT t.*, COUNT(p.id) AS passenger_count, u.name AS creator_name
     FROM trips t
     LEFT JOIN passengers p ON p.trip_id = t.id
-    GROUP BY t.id
+    LEFT JOIN users u ON u.id = t.created_by
+    GROUP BY t.id, u.name
     ORDER BY t.created_at DESC
   `);
   res.json(rows.map((r) => mapTrip(r, r.passenger_count)));
 }));
 
 router.get('/:id', asyncHandler(async (req, res) => {
-  const { rows } = await query('SELECT * FROM trips WHERE id = $1', [req.params.id]);
+  const { rows } = await query(`
+    SELECT t.*, u.name AS creator_name
+    FROM trips t
+    LEFT JOIN users u ON u.id = t.created_by
+    WHERE t.id = $1
+  `, [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: 'Trip not found' });
   res.json(mapTrip(rows[0]));
 }));
@@ -72,7 +79,7 @@ router.post('/', asyncHandler(async (req, res) => {
      VALUES ($1,$2,$3,$4,$5,'Draft',$6,$7) RETURNING *`,
     [d.name, d.type, d.destination || null, d.startDate || null, d.endDate || null, history, req.user.id]
   );
-  res.status(201).json(mapTrip(rows[0]));
+  res.status(201).json({ ...mapTrip(rows[0]), createdByName: req.user.name });
   logActivity({ actor: req.user, action: 'trip.created', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { type: rows[0].type, destination: rows[0].destination } });
 }));
 
@@ -91,7 +98,11 @@ router.put('/:id', asyncHandler(async (req, res) => {
   if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
 
   values.push(req.params.id);
-  const { rows } = await query(`UPDATE trips SET ${fields.join(', ')} WHERE id = $${i} RETURNING *`, values);
+  const { rows } = await query(
+    `WITH updated AS (UPDATE trips SET ${fields.join(', ')} WHERE id = $${i} RETURNING *)
+     SELECT updated.*, u.name AS creator_name FROM updated LEFT JOIN users u ON u.id = updated.created_by`,
+    values
+  );
   if (!rows[0]) return res.status(404).json({ error: 'Trip not found' });
   res.json(mapTrip(rows[0]));
   logActivity({ actor: req.user, action: 'trip.updated', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { updatedFields: Object.keys(d) } });
@@ -125,7 +136,8 @@ router.post('/:id/status', asyncHandler(async (req, res) => {
 
   const history = [...(trip.history || []), { status: newStatus, date: new Date().toISOString() }];
   const { rows } = await query(
-    'UPDATE trips SET status = $1, history = $2 WHERE id = $3 RETURNING *',
+    `WITH updated AS (UPDATE trips SET status = $1, history = $2 WHERE id = $3 RETURNING *)
+     SELECT updated.*, u.name AS creator_name FROM updated LEFT JOIN users u ON u.id = updated.created_by`,
     [newStatus, JSON.stringify(history), req.params.id]
   );
   res.json(mapTrip(rows[0]));
@@ -147,7 +159,8 @@ const importRowSchema = z.object({
   tripType: z.string().optional().or(z.literal('')),
   location: z.string().optional().or(z.literal('')),
   medicalCondition: z.string().optional().or(z.literal('')),
-  passportNote: z.string().optional().or(z.literal('')),
+  passportNumber: z.string().optional().or(z.literal('')),
+  passportExpiry: z.string().optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
   timestamp: z.string().optional().or(z.literal('')),
 });
@@ -192,11 +205,11 @@ router.post('/bulk-import', asyncHandler(async (req, res) => {
       for (const r of g.rows) {
         await client.query(
           `INSERT INTO passengers
-             (trip_id, name, dob, phone, id_number, medical_condition, passport_note, notes, submitted_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+             (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry, notes, submitted_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
           [
             tripId, r.name, r.dob || null, r.phone || null, r.idNumber || null,
-            r.medicalCondition || null, r.passportNote || null, r.notes || null,
+            r.medicalCondition || null, r.passportNumber || null, r.passportExpiry || null, r.notes || null,
             r.timestamp || null,
           ]
         );
