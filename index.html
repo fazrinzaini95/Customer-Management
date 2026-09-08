@@ -684,7 +684,7 @@ let authView = 'loading'; // 'login' | 'signup' | 'app'
 let authError = '';
 let manageUsersError = '';
 let tempCredentialsBanner = null; // {email, password} shown once after temp account creation
-let view = { mode:'list', tripId:null, search:'', statusFilter:'All', typeFilter:'All' };
+let view = { mode:'list', tripId:null, search:'', statusFilter:'All', typeFilter:'All', layout:'grid' };
 let uploadCtx = { mode:'existing', targetTripId:null, parsedRows:[], fileName:'', groups:[], hasTripColumns:false };
 let editingCustomerId = null; // null => creating new passenger
 let editingTripId = null;     // null => creating new trip
@@ -923,6 +923,10 @@ function listHTML(){
     <div class="chip-row" id="type-chips">
       ${['All','open','private'].map(s=>`<button class="chip ${view.typeFilter===s?'active':''}" data-filter-type="${s}">${s==='All'?'All types':s.charAt(0).toUpperCase()+s.slice(1)+' trip'}</button>`).join('')}
     </div>
+    <div class="chip-row" id="layout-toggle" style="margin-left:auto;">
+      <button class="chip ${view.layout!=='list'?'active':''}" data-set-layout="grid" title="Grid view">▦ Grid</button>
+      <button class="chip ${view.layout==='list'?'active':''}" data-set-layout="list" title="List view">☰ List</button>
+    </div>
   </div>`;
 
   if(!trips.length){
@@ -935,6 +939,35 @@ function listHTML(){
   }
   if(!list.length){
     return toolbar + `<div class="empty"><h3>No trips match your filters</h3><p>Try clearing the search or filters.</p></div>`;
+  }
+
+  if(view.layout==='list'){
+    const rows = list.map(t=>{
+      const cs = custByTrip(t.id);
+      const paid = cs.filter(c=>c.paymentStatus==='Paid').length;
+      return `
+      <tr data-open-trip="${t.id}" style="cursor:pointer;">
+        <td><span style="font-family:var(--font-mono);font-size:12px;color:var(--navy);font-weight:600;">${tripCode(t)}</span></td>
+        <td>
+          <div class="cust-name">${esc(t.name)}</div>
+          <div class="cust-sub">${esc(t.destination||'Destination TBC')}</div>
+        </td>
+        <td><span class="cust-sub" style="text-transform:capitalize;">${t.type}</span></td>
+        <td><span class="cust-sub">${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}</span></td>
+        <td><div class="stamp ${t.status}" style="display:inline-block;">${t.status}</div></td>
+        <td>${cs.length}</td>
+        <td>${paid}</td>
+      </tr>`;
+    }).join('');
+    return toolbar + `
+    <div class="panel">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Code</th><th>Trip</th><th>Type</th><th>Dates</th><th>Status</th><th>Pax</th><th>Paid</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
   }
 
   const cards = list.map(t=>{
@@ -1686,7 +1719,7 @@ async function handleSignup(){
     saveSession();
     authError = '';
     authView = 'app';
-    view = { mode:'list', tripId:null, search:'', statusFilter:'All', typeFilter:'All' };
+    view = { mode:'list', tripId:null, search:'', statusFilter:'All', typeFilter:'All', layout:'grid' };
     await loadBootstrap();
     showToast(currentUser.role==='admin' ? 'Admin account created — welcome!' : 'Account created — welcome!');
   }catch(e){
@@ -1705,7 +1738,7 @@ async function handleLogin(){
     saveSession();
     authError = '';
     authView = 'app';
-    view = { mode:'list', tripId:null, search:'', statusFilter:'All', typeFilter:'All' };
+    view = { mode:'list', tripId:null, search:'', statusFilter:'All', typeFilter:'All', layout:'grid' };
     await loadBootstrap();
     showToast(`Welcome back, ${currentUser.name.split(' ')[0]}`);
   }catch(e){
@@ -1723,7 +1756,7 @@ async function handleUseTempAccount(){
     tempCredentialsBanner = { email: currentUser.email, password: data.tempPassword };
     authError = '';
     authView = 'app';
-    view = { mode:'list', tripId:null, search:'', statusFilter:'All', typeFilter:'All' };
+    view = { mode:'list', tripId:null, search:'', statusFilter:'All', typeFilter:'All', layout:'grid' };
     await loadBootstrap();
     showToast('Signed in with a temporary account');
   }catch(e){
@@ -1890,6 +1923,9 @@ function bindEvents(){
   app.querySelectorAll('[data-filter-type]').forEach(el=>{
     el.addEventListener('click', ()=>{ view.typeFilter = el.dataset.filterType; render(); });
   });
+  app.querySelectorAll('[data-set-layout]').forEach(el=>{
+    el.addEventListener('click', ()=>{ view.layout = el.dataset.setLayout; render(); });
+  });
 
   const openNewTripBtns = app.querySelectorAll('[data-action="open-new-trip"]');
   openNewTripBtns.forEach(btn=>btn.addEventListener('click', ()=>{ editingTripId=null; render(); openOverlay('overlay-trip'); }));
@@ -2011,12 +2047,23 @@ function bindEvents(){
 
 function renderListOnly(){
   const app = document.getElementById('app');
-  const gridArea = app.querySelector('.trip-grid') || app.querySelector('.empty');
+  const gridArea = app.querySelector('.trip-grid') || app.querySelector('.panel') || app.querySelector('.empty');
   if(gridArea){
     const temp = document.createElement('div');
     temp.innerHTML = listHTML();
-    const newGrid = temp.querySelector('.trip-grid') || temp.querySelector('.empty');
+    const newGrid = temp.querySelector('.trip-grid') || temp.querySelector('.panel') || temp.querySelector('.empty');
     gridArea.replaceWith(newGrid);
+    // This bypasses the normal render()->bindEvents() flow to avoid
+    // losing focus on the search input, so the click/toggle handlers for
+    // whatever just got swapped in have to be reattached explicitly here
+    // — otherwise trip cards/rows shown after typing a search become
+    // unclickable (they exist in the DOM but nothing is listening).
+    newGrid.querySelectorAll('[data-open-trip]').forEach(el=>{
+      el.addEventListener('click', ()=>{ view.mode='detail'; view.tripId = el.dataset.openTrip; render(); });
+    });
+    newGrid.querySelectorAll('[data-action="open-new-trip"]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ editingTripId=null; render(); openOverlay('overlay-trip'); });
+    });
   }
 }
 
