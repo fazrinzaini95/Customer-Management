@@ -24,6 +24,7 @@ function mapPassenger(row) {
     ticketStatus: row.ticket_status,
     airline: row.airline,
     bookingReference: row.booking_reference,
+    picName: row.pic_name || null,
     notes: row.notes,
     submittedAt: row.submitted_at,
     addedAt: row.added_at,
@@ -49,28 +50,34 @@ const passengerSchema = z.object({
 });
 
 router.get('/trips/:tripId/passengers', asyncHandler(async (req, res) => {
-  const { rows } = await query(
-    'SELECT * FROM passengers WHERE trip_id = $1 ORDER BY added_at DESC',
-    [req.params.tripId]
-  );
+  const { rows } = await query(`
+    SELECT p.*, pic.name AS pic_name
+    FROM passengers p
+    LEFT JOIN users pic ON pic.id = p.pic_id
+    WHERE p.trip_id = $1
+    ORDER BY p.added_at DESC
+  `, [req.params.tripId]);
   res.json(rows.map(mapPassenger));
 }));
 
+// PIC (person in charge) is set once, here, to whoever is creating the
+// record — and never reassigned by later edits (see PUT below, which
+// deliberately excludes pic_id from its updatable column map).
 router.post('/trips/:tripId/passengers', asyncHandler(async (req, res) => {
   const d = passengerSchema.parse(req.body);
   const { rows } = await query(
     `INSERT INTO passengers
        (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry,
-        amount, deposit_amount, payment_status, ticket_purchaser, ticket_status, airline, booking_reference, notes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
+        amount, deposit_amount, payment_status, ticket_purchaser, ticket_status, airline, booking_reference, pic_id, notes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
     [
       req.params.tripId, d.name, d.dob || null, d.phone || null, d.idNumber || null,
       d.medicalCondition || null, d.passportNumber || null, d.passportExpiry || null,
       d.amount, d.depositAmount, d.paymentStatus, d.ticketPurchaser || null, d.ticketStatus,
-      d.airline || null, d.bookingReference || null, d.notes || null,
+      d.airline || null, d.bookingReference || null, req.user.id, d.notes || null,
     ]
   );
-  res.status(201).json(mapPassenger(rows[0]));
+  res.status(201).json({ ...mapPassenger(rows[0]), picName: req.user.name });
   logActivity({ actor: req.user, action: 'passenger.created', entityType: 'passenger', entityId: rows[0].id, entityLabel: rows[0].name, details: { tripId: rows[0].trip_id } });
 }));
 
@@ -83,6 +90,8 @@ router.put('/passengers/:id', asyncHandler(async (req, res) => {
     paymentStatus: 'payment_status', ticketPurchaser: 'ticket_purchaser',
     ticketStatus: 'ticket_status', airline: 'airline', bookingReference: 'booking_reference',
     notes: 'notes',
+    // pic_id is deliberately NOT here — PIC reflects who originally
+    // registered this passenger, not who last edited their details.
   };
   const fields = [];
   const values = [];
@@ -93,7 +102,11 @@ router.put('/passengers/:id', asyncHandler(async (req, res) => {
   if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
 
   values.push(req.params.id);
-  const { rows } = await query(`UPDATE passengers SET ${fields.join(', ')} WHERE id = $${i} RETURNING *`, values);
+  const { rows } = await query(
+    `WITH updated AS (UPDATE passengers SET ${fields.join(', ')} WHERE id = $${i} RETURNING *)
+     SELECT updated.*, pic.name AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
+    values
+  );
   if (!rows[0]) return res.status(404).json({ error: 'Passenger not found' });
   res.json(mapPassenger(rows[0]));
   logActivity({ actor: req.user, action: 'passenger.updated', entityType: 'passenger', entityId: rows[0].id, entityLabel: rows[0].name, details: { updatedFields: Object.keys(d) } });
@@ -109,7 +122,8 @@ router.put('/passengers/:id/payment-status', asyncHandler(async (req, res) => {
   if (!before.rows[0]) return res.status(404).json({ error: 'Passenger not found' });
 
   const { rows } = await query(
-    'UPDATE passengers SET payment_status = $1 WHERE id = $2 RETURNING *',
+    `WITH updated AS (UPDATE passengers SET payment_status = $1 WHERE id = $2 RETURNING *)
+     SELECT updated.*, pic.name AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
     [paymentStatus, req.params.id]
   );
   res.json(mapPassenger(rows[0]));
@@ -125,7 +139,8 @@ router.put('/passengers/:id/ticket-status', asyncHandler(async (req, res) => {
   if (!before.rows[0]) return res.status(404).json({ error: 'Passenger not found' });
 
   const { rows } = await query(
-    'UPDATE passengers SET ticket_status = $1 WHERE id = $2 RETURNING *',
+    `WITH updated AS (UPDATE passengers SET ticket_status = $1 WHERE id = $2 RETURNING *)
+     SELECT updated.*, pic.name AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
     [ticketStatus, req.params.id]
   );
   res.json(mapPassenger(rows[0]));

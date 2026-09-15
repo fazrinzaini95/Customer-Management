@@ -701,6 +701,9 @@ let view = { mode:'list', tripId:null, search:'', statusFilter:'All', typeFilter
 let uploadCtx = { mode:'existing', targetTripId:null, parsedRows:[], fileName:'', groups:[], hasTripColumns:false };
 let editingCustomerId = null; // null => creating new passenger
 let editingTripId = null;     // null => creating new trip
+let passengerSort = { col:null, dir:'asc' };    // which passenger-table column is sorted, and which direction
+let tripListSort = { col:null, dir:'asc' };     // same, for the trip list-view table
+let pendingPassengerEdits = {}; // { [passengerId]: { paymentStatus?, ticketStatus? } } — draft dropdown values not yet saved
 let numberSettings = { prefix:'EXC', includeYear:true, padding:3, runningNumber:0, nextNumber:1 }; // from GET /settings
 let activityLog = []; // fetched fresh each time the Activity log panel opens
 let loaded = false;
@@ -955,7 +958,17 @@ function listHTML(){
   }
 
   if(view.layout==='list'){
-    const rows = list.map(t=>{
+    const tripListExtractors = {
+      code: t=>t.seq||0,
+      trip: t=>(t.name||'').toLowerCase(),
+      type: t=>t.type||'',
+      dates: t=>t.startDate||'',
+      status: t=>TRIP_STATUSES.indexOf(t.status),
+      pax: t=>custByTrip(t.id).length,
+      paid: t=>custByTrip(t.id).filter(c=>c.paymentStatus==='Paid').length,
+    };
+    const sortedList = applySort(list, tripListSort, tripListExtractors);
+    const rows = sortedList.map(t=>{
       const cs = custByTrip(t.id);
       const paid = cs.filter(c=>c.paymentStatus==='Paid').length;
       return `
@@ -976,7 +989,7 @@ function listHTML(){
     <div class="panel">
       <div style="overflow-x:auto;">
         <table>
-          <thead><tr><th>Code</th><th>Trip</th><th>Type</th><th>Dates</th><th>Status</th><th>Pax</th><th>Paid</th></tr></thead>
+          <thead><tr>${sortHeader('Code','code',tripListSort)}${sortHeader('Trip','trip',tripListSort)}${sortHeader('Type','type',tripListSort)}${sortHeader('Dates','dates',tripListSort)}${sortHeader('Status','status',tripListSort)}${sortHeader('Pax','pax',tripListSort)}${sortHeader('Paid','paid',tripListSort)}</tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -1012,6 +1025,23 @@ function listHTML(){
 /* =========================================================
    Render: detail view
    ========================================================= */
+function sortHeader(label, key, sortState, extraAttrs){
+  const active = sortState.col === key;
+  const arrow = active ? (sortState.dir==='asc' ? ' \u25b2' : ' \u25bc') : '';
+  return `<th data-sort-key="${key}" ${extraAttrs||''} style="cursor:pointer;user-select:none;" title="Sort by ${esc(label)}">${esc(label)}${arrow}</th>`;
+}
+function applySort(list, sortState, extractors){
+  if(!sortState.col || !extractors[sortState.col]) return list;
+  const extract = extractors[sortState.col];
+  const dir = sortState.dir==='asc' ? 1 : -1;
+  return [...list].sort((a,b)=>{
+    const av = extract(a), bv = extract(b);
+    if(av < bv) return -1*dir;
+    if(av > bv) return 1*dir;
+    return 0;
+  });
+}
+
 function detailHTML(){
   const t = trips.find(x=>x.id===view.tripId);
   if(!t){ view.mode='list'; return listHTML(); }
@@ -1031,11 +1061,28 @@ function detailHTML(){
     : (allActions.length ? `<span class="hint" style="color:rgba(255,255,255,0.6);">Awaiting an approver</span>` : '');
 
   const showTicketCols = t.status==='Approved' || t.status==='Completed';
-  const ticketHeaderCells = showTicketCols ? `<th>Ticket purchaser</th><th>Airline / Ref</th><th>Ticket status</th>` : '';
-  const colCount = showTicketCols ? 9 : 6;
+  const passengerSortExtractors = {
+    name: c=>(c.name||'').toLowerCase(),
+    contact: c=>(c.phone||''),
+    amount: c=>Number(c.amount)||0,
+    deposit: c=>Number(c.depositAmount)||0,
+    paymentStatus: c=>PAY_STATUSES.indexOf(c.paymentStatus),
+    pic: c=>(c.picName||'').toLowerCase(),
+    ticketPurchaser: c=>(c.ticketPurchaser||''),
+    airline: c=>(c.airline||'').toLowerCase(),
+    ticketStatus: c=>TICKET_STATUS_OPTIONS.indexOf(c.ticketStatus),
+  };
+  const sortedCs = applySort(cs, passengerSort, passengerSortExtractors);
+  const ticketHeaderCells = showTicketCols ? `${sortHeader('Ticket purchaser','ticketPurchaser',passengerSort)}${sortHeader('Airline / Ref','airline',passengerSort)}${sortHeader('Ticket status','ticketStatus',passengerSort)}` : '';
+  const colCount = showTicketCols ? 10 : 7;
 
-  const rows = cs.length ? cs.map(c=>`
-    <tr data-cust-row="${c.id}">
+  const rows = sortedCs.length ? sortedCs.map(c=>{
+    const draft = pendingPassengerEdits[c.id];
+    const isDirty = !!draft;
+    const paymentVal = (draft && draft.paymentStatus!==undefined) ? draft.paymentStatus : c.paymentStatus;
+    const ticketVal = (draft && draft.ticketStatus!==undefined) ? draft.ticketStatus : c.ticketStatus;
+    return `
+    <tr data-cust-row="${c.id}" ${isDirty ? 'style="background:rgba(244,185,60,0.10);"' : ''}>
       <td>
         <div class="cust-name">${esc(c.name)} ${c.medicalCondition ? `<span class="med-flag" title="${esc(c.medicalCondition)}">⚠</span>` : ''}</div>
         <div class="cust-sub">${c.dob ? 'DOB ' + fmtDate(c.dob) : (c.idNumber ? esc(c.idNumber) : '—')}</div>
@@ -1048,9 +1095,10 @@ function detailHTML(){
       <td>${c.paymentStatus==='Deposit' ? fmtMoney(c.depositAmount) : '—'}</td>
       <td>
         <select class="status-select" data-cust-status="${c.id}">
-          ${PAY_STATUSES.map(s=>`<option value="${s}" ${c.paymentStatus===s?'selected':''}>${s}</option>`).join('')}
+          ${PAY_STATUSES.map(s=>`<option value="${s}" ${paymentVal===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </td>
+      <td><span class="cust-sub">${c.picName ? esc(c.picName) : '—'}</span></td>
       ${showTicketCols ? `
       <td>${c.ticketPurchaser ? esc(c.ticketPurchaser) : '<span class="cust-sub">Not set</span>'}</td>
       <td>
@@ -1059,16 +1107,22 @@ function detailHTML(){
       </td>
       <td>
         <select class="status-select" data-ticket-status="${c.id}">
-          ${TICKET_STATUS_OPTIONS.map(s=>`<option value="${s}" ${c.ticketStatus===s?'selected':''}>${s}</option>`).join('')}
+          ${TICKET_STATUS_OPTIONS.map(s=>`<option value="${s}" ${ticketVal===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </td>` : ''}
       <td>
+        ${isDirty ? `
+        <div class="row-actions">
+          <button class="btn btn-sm btn-primary" data-save-passenger="${c.id}">💾 Save</button>
+          <button class="btn btn-sm btn-ghost" data-cancel-passenger="${c.id}">Cancel</button>
+        </div>` : `
         <div class="row-actions">
           <button class="icon-btn" data-edit-cust="${c.id}" title="Edit">✎</button>
           <button class="icon-btn danger" data-del-cust="${c.id}" title="Remove">✕</button>
-        </div>
+        </div>`}
       </td>
-    </tr>`).join('') :
+    </tr>`;
+  }).join('') :
     `<tr><td colspan="${colCount}" style="text-align:center;color:var(--ink-soft);padding:28px;">No passengers yet. Add one or bulk-upload an Excel sheet.</td></tr>`;
 
   return `
@@ -1079,6 +1133,7 @@ function detailHTML(){
       <h2>${esc(t.name)}</h2>
       <div class="mh-sub">${esc(t.destination||'Destination TBC')} · ${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}</div>
       ${t.createdByName ? `<div class="mh-sub" style="margin-top:2px;opacity:0.8;">Created by ${esc(t.createdByName)}</div>` : ''}
+      ${(t.lastEditedByName && t.lastEditedByName !== t.createdByName) ? `<div class="mh-sub" style="margin-top:2px;opacity:0.8;">Last edited by ${esc(t.lastEditedByName)}${t.lastEditedAt ? ' · ' + fmtDate(t.lastEditedAt) : ''}</div>` : ''}
       <button class="mh-edit" data-action="open-edit-trip">Edit trip details</button>
     </div>
     <div class="mh-right">
@@ -1106,7 +1161,7 @@ function detailHTML(){
     </div>
     <div style="overflow-x:auto;">
       <table>
-        <thead><tr><th>Name / DOB</th><th>Contact</th><th>Amount</th><th>Deposit paid</th><th>Payment status</th>${ticketHeaderCells}<th></th></tr></thead>
+        <thead><tr>${sortHeader('Name / DOB','name',passengerSort)}${sortHeader('Contact','contact',passengerSort)}${sortHeader('Amount','amount',passengerSort)}${sortHeader('Deposit paid','deposit',passengerSort)}${sortHeader('Payment status','paymentStatus',passengerSort)}${sortHeader('PIC','pic',passengerSort)}${ticketHeaderCells}<th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -1536,6 +1591,7 @@ function exportTripToExcel(tripId){
     'Ticket Status': c.ticketStatus || 'Pending',
     'Airline': c.airline || '',
     'Booking Reference': c.bookingReference || '',
+    'PIC': c.picName || '',
     'Notes': c.notes || '',
     'Submitted': c.submittedAt || ''
   }));
@@ -1543,7 +1599,7 @@ function exportTripToExcel(tripId){
   const ws = XLSX.utils.json_to_sheet(rows);
   ws['!cols'] = [
     {wch:26},{wch:14},{wch:16},{wch:16},{wch:12},{wch:20},
-    {wch:30},{wch:16},{wch:14},{wch:14},{wch:12},{wch:14},{wch:18},{wch:14},{wch:16},{wch:18},{wch:24},{wch:14}
+    {wch:30},{wch:16},{wch:14},{wch:14},{wch:12},{wch:14},{wch:18},{wch:14},{wch:16},{wch:18},{wch:16},{wch:24},{wch:14}
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Passengers');
@@ -1939,6 +1995,15 @@ function bindEvents(){
   app.querySelectorAll('[data-set-layout]').forEach(el=>{
     el.addEventListener('click', ()=>{ view.layout = el.dataset.setLayout; render(); });
   });
+  app.querySelectorAll('[data-sort-key]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const key = el.dataset.sortKey;
+      const sortState = view.mode==='detail' ? passengerSort : tripListSort;
+      if(sortState.col===key){ sortState.dir = sortState.dir==='asc' ? 'desc' : 'asc'; }
+      else { sortState.col = key; sortState.dir = 'asc'; }
+      render();
+    });
+  });
 
   const openNewTripBtns = app.querySelectorAll('[data-action="open-new-trip"]');
   openNewTripBtns.forEach(btn=>btn.addEventListener('click', ()=>{ editingTripId=null; render(); openOverlay('overlay-trip'); }));
@@ -1984,34 +2049,39 @@ function bindEvents(){
   });
 
   app.querySelectorAll('[data-cust-status]').forEach(el=>{
-    el.addEventListener('change', async ()=>{
-      const c = customers.find(x=>x.id===el.dataset.custStatus);
-      if(!c) return;
-      const prev = c.paymentStatus;
-      c.paymentStatus = el.value; // optimistic
-      try{
-        await apiFetch(`/passengers/${c.id}/payment-status`, { method:'PUT', body: JSON.stringify({ paymentStatus: el.value }) });
-        showToast('Payment status updated');
-      }catch(e){
-        c.paymentStatus = prev;
-        showToast(e.message || 'Could not update payment status');
-      }
+    el.addEventListener('change', ()=>{
+      const id = el.dataset.custStatus;
+      pendingPassengerEdits[id] = { ...(pendingPassengerEdits[id]||{}), paymentStatus: el.value };
       render();
     });
   });
   app.querySelectorAll('[data-ticket-status]').forEach(el=>{
-    el.addEventListener('change', async ()=>{
-      const c = customers.find(x=>x.id===el.dataset.ticketStatus);
-      if(!c) return;
-      const prev = c.ticketStatus;
-      c.ticketStatus = el.value; // optimistic
+    el.addEventListener('change', ()=>{
+      const id = el.dataset.ticketStatus;
+      pendingPassengerEdits[id] = { ...(pendingPassengerEdits[id]||{}), ticketStatus: el.value };
+      render();
+    });
+  });
+  app.querySelectorAll('[data-save-passenger]').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      const id = el.dataset.savePassenger;
+      const draft = pendingPassengerEdits[id];
+      if(!draft) return;
       try{
-        await apiFetch(`/passengers/${c.id}/ticket-status`, { method:'PUT', body: JSON.stringify({ ticketStatus: el.value }) });
-        showToast('Ticket status updated');
+        const updated = await apiFetch(`/passengers/${id}`, { method:'PUT', body: JSON.stringify(draft) });
+        const idx = customers.findIndex(x=>x.id===id);
+        if(idx>-1) customers[idx] = updated;
+        delete pendingPassengerEdits[id];
+        showToast('Changes saved');
       }catch(e){
-        c.ticketStatus = prev;
-        showToast(e.message || 'Could not update ticket status');
+        showToast(e.message || 'Could not save changes');
       }
+      render();
+    });
+  });
+  app.querySelectorAll('[data-cancel-passenger]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      delete pendingPassengerEdits[el.dataset.cancelPassenger];
       render();
     });
   });
@@ -2048,7 +2118,12 @@ function bindEvents(){
   if(shareLinkBtn) shareLinkBtn.addEventListener('click', async ()=>{
     const token = shareLinkBtn.dataset.tripToken;
     if(!token){ showToast('This trip has no registration link yet'); return; }
-    const link = `${location.origin}${location.pathname}?register=${token}`;
+    // Embedding the sharing staff member's id in the link itself is what
+    // lets a passenger who registers through it get automatically
+    // credited to that staff member as PIC — resolved and validated
+    // server-side, never trusted as a name directly from the URL.
+    const picParam = currentUser ? `&pic=${encodeURIComponent(currentUser.id)}` : '';
+    const link = `${location.origin}${location.pathname}?register=${token}${picParam}`;
     try{
       await navigator.clipboard.writeText(link);
       showToast('Registration link copied to clipboard');
@@ -2076,6 +2151,14 @@ function renderListOnly(){
     });
     newGrid.querySelectorAll('[data-action="open-new-trip"]').forEach(btn=>{
       btn.addEventListener('click', ()=>{ editingTripId=null; render(); openOverlay('overlay-trip'); });
+    });
+    newGrid.querySelectorAll('[data-sort-key]').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const key = el.dataset.sortKey;
+        if(tripListSort.col===key){ tripListSort.dir = tripListSort.dir==='asc' ? 'desc' : 'asc'; }
+        else { tripListSort.col = key; tripListSort.dir = 'asc'; }
+        render();
+      });
     });
   }
 }
@@ -2465,12 +2548,14 @@ function validatePublicPassengers(){
 }
 
 async function handlePublicRegistrationSubmit(token){
+  const picUserId = new URLSearchParams(location.search).get('pic') || undefined;
   const payload = {
     passengers: publicReg.passengers.map(p=>({
       name: (p.name||'').trim().toUpperCase(),
       dob: p.dob, phone: p.phone, idNumber: p.idNumber, medicalCondition: p.medicalCondition,
       wantsFlight: !!p.wantsFlight, passportNumber: p.passportNumber, passportExpiry: p.passportExpiry, notes: p.notes,
-    }))
+    })),
+    ...(picUserId ? { picUserId } : {}),
   };
   try{
     const result = await publicApiFetch(`/public/trips/${token}/register`, { method:'POST', body: JSON.stringify(payload) });

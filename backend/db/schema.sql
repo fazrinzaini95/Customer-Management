@@ -82,6 +82,8 @@ CREATE TABLE IF NOT EXISTS trips (
   history      JSONB NOT NULL DEFAULT '[]',  -- [{ "status": "Draft", "date": "2026-08-22T..." }, ...]
   created_by   UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_edited_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  last_edited_at TIMESTAMPTZ,
   -- A separate, unguessable token for the public self-registration link —
   -- deliberately NOT the trip's real id, so it can be shared publicly
   -- without exposing (or letting anyone guess) internal identifiers, and
@@ -91,6 +93,11 @@ CREATE TABLE IF NOT EXISTS trips (
 
 CREATE INDEX IF NOT EXISTS idx_trips_status ON trips(status);
 CREATE INDEX IF NOT EXISTS idx_trips_type_destination ON trips(type, destination);  -- for bulk-import grouping lookups
+
+-- Migration path for databases that already had trips before "last
+-- edited by" existed — safe to re-run.
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS last_edited_by UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS last_edited_at TIMESTAMPTZ;
 -- No separate index for public_token: its UNIQUE constraint below already
 -- creates one automatically (visible as trips_public_token_key).
 
@@ -121,6 +128,11 @@ CREATE TABLE IF NOT EXISTS passengers (
   booking_reference  TEXT,
   passport_number    TEXT,
   passport_expiry    DATE,
+  -- Person in charge: the staff member who added this passenger, or
+  -- who shared the registration link they used to add themselves.
+  -- Never reassigned after the fact — this records who's responsible
+  -- for having brought this passenger on, not who last touched the row.
+  pic_id             UUID REFERENCES users(id) ON DELETE SET NULL,
   notes              TEXT,
   submitted_at       TIMESTAMPTZ,  -- from the source form/sheet, if provided
   added_at           TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -141,6 +153,7 @@ ALTER TABLE passengers ADD COLUMN IF NOT EXISTS booking_reference TEXT;
 -- any data loss for anyone who'd already filled it in.
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS passport_number TEXT;
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS passport_expiry DATE;
+ALTER TABLE passengers ADD COLUMN IF NOT EXISTS pic_id UUID REFERENCES users(id) ON DELETE SET NULL;
 
 -- ---------------------------------------------------------------
 -- App settings (trip-numbering format)

@@ -19,6 +19,8 @@ function mapTrip(row, passengerCount) {
     history: row.history,
     createdAt: row.created_at,
     createdByName: row.creator_name || null,
+    lastEditedByName: row.editor_name || null,
+    lastEditedAt: row.last_edited_at || null,
     publicToken: row.public_token,
     ...(passengerCount !== undefined ? { passengerCount: Number(passengerCount) } : {}),
   };
@@ -40,11 +42,12 @@ const TRANSITIONS = {
 
 router.get('/', asyncHandler(async (req, res) => {
   const { rows } = await query(`
-    SELECT t.*, COUNT(p.id) AS passenger_count, u.name AS creator_name
+    SELECT t.*, COUNT(p.id) AS passenger_count, u.name AS creator_name, le.name AS editor_name
     FROM trips t
     LEFT JOIN passengers p ON p.trip_id = t.id
     LEFT JOIN users u ON u.id = t.created_by
-    GROUP BY t.id, u.name
+    LEFT JOIN users le ON le.id = t.last_edited_by
+    GROUP BY t.id, u.name, le.name
     ORDER BY t.created_at DESC
   `);
   res.json(rows.map((r) => mapTrip(r, r.passenger_count)));
@@ -52,9 +55,10 @@ router.get('/', asyncHandler(async (req, res) => {
 
 router.get('/:id', asyncHandler(async (req, res) => {
   const { rows } = await query(`
-    SELECT t.*, u.name AS creator_name
+    SELECT t.*, u.name AS creator_name, le.name AS editor_name
     FROM trips t
     LEFT JOIN users u ON u.id = t.created_by
+    LEFT JOIN users le ON le.id = t.last_edited_by
     WHERE t.id = $1
   `, [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: 'Trip not found' });
@@ -71,21 +75,23 @@ const tripSchema = z.object({
 
 // Any logged-in role can create a trip — it starts as Draft either way,
 // and Draft is freely editable before anyone submits it for approval.
+// The creator is also recorded as the first "last edited by", so a
+// freshly created trip already shows an edit trail rather than a blank one.
 router.post('/', asyncHandler(async (req, res) => {
   const d = tripSchema.parse(req.body);
   const history = JSON.stringify([{ status: 'Draft', date: new Date().toISOString() }]);
   const { rows } = await query(
-    `INSERT INTO trips (name, type, destination, start_date, end_date, status, history, created_by)
-     VALUES ($1,$2,$3,$4,$5,'Draft',$6,$7) RETURNING *`,
+    `INSERT INTO trips (name, type, destination, start_date, end_date, status, history, created_by, last_edited_by, last_edited_at)
+     VALUES ($1,$2,$3,$4,$5,'Draft',$6,$7,$7,now()) RETURNING *`,
     [d.name, d.type, d.destination || null, d.startDate || null, d.endDate || null, history, req.user.id]
   );
-  res.status(201).json({ ...mapTrip(rows[0]), createdByName: req.user.name });
+  res.status(201).json({ ...mapTrip(rows[0]), createdByName: req.user.name, lastEditedByName: req.user.name });
   logActivity({ actor: req.user, action: 'trip.created', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { type: rows[0].type, destination: rows[0].destination } });
 }));
 
 // Editing trip details (name/type/destination/dates) is separate from
 // changing its status — any logged-in role can edit, matching "users can
-// create and edit."
+// create and edit." Every edit also stamps last_edited_by/last_edited_at.
 router.put('/:id', asyncHandler(async (req, res) => {
   const d = tripSchema.partial().parse(req.body);
   const fields = [];
@@ -97,10 +103,17 @@ router.put('/:id', asyncHandler(async (req, res) => {
   }
   if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
 
+  fields.push(`last_edited_by = $${i++}`);
+  values.push(req.user.id);
+  fields.push('last_edited_at = now()');
+
   values.push(req.params.id);
   const { rows } = await query(
     `WITH updated AS (UPDATE trips SET ${fields.join(', ')} WHERE id = $${i} RETURNING *)
-     SELECT updated.*, u.name AS creator_name FROM updated LEFT JOIN users u ON u.id = updated.created_by`,
+     SELECT updated.*, u.name AS creator_name, le.name AS editor_name
+     FROM updated
+     LEFT JOIN users u ON u.id = updated.created_by
+     LEFT JOIN users le ON le.id = updated.last_edited_by`,
     values
   );
   if (!rows[0]) return res.status(404).json({ error: 'Trip not found' });
@@ -118,6 +131,7 @@ router.delete('/:id', requireRole('admin'), asyncHandler(async (req, res) => {
 
 const statusSchema = z.object({ status: z.enum(['Draft', 'Pending', 'Approved', 'Declined', 'Cancelled', 'Completed']) });
 
+// A status change also counts as an edit — stamps last_edited_by/at too.
 router.post('/:id/status', asyncHandler(async (req, res) => {
   const { status: newStatus } = statusSchema.parse(req.body);
 
@@ -136,9 +150,15 @@ router.post('/:id/status', asyncHandler(async (req, res) => {
 
   const history = [...(trip.history || []), { status: newStatus, date: new Date().toISOString() }];
   const { rows } = await query(
-    `WITH updated AS (UPDATE trips SET status = $1, history = $2 WHERE id = $3 RETURNING *)
-     SELECT updated.*, u.name AS creator_name FROM updated LEFT JOIN users u ON u.id = updated.created_by`,
-    [newStatus, JSON.stringify(history), req.params.id]
+    `WITH updated AS (
+       UPDATE trips SET status = $1, history = $2, last_edited_by = $3, last_edited_at = now()
+       WHERE id = $4 RETURNING *
+     )
+     SELECT updated.*, u.name AS creator_name, le.name AS editor_name
+     FROM updated
+     LEFT JOIN users u ON u.id = updated.created_by
+     LEFT JOIN users le ON le.id = updated.last_edited_by`,
+    [newStatus, JSON.stringify(history), req.user.id, req.params.id]
   );
   res.json(mapTrip(rows[0]));
   logActivity({ actor: req.user, action: 'trip.status_changed', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { from: trip.status, to: newStatus } });
@@ -149,7 +169,8 @@ router.post('/:id/status', asyncHandler(async (req, res) => {
 // done server-side/atomically: each row carries tripType + location: rows
 // sharing both are grouped into one trip (matched to an existing Draft/
 // any-status trip with the same type+destination, or created fresh as
-// Draft), then all passengers are inserted in a single transaction.
+// Draft), then all passengers are inserted in a single transaction. Every
+// passenger created this way gets pic_id set to whoever ran the import.
 // ---------------------------------------------------------------
 const importRowSchema = z.object({
   name: z.string().min(1),
@@ -193,8 +214,8 @@ router.post('/bulk-import', asyncHandler(async (req, res) => {
       if (!tripId) {
         const history = JSON.stringify([{ status: 'Draft', date: new Date().toISOString() }]);
         const created = await client.query(
-          `INSERT INTO trips (name, type, destination, status, history, created_by)
-           VALUES ($1,$2,$3,'Draft',$4,$5) RETURNING id`,
+          `INSERT INTO trips (name, type, destination, status, history, created_by, last_edited_by, last_edited_at)
+           VALUES ($1,$2,$3,'Draft',$4,$5,$5,now()) RETURNING id`,
           [g.location, g.type, g.location, history, req.user.id]
         );
         tripId = created.rows[0].id;
@@ -205,12 +226,12 @@ router.post('/bulk-import', asyncHandler(async (req, res) => {
       for (const r of g.rows) {
         await client.query(
           `INSERT INTO passengers
-             (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry, notes, submitted_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+             (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry, pic_id, notes, submitted_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
           [
             tripId, r.name, r.dob || null, r.phone || null, r.idNumber || null,
-            r.medicalCondition || null, r.passportNumber || null, r.passportExpiry || null, r.notes || null,
-            r.timestamp || null,
+            r.medicalCondition || null, r.passportNumber || null, r.passportExpiry || null,
+            req.user.id, r.notes || null, r.timestamp || null,
           ]
         );
         importedCount += 1;

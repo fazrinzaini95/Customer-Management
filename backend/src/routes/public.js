@@ -46,6 +46,12 @@ const passengerEntrySchema = z.object({
 );
 const registerSchema = z.object({
   passengers: z.array(passengerEntrySchema).min(1, 'At least one passenger is required'),
+  // Whoever shared this link — passed as a plain user id in the URL/
+  // payload, never trusted at face value: resolved against the real
+  // users table below, and silently ignored (not an error) if it
+  // doesn't match an active account, so a stale or tampered id never
+  // blocks a passenger from registering.
+  picUserId: z.string().uuid().optional().or(z.literal('')),
 });
 
 router.post('/trips/:token/register', asyncHandler(async (req, res) => {
@@ -58,7 +64,13 @@ router.post('/trips/:token/register', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Registration is closed for this trip' });
   }
 
-  const { passengers } = registerSchema.parse(req.body);
+  const { passengers, picUserId } = registerSchema.parse(req.body);
+
+  let resolvedPicId = null;
+  if (picUserId) {
+    const picRow = await query('SELECT id FROM users WHERE id = $1 AND is_active = true', [picUserId]);
+    if (picRow.rows[0]) resolvedPicId = picRow.rows[0].id;
+  }
 
   // Every field a self-registering passenger could set is deliberately
   // whitelisted above — amount, deposit, payment status, ticket status,
@@ -73,10 +85,10 @@ router.post('/trips/:token/register', asyncHandler(async (req, res) => {
       const ticketPurchaser = d.wantsFlight ? 'Excapism' : null;
       const { rows } = await client.query(
         `INSERT INTO passengers
-           (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry, ticket_purchaser, notes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id, name`,
+           (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry, ticket_purchaser, pic_id, notes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id, name`,
         [trip.id, name, d.dob || null, d.phone || null, d.idNumber || null, d.medicalCondition || null,
-         d.passportNumber || null, d.passportExpiry || null, ticketPurchaser, d.notes || null]
+         d.passportNumber || null, d.passportExpiry || null, ticketPurchaser, resolvedPicId, d.notes || null]
       );
       results.push(rows[0]);
     }
