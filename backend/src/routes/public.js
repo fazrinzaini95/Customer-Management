@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { z } = require('zod');
-const { query, logActivity } = require('../db');
+const { query, withTransaction, logActivity } = require('../db');
 const { asyncHandler } = require('../middleware/errorHandler');
 
 // Deliberately NO requireAuth on this router — this is the one part of
@@ -27,8 +27,8 @@ router.get('/trips/:token', asyncHandler(async (req, res) => {
   res.json(safeTripView(rows[0]));
 }));
 
-const registerSchema = z.object({
-  name: z.string().min(1),
+const passengerEntrySchema = z.object({
+  name: z.string().min(1, 'Full name is required'),
   dob: z.string().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   idNumber: z.string().optional().or(z.literal('')),
@@ -36,6 +36,16 @@ const registerSchema = z.object({
   passportNumber: z.string().optional().or(z.literal('')),
   passportExpiry: z.string().optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
+  // A boolean flag rather than trusting an arbitrary ticketPurchaser
+  // string from an unauthenticated caller — server derives the actual
+  // value ('Excapism' | null) from this itself, below.
+  wantsFlight: z.boolean().optional().default(false),
+}).refine(
+  (d) => !d.wantsFlight || (d.passportNumber && d.passportNumber.trim() && d.passportExpiry && d.passportExpiry.trim()),
+  { message: 'Passport number and expiry date are required when requesting a flight booking' }
+);
+const registerSchema = z.object({
+  passengers: z.array(passengerEntrySchema).min(1, 'At least one passenger is required'),
 });
 
 router.post('/trips/:token/register', asyncHandler(async (req, res) => {
@@ -48,29 +58,43 @@ router.post('/trips/:token/register', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Registration is closed for this trip' });
   }
 
-  const d = registerSchema.parse(req.body);
+  const { passengers } = registerSchema.parse(req.body);
 
   // Every field a self-registering passenger could set is deliberately
-  // whitelisted above — amount, deposit, payment status, and all flight-
-  // ticket fields are staff-managed and always start at their defaults
-  // here, regardless of anything in the request body.
-  const { rows } = await query(
-    `INSERT INTO passengers
-       (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry, notes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id, name`,
-    [trip.id, d.name, d.dob || null, d.phone || null, d.idNumber || null, d.medicalCondition || null, d.passportNumber || null, d.passportExpiry || null, d.notes || null]
-  );
-
-  logActivity({
-    actor: { id: null, name: `${d.name} (self-registered)`, email: 'public-registration@excapism.local' },
-    action: 'passenger.self_registered',
-    entityType: 'passenger',
-    entityId: rows[0].id,
-    entityLabel: rows[0].name,
-    details: { tripId: trip.id, tripName: trip.name },
+  // whitelisted above — amount, deposit, payment status, ticket status,
+  // airline, and booking reference are staff-managed and always start
+  // at their defaults here, regardless of anything in the request body.
+  // All-or-nothing: if any entry in the batch is somehow invalid, none
+  // of them are inserted.
+  const created = await withTransaction(async (client) => {
+    const results = [];
+    for (const d of passengers) {
+      const name = d.name.trim().toUpperCase(); // enforced server-side too, not just in the UI
+      const ticketPurchaser = d.wantsFlight ? 'Excapism' : null;
+      const { rows } = await client.query(
+        `INSERT INTO passengers
+           (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry, ticket_purchaser, notes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id, name`,
+        [trip.id, name, d.dob || null, d.phone || null, d.idNumber || null, d.medicalCondition || null,
+         d.passportNumber || null, d.passportExpiry || null, ticketPurchaser, d.notes || null]
+      );
+      results.push(rows[0]);
+    }
+    return results;
   });
 
-  res.status(201).json({ name: rows[0].name });
+  created.forEach((c) => {
+    logActivity({
+      actor: { id: null, name: `${c.name} (self-registered)`, email: 'public-registration@excapism.local' },
+      action: 'passenger.self_registered',
+      entityType: 'passenger',
+      entityId: c.id,
+      entityLabel: c.name,
+      details: { tripId: trip.id, tripName: trip.name, batchSize: created.length },
+    });
+  });
+
+  res.status(201).json({ names: created.map((c) => c.name) });
 }));
 
 module.exports = router;

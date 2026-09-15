@@ -658,16 +658,29 @@ async function demoFetchInner(path, options = {}){
     if(!t) fail(404,'Registration link not found');
     const closed = ['Declined','Cancelled','Completed'].includes(t.status);
     if(closed) fail(400,'Registration is closed for this trip');
-    if(!body.name) fail(400,'Name is required');
-    const c = { id:demoId('cust'), tripId:t.id, name:body.name, dob:body.dob||null, phone:body.phone||null,
-      idNumber:body.idNumber||null, medicalCondition:body.medicalCondition||null, passportNumber:body.passportNumber||null, passportExpiry:body.passportExpiry||null,
-      amount:0, depositAmount:0, paymentStatus:'Pending', ticketPurchaser:null, ticketStatus:'Pending', airline:null,
-      bookingReference:null, notes:body.notes||null, addedAt:new Date().toISOString() };
-    state.passengers.push(c);
-    logDemoActivity(state, { id:null, name:`${c.name} (self-registered)`, email:'public-registration@excapism.local' },
-      'passenger.self_registered', 'passenger', c.id, c.name, { tripId:t.id, tripName:t.name });
+    const passengers = Array.isArray(body.passengers) ? body.passengers : [];
+    if(!passengers.length) fail(400,'At least one passenger is required');
+    for(let idx=0; idx<passengers.length; idx++){
+      const p = passengers[idx];
+      if(!p.name || !String(p.name).trim()) fail(400,`Passenger ${idx+1}: full name is required.`);
+      if(p.wantsFlight && (!p.passportNumber || !String(p.passportNumber).trim() || !p.passportExpiry)){
+        fail(400, `Passenger ${idx+1}: passport number and expiry date are required since a flight was requested.`);
+      }
+    }
+    const created = passengers.map(p=>{
+      const c = { id:demoId('cust'), tripId:t.id, name:String(p.name).trim().toUpperCase(), dob:p.dob||null, phone:p.phone||null,
+        idNumber:p.idNumber||null, medicalCondition:p.medicalCondition||null, passportNumber:p.passportNumber||null, passportExpiry:p.passportExpiry||null,
+        amount:0, depositAmount:0, paymentStatus:'Pending', ticketPurchaser: p.wantsFlight ? 'Excapism' : null, ticketStatus:'Pending', airline:null,
+        bookingReference:null, notes:p.notes||null, addedAt:new Date().toISOString() };
+      state.passengers.push(c);
+      return c;
+    });
+    created.forEach(c=>{
+      logDemoActivity(state, { id:null, name:`${c.name} (self-registered)`, email:'public-registration@excapism.local' },
+        'passenger.self_registered', 'passenger', c.id, c.name, { tripId:t.id, tripName:t.name, batchSize:created.length });
+    });
     persistDemo();
-    return { name:c.name };
+    return { names: created.map(c=>c.name) };
   }
 
   fail(404, 'Not found');
@@ -2282,13 +2295,19 @@ async function handleConfirmUpload(){
    A completely separate, unauthenticated view — reached via
    ?register=TOKEN in the URL. Never touches currentUser, trips,
    customers, or any other app state; only ever knows about the one
-   trip its token points to.
+   trip its token points to. Supports registering multiple passengers
+   (e.g. a family) in one submission, with a review step before the
+   final confirm.
    ========================================================= */
-let publicReg = { status:'loading', trip:null, error:'', submittedName:'' }; // status: loading|form|closed|invalid|success
+let publicReg = { status:'loading', trip:null, error:'', passengers:[], submittedNames:[] }; // status: loading|form|review|closed|invalid|success
+
+function makeBlankPublicPassenger(){
+  return { name:'', dob:'', phone:'', idNumber:'', medicalCondition:'', wantsFlight:false, passportNumber:'', passportExpiry:'', notes:'' };
+}
 
 function publicRegShell(inner){
   return `
-  <div style="max-width:460px;margin:60px auto 0;">
+  <div style="max-width:520px;margin:60px auto 0;">
     <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:26px;">
       <div class="brand-badge">EX</div>
       <div>
@@ -2299,6 +2318,36 @@ function publicRegShell(inner){
     <div class="panel" style="padding:26px 24px;">${inner}</div>
   </div>`;
 }
+
+function publicPassengerBlockHTML(p, i, total){
+  return `
+  <div style="border:1.5px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <span style="font-family:var(--font-display);font-weight:600;font-size:13.5px;color:var(--navy-deep);">Passenger ${i+1}</span>
+      ${total>1 ? `<button type="button" class="icon-btn danger" data-remove-passenger="${i}" title="Remove this passenger">✕ Remove</button>` : ''}
+    </div>
+    <div class="field"><label>Full name (as per IC)</label><input id="pr-name-${i}" style="text-transform:uppercase;" placeholder="AS PER IC / PASSPORT" value="${esc(p.name)}"></div>
+    <div class="field-row">
+      <div class="field"><label>Date of birth</label><input type="date" id="pr-dob-${i}" value="${esc(p.dob)}"></div>
+      <div class="field"><label>Contact number</label><input id="pr-phone-${i}" value="${esc(p.phone)}"></div>
+    </div>
+    <div class="field"><label>IC / Passport no. <span style="font-weight:400;">(optional)</span></label><input id="pr-idnum-${i}" value="${esc(p.idNumber)}"></div>
+    <div class="field"><label>Medical condition / history <span style="font-weight:400;">(if applicable)</span></label><textarea id="pr-medical-${i}" rows="2" placeholder="Leave blank if none">${esc(p.medicalCondition)}</textarea></div>
+    <div class="field" style="margin-bottom:${p.wantsFlight?'10px':'0'};">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;">
+        <input type="checkbox" id="pr-wants-flight-${i}" data-flight-toggle="${i}" ${p.wantsFlight?'checked':''} style="width:auto;">
+        I'd like Excapism to arrange my flight ticket
+      </label>
+    </div>
+    ${p.wantsFlight ? `
+    <div class="field-row">
+      <div class="field"><label>Passport number <span style="color:var(--coral);font-weight:600;">*required</span></label><input id="pr-passport-number-${i}" value="${esc(p.passportNumber)}"></div>
+      <div class="field"><label>Passport expiry date <span style="color:var(--coral);font-weight:600;">*required</span></label><input type="date" id="pr-passport-expiry-${i}" value="${esc(p.passportExpiry)}"></div>
+    </div>` : ''}
+    <div class="field" style="margin-bottom:0;"><label>Notes</label><textarea id="pr-notes-${i}" rows="2">${esc(p.notes)}</textarea></div>
+  </div>`;
+}
+
 function publicRegistrationHTML(){
   if(publicReg.status==='loading'){
     return publicRegShell(`<p style="text-align:center;color:var(--ink-soft);margin:20px 0;">Loading…</p>`);
@@ -2319,73 +2368,162 @@ function publicRegistrationHTML(){
   if(publicReg.status==='success'){
     return publicRegShell(`
       <h3 style="font-family:var(--font-display);font-size:18px;margin:0 0 8px;color:var(--navy-deep);">You're registered! 🎉</h3>
-      <p style="font-size:13.5px;color:var(--ink);margin:0;">Thanks, <b>${esc(publicReg.submittedName)}</b> — your details have been received. Your travel coordinator will be in touch with next steps.</p>
+      <p style="font-size:13.5px;color:var(--ink);margin:0 0 10px;">Thanks — the following passenger${publicReg.submittedNames.length===1?'':'s'} have been received:</p>
+      <ul style="margin:0 0 10px;padding-left:20px;font-size:13.5px;color:var(--ink);">
+        ${publicReg.submittedNames.map(n=>`<li>${esc(n)}</li>`).join('')}
+      </ul>
+      <p style="font-size:13.5px;color:var(--ink-soft);margin:0;">Your travel coordinator will be in touch with next steps.</p>
     `);
   }
 
   const t = publicReg.trip;
-  return publicRegShell(`
+  const header = `
     <div style="margin-bottom:16px;">
       <h3 style="font-family:var(--font-display);font-size:18px;margin:0 0 4px;color:var(--navy-deep);">${esc(t.name)}</h3>
       <p style="font-size:13px;color:var(--ink-soft);margin:0;">${esc(t.destination||'Destination TBC')} ${t.startDate ? '· ' + fmtDate(t.startDate) + ' → ' + fmtDate(t.endDate) : ''}</p>
-    </div>
-    ${publicReg.error ? `<p style="color:var(--coral);font-size:13px;margin:0 0 12px;font-weight:600;">${esc(publicReg.error)}</p>` : ''}
-    <div class="field"><label>Full name (as per IC)</label><input id="pr-name" placeholder="As per IC / passport"></div>
-    <div class="field-row">
-      <div class="field"><label>Date of birth</label><input type="date" id="pr-dob"></div>
-      <div class="field"><label>Contact number</label><input id="pr-phone"></div>
-    </div>
-    <div class="field"><label>IC / Passport no. <span style="font-weight:400;">(optional)</span></label><input id="pr-idnum"></div>
-    <div class="field"><label>Medical condition / history <span style="font-weight:400;">(if applicable)</span></label><textarea id="pr-medical" rows="2" placeholder="Leave blank if none"></textarea></div>
-    <div class="field-row">
-      <div class="field"><label>Passport number <span style="font-weight:400;">(optional)</span></label><input id="pr-passport-number"></div>
-      <div class="field"><label>Passport expiry date</label><input type="date" id="pr-passport-expiry"></div>
-    </div>
-    <div class="field"><label>Notes</label><textarea id="pr-notes" rows="2"></textarea></div>
-    <button class="btn btn-primary" style="width:100%;justify-content:center;" data-action="submit-public-registration">Submit registration</button>
+    </div>`;
+  const errorBlock = publicReg.error ? `<p style="color:var(--coral);font-size:13px;margin:0 0 14px;font-weight:600;">${esc(publicReg.error)}</p>` : '';
+
+  if(publicReg.status==='review'){
+    const summary = publicReg.passengers.map((p,i)=>`
+      <div style="border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--navy-deep);margin-bottom:6px;">${i+1}. ${esc((p.name||'').toUpperCase())}</div>
+        <div class="cust-sub">${[p.dob?('DOB '+fmtDate(p.dob)):'', p.phone].filter(Boolean).join(' · ')||'—'}</div>
+        ${p.idNumber ? `<div class="cust-sub">IC/Passport no.: ${esc(p.idNumber)}</div>` : ''}
+        ${p.medicalCondition ? `<div class="cust-sub">Medical: ${esc(p.medicalCondition)}</div>` : ''}
+        <div class="cust-sub">Flight: ${p.wantsFlight ? 'Requested — Excapism to arrange' : 'Not requested'}</div>
+        ${p.wantsFlight ? `<div class="cust-sub">Passport: ${esc(p.passportNumber)} · exp ${fmtDate(p.passportExpiry)}</div>` : ''}
+        ${p.notes ? `<div class="cust-sub">Notes: ${esc(p.notes)}</div>` : ''}
+      </div>`).join('');
+    return publicRegShell(`
+      ${header}
+      <h3 style="font-family:var(--font-display);font-size:15px;margin:0 0 12px;color:var(--navy-deep);">Review before submitting</h3>
+      ${errorBlock}
+      ${summary}
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <button type="button" class="btn btn-ghost" style="flex:1;justify-content:center;" data-action="back-to-public-form">← Back to edit</button>
+        <button type="button" class="btn btn-primary" style="flex:1;justify-content:center;" data-action="confirm-public-registration">Confirm &amp; submit</button>
+      </div>
+    `);
+  }
+
+  const blocks = publicReg.passengers.map((p,i)=>publicPassengerBlockHTML(p, i, publicReg.passengers.length)).join('');
+  return publicRegShell(`
+    ${header}
+    ${errorBlock}
+    ${blocks}
+    <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center;margin-bottom:14px;" data-action="add-public-passenger">+ Add another passenger</button>
+    <button type="button" class="btn btn-primary" style="width:100%;justify-content:center;" data-action="review-public-registration">Review registration</button>
     <p class="hint" style="margin-top:14px;">Your details are only visible to your travel coordinator's team — this link doesn't show you anyone else's information.</p>
   `);
 }
+
 async function loadPublicTrip(token){
   try{
     const trip = await publicApiFetch(`/public/trips/${token}`);
     publicReg.trip = trip;
     publicReg.status = trip.acceptingRegistrations ? 'form' : 'closed';
+    publicReg.passengers = [makeBlankPublicPassenger()];
   }catch(e){
     publicReg.status = 'invalid';
   }
   render();
 }
+
+// Reads whatever is currently in the DOM's input fields back into
+// publicReg.passengers — called before any action that re-renders the
+// form (adding/removing a passenger, toggling the flight checkbox,
+// moving to review) so nothing typed gets lost in the process.
+function syncPublicFormFromDOM(){
+  publicReg.passengers.forEach((p, i)=>{
+    const nameEl = document.getElementById(`pr-name-${i}`);
+    if(!nameEl) return;
+    p.name = nameEl.value;
+    p.dob = document.getElementById(`pr-dob-${i}`).value;
+    p.phone = document.getElementById(`pr-phone-${i}`).value;
+    p.idNumber = document.getElementById(`pr-idnum-${i}`).value;
+    p.medicalCondition = document.getElementById(`pr-medical-${i}`).value;
+    const flightEl = document.getElementById(`pr-wants-flight-${i}`);
+    if(flightEl) p.wantsFlight = flightEl.checked;
+    const passNumEl = document.getElementById(`pr-passport-number-${i}`);
+    if(passNumEl) p.passportNumber = passNumEl.value;
+    const passExpEl = document.getElementById(`pr-passport-expiry-${i}`);
+    if(passExpEl) p.passportExpiry = passExpEl.value;
+    p.notes = document.getElementById(`pr-notes-${i}`).value;
+  });
+}
+
+function validatePublicPassengers(){
+  for(let i=0;i<publicReg.passengers.length;i++){
+    const p = publicReg.passengers[i];
+    if(!p.name || !p.name.trim()) return `Passenger ${i+1}: full name is required.`;
+    if(p.wantsFlight && (!p.passportNumber || !p.passportNumber.trim() || !p.passportExpiry)){
+      return `Passenger ${i+1}: passport number and expiry date are required since a flight was requested.`;
+    }
+  }
+  return '';
+}
+
 async function handlePublicRegistrationSubmit(token){
-  const name = document.getElementById('pr-name').value.trim();
-  if(!name){ publicReg.error = 'Full name is required.'; render(); return; }
   const payload = {
-    name,
-    dob: document.getElementById('pr-dob').value,
-    phone: document.getElementById('pr-phone').value.trim(),
-    idNumber: document.getElementById('pr-idnum').value.trim(),
-    medicalCondition: document.getElementById('pr-medical').value.trim(),
-    passportNumber: document.getElementById('pr-passport-number').value.trim(),
-    passportExpiry: document.getElementById('pr-passport-expiry').value,
-    notes: document.getElementById('pr-notes').value.trim(),
+    passengers: publicReg.passengers.map(p=>({
+      name: (p.name||'').trim().toUpperCase(),
+      dob: p.dob, phone: p.phone, idNumber: p.idNumber, medicalCondition: p.medicalCondition,
+      wantsFlight: !!p.wantsFlight, passportNumber: p.passportNumber, passportExpiry: p.passportExpiry, notes: p.notes,
+    }))
   };
   try{
     const result = await publicApiFetch(`/public/trips/${token}/register`, { method:'POST', body: JSON.stringify(payload) });
     publicReg.status = 'success';
-    publicReg.submittedName = result.name || name;
+    publicReg.submittedNames = result.names || [];
     publicReg.error = '';
   }catch(e){
     publicReg.error = e.message || 'Could not submit your registration — please try again.';
   }
   render();
 }
+
 function bindPublicRegistrationEvents(token){
   const app = document.getElementById('app');
-  const btn = app.querySelector('[data-action="submit-public-registration"]');
-  if(btn) btn.addEventListener('click', ()=>handlePublicRegistrationSubmit(token));
-  app.querySelectorAll('input, textarea').forEach(inp=>{
-    inp.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && e.target.tagName==='INPUT'){ const b = app.querySelector('[data-action="submit-public-registration"]'); if(b) b.click(); } });
+
+  app.querySelectorAll('[data-flight-toggle]').forEach(el=>{
+    el.addEventListener('change', ()=>{ syncPublicFormFromDOM(); render(); });
   });
+
+  const addBtn = app.querySelector('[data-action="add-public-passenger"]');
+  if(addBtn) addBtn.addEventListener('click', ()=>{
+    syncPublicFormFromDOM();
+    publicReg.passengers.push(makeBlankPublicPassenger());
+    render();
+  });
+
+  app.querySelectorAll('[data-remove-passenger]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      syncPublicFormFromDOM();
+      publicReg.passengers.splice(parseInt(el.dataset.removePassenger,10), 1);
+      render();
+    });
+  });
+
+  const reviewBtn = app.querySelector('[data-action="review-public-registration"]');
+  if(reviewBtn) reviewBtn.addEventListener('click', ()=>{
+    syncPublicFormFromDOM();
+    const err = validatePublicPassengers();
+    if(err){ publicReg.error = err; render(); return; }
+    publicReg.error = '';
+    publicReg.status = 'review';
+    render();
+  });
+
+  const backBtn = app.querySelector('[data-action="back-to-public-form"]');
+  if(backBtn) backBtn.addEventListener('click', ()=>{
+    publicReg.error = '';
+    publicReg.status = 'form';
+    render();
+  });
+
+  const confirmBtn = app.querySelector('[data-action="confirm-public-registration"]');
+  if(confirmBtn) confirmBtn.addEventListener('click', ()=>handlePublicRegistrationSubmit(token));
 }
 
 /* =========================================================

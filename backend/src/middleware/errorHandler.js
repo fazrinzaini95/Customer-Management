@@ -8,7 +8,8 @@ function errorHandler(err, req, res, next) {
   console.error(err);
 
   if (err.name === 'ZodError') {
-    return res.status(400).json({ error: 'Validation failed', details: err.errors });
+    const firstMessage = err.errors && err.errors[0] && err.errors[0].message;
+    return res.status(400).json({ error: firstMessage || 'Validation failed', details: err.errors });
   }
   if (err.code === '23505') { // Postgres unique_violation
     return res.status(409).json({ error: 'A record with that value already exists' });
