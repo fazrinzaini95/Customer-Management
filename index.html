@@ -704,6 +704,7 @@ let editingTripId = null;     // null => creating new trip
 let passengerSort = { col:null, dir:'asc' };    // which passenger-table column is sorted, and which direction
 let tripListSort = { col:null, dir:'asc' };     // same, for the trip list-view table
 let pendingPassengerEdits = {}; // { [passengerId]: { paymentStatus?, ticketStatus? } } — draft dropdown values not yet saved
+let passengerFilterKeyword = ''; // live keyword filter for the passenger table
 let numberSettings = { prefix:'EXC', includeYear:true, padding:3, runningNumber:0, nextNumber:1 }; // from GET /settings
 let activityLog = []; // fetched fresh each time the Activity log panel opens
 let loaded = false;
@@ -1042,41 +1043,36 @@ function applySort(list, sortState, extractors){
   });
 }
 
-function detailHTML(){
-  const t = trips.find(x=>x.id===view.tripId);
-  if(!t){ view.mode='list'; return listHTML(); }
-  const cs = custByTrip(t.id).sort((a,b)=>(b.addedAt||'').localeCompare(a.addedAt||''));
-  const total = cs.reduce((s,c)=>s+(Number(c.amount)||0),0);
-  const collected = cs.reduce((s,c)=>{
-    if(c.paymentStatus==='Paid') return s+(Number(c.amount)||0);
-    if(c.paymentStatus==='Deposit') return s+(Number(c.depositAmount)||0);
-    return s;
-  },0);
-  const paidCount = cs.filter(c=>c.paymentStatus==='Paid').length;
-
-  const allActions = nextActions(t.status);
-  const visibleActions = allActions.filter(a => a.anyRole || isApproverOrAdmin());
-  const actions = visibleActions.length
-    ? visibleActions.map(a=>`<button class="btn btn-sm ${a.cls}" data-trip-action="${a.to}">${a.label}</button>`).join('')
-    : (allActions.length ? `<span class="hint" style="color:rgba(255,255,255,0.6);">Awaiting an approver</span>` : '');
-
+function passengerRowsHTML(t){
   const showTicketCols = t.status==='Approved' || t.status==='Completed';
-  const passengerSortExtractors = {
-    name: c=>(c.name||'').toLowerCase(),
-    contact: c=>(c.phone||''),
-    amount: c=>Number(c.amount)||0,
-    deposit: c=>Number(c.depositAmount)||0,
-    paymentStatus: c=>PAY_STATUSES.indexOf(c.paymentStatus),
-    pic: c=>(c.picName||'').toLowerCase(),
-    ticketPurchaser: c=>(c.ticketPurchaser||''),
-    airline: c=>(c.airline||'').toLowerCase(),
-    ticketStatus: c=>TICKET_STATUS_OPTIONS.indexOf(c.ticketStatus),
-  };
-  const sortedCs = applySort(cs, passengerSort, passengerSortExtractors);
-  const ticketHeaderCells = showTicketCols ? `${sortHeader('Ticket purchaser','ticketPurchaser',passengerSort)}${sortHeader('Airline / Ref','airline',passengerSort)}${sortHeader('Ticket status','ticketStatus',passengerSort)}` : '';
   const colCount = showTicketCols ? 10 : 7;
+  const allCs = custByTrip(t.id).sort((a,b)=>(b.addedAt||'').localeCompare(a.addedAt||''));
 
-  const rows = sortedCs.length ? sortedCs.map(c=>{
+  const kw = passengerFilterKeyword.trim().toLowerCase();
+  const filteredCs = kw ? allCs.filter(c =>
+    [c.name, c.phone, c.idNumber, c.paymentStatus, c.picName, c.ticketPurchaser, c.airline, c.bookingReference, c.ticketStatus, c.notes]
+      .some(v => v && String(v).toLowerCase().includes(kw))
+  ) : allCs;
+
+  const passengerSortExtractors = {
+    name: c=>(c.name||'').toLowerCase(),                                          // alphabetical
+    contact: c=>{ const digits=(c.phone||'').replace(/\D/g,''); return digits ? Number(digits) : 0; }, // numerical
+    amount: c=>Number(c.amount)||0,                                               // numerical
+    deposit: c=>Number(c.depositAmount)||0,                                       // numerical
+    paymentStatus: c=>(c.paymentStatus||'').toLowerCase(),                        // alphabetical
+    pic: c=>(c.picName||'').toLowerCase(),                                        // alphabetical
+    ticketPurchaser: c=>(c.ticketPurchaser||'').toLowerCase(),                    // alphabetical
+    airline: c=>(c.airline||'').toLowerCase(),                                    // alphabetical
+    ticketStatus: c=>(c.ticketStatus||'').toLowerCase(),                          // alphabetical
+  };
+  const sortedCs = applySort(filteredCs, passengerSort, passengerSortExtractors);
+
+  if(!sortedCs.length){
+    const msg = allCs.length ? 'No passengers match your filter.' : 'No passengers yet. Add one or bulk-upload an Excel sheet.';
+    return `<tr><td colspan="${colCount}" style="text-align:center;color:var(--ink-soft);padding:28px;">${msg}</td></tr>`;
+  }
+
+  return sortedCs.map(c=>{
     const draft = pendingPassengerEdits[c.id];
     const isDirty = !!draft;
     const paymentVal = (draft && draft.paymentStatus!==undefined) ? draft.paymentStatus : c.paymentStatus;
@@ -1122,8 +1118,30 @@ function detailHTML(){
         </div>`}
       </td>
     </tr>`;
-  }).join('') :
-    `<tr><td colspan="${colCount}" style="text-align:center;color:var(--ink-soft);padding:28px;">No passengers yet. Add one or bulk-upload an Excel sheet.</td></tr>`;
+  }).join('');
+}
+
+function detailHTML(){
+  const t = trips.find(x=>x.id===view.tripId);
+  if(!t){ view.mode='list'; return listHTML(); }
+  const cs = custByTrip(t.id).sort((a,b)=>(b.addedAt||'').localeCompare(a.addedAt||''));
+  const total = cs.reduce((s,c)=>s+(Number(c.amount)||0),0);
+  const collected = cs.reduce((s,c)=>{
+    if(c.paymentStatus==='Paid') return s+(Number(c.amount)||0);
+    if(c.paymentStatus==='Deposit') return s+(Number(c.depositAmount)||0);
+    return s;
+  },0);
+  const paidCount = cs.filter(c=>c.paymentStatus==='Paid').length;
+
+  const allActions = nextActions(t.status);
+  const visibleActions = allActions.filter(a => a.anyRole || isApproverOrAdmin());
+  const actions = visibleActions.length
+    ? visibleActions.map(a=>`<button class="btn btn-sm ${a.cls}" data-trip-action="${a.to}">${a.label}</button>`).join('')
+    : (allActions.length ? `<span class="hint" style="color:rgba(255,255,255,0.6);">Awaiting an approver</span>` : '');
+
+  const showTicketCols = t.status==='Approved' || t.status==='Completed';
+  const ticketHeaderCells = showTicketCols ? `${sortHeader('Ticket purchaser','ticketPurchaser',passengerSort)}${sortHeader('Airline / Ref','airline',passengerSort)}${sortHeader('Ticket status','ticketStatus',passengerSort)}` : '';
+  const rows = passengerRowsHTML(t);
 
   return `
   <button class="back-link" data-action="back-to-list">← All trips</button>
@@ -1159,10 +1177,13 @@ function detailHTML(){
         <button class="btn btn-sm btn-primary" data-action="open-add-customer">+ Add passenger</button>
       </div>
     </div>
+    <div style="padding:12px 20px;border-bottom:1px solid var(--line);">
+      <input class="search" id="passenger-filter-input" placeholder="Filter passengers by keyword…" value="${esc(passengerFilterKeyword)}">
+    </div>
     <div style="overflow-x:auto;">
       <table>
         <thead><tr>${sortHeader('Name / DOB','name',passengerSort)}${sortHeader('Contact','contact',passengerSort)}${sortHeader('Amount','amount',passengerSort)}${sortHeader('Deposit paid','deposit',passengerSort)}${sortHeader('Payment status','paymentStatus',passengerSort)}${sortHeader('PIC','pic',passengerSort)}${ticketHeaderCells}<th></th></tr></thead>
-        <tbody>${rows}</tbody>
+        <tbody id="passenger-tbody">${rows}</tbody>
       </table>
     </div>
   </div>`;
@@ -1977,10 +1998,10 @@ function bindEvents(){
   if(applyNextNumberBtn) applyNextNumberBtn.addEventListener('click', handleApplyNextNumber);
 
   app.querySelectorAll('[data-open-trip]').forEach(el=>{
-    el.addEventListener('click', ()=>{ view.mode='detail'; view.tripId = el.dataset.openTrip; render(); });
+    el.addEventListener('click', ()=>{ view.mode='detail'; view.tripId = el.dataset.openTrip; passengerFilterKeyword=''; render(); });
   });
   const back = app.querySelector('[data-action="back-to-list"]');
-  if(back) back.addEventListener('click', ()=>{ view.mode='list'; render(); });
+  if(back) back.addEventListener('click', ()=>{ view.mode='list'; passengerFilterKeyword=''; render(); });
 
   const searchInput = app.querySelector('#search-input');
   if(searchInput){
@@ -2012,9 +2033,6 @@ function bindEvents(){
 
   const openAddCust = app.querySelector('[data-action="open-add-customer"]');
   if(openAddCust) openAddCust.addEventListener('click', ()=>{ editingCustomerId=null; render(); openOverlay('overlay-customer'); });
-  app.querySelectorAll('[data-edit-cust]').forEach(el=>{
-    el.addEventListener('click', ()=>{ editingCustomerId = el.dataset.editCust; render(); openOverlay('overlay-customer'); });
-  });
 
   const openUpload = app.querySelector('[data-action="open-upload"]');
   if(openUpload) openUpload.addEventListener('click', ()=>{ uploadCtx = {mode: trips.length?'existing':'new', targetTripId:null, parsedRows:[], fileName:'', groups:[], hasTripColumns:false}; render(); openOverlay('overlay-upload'); });
@@ -2048,46 +2066,12 @@ function bindEvents(){
     el.addEventListener('click', ()=>setTripStatus(view.tripId, el.dataset.tripAction));
   });
 
-  app.querySelectorAll('[data-cust-status]').forEach(el=>{
-    el.addEventListener('change', ()=>{
-      const id = el.dataset.custStatus;
-      pendingPassengerEdits[id] = { ...(pendingPassengerEdits[id]||{}), paymentStatus: el.value };
-      render();
-    });
-  });
-  app.querySelectorAll('[data-ticket-status]').forEach(el=>{
-    el.addEventListener('change', ()=>{
-      const id = el.dataset.ticketStatus;
-      pendingPassengerEdits[id] = { ...(pendingPassengerEdits[id]||{}), ticketStatus: el.value };
-      render();
-    });
-  });
-  app.querySelectorAll('[data-save-passenger]').forEach(el=>{
-    el.addEventListener('click', async ()=>{
-      const id = el.dataset.savePassenger;
-      const draft = pendingPassengerEdits[id];
-      if(!draft) return;
-      try{
-        const updated = await apiFetch(`/passengers/${id}`, { method:'PUT', body: JSON.stringify(draft) });
-        const idx = customers.findIndex(x=>x.id===id);
-        if(idx>-1) customers[idx] = updated;
-        delete pendingPassengerEdits[id];
-        showToast('Changes saved');
-      }catch(e){
-        showToast(e.message || 'Could not save changes');
-      }
-      render();
-    });
-  });
-  app.querySelectorAll('[data-cancel-passenger]').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      delete pendingPassengerEdits[el.dataset.cancelPassenger];
-      render();
-    });
-  });
-  app.querySelectorAll('[data-del-cust]').forEach(el=>{
-    el.addEventListener('click', ()=>handleDeleteCustomer(el.dataset.delCust, false));
-  });
+  bindPassengerRowHandlers(app);
+
+  const passengerFilterInput = app.querySelector('#passenger-filter-input');
+  if(passengerFilterInput){
+    passengerFilterInput.addEventListener('input', ()=>{ passengerFilterKeyword = passengerFilterInput.value; renderPassengerTableOnly(); });
+  }
 
   // Upload modal
   app.querySelectorAll('[data-upload-mode]').forEach(el=>{
@@ -2147,7 +2131,7 @@ function renderListOnly(){
     // — otherwise trip cards/rows shown after typing a search become
     // unclickable (they exist in the DOM but nothing is listening).
     newGrid.querySelectorAll('[data-open-trip]').forEach(el=>{
-      el.addEventListener('click', ()=>{ view.mode='detail'; view.tripId = el.dataset.openTrip; render(); });
+      el.addEventListener('click', ()=>{ view.mode='detail'; view.tripId = el.dataset.openTrip; passengerFilterKeyword=''; render(); });
     });
     newGrid.querySelectorAll('[data-action="open-new-trip"]').forEach(btn=>{
       btn.addEventListener('click', ()=>{ editingTripId=null; render(); openOverlay('overlay-trip'); });
@@ -2161,6 +2145,71 @@ function renderListOnly(){
       });
     });
   }
+}
+
+// Shared between the normal render()->bindEvents() flow and
+// renderPassengerTableOnly() below — every interactive element that can
+// appear inside a passenger row, bound the same way regardless of
+// whether the row just came from a full render or a lightweight
+// tbody-only swap.
+function bindPassengerRowHandlers(container){
+  container.querySelectorAll('[data-cust-status]').forEach(el=>{
+    el.addEventListener('change', ()=>{
+      const id = el.dataset.custStatus;
+      pendingPassengerEdits[id] = { ...(pendingPassengerEdits[id]||{}), paymentStatus: el.value };
+      render();
+    });
+  });
+  container.querySelectorAll('[data-ticket-status]').forEach(el=>{
+    el.addEventListener('change', ()=>{
+      const id = el.dataset.ticketStatus;
+      pendingPassengerEdits[id] = { ...(pendingPassengerEdits[id]||{}), ticketStatus: el.value };
+      render();
+    });
+  });
+  container.querySelectorAll('[data-save-passenger]').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      const id = el.dataset.savePassenger;
+      const draft = pendingPassengerEdits[id];
+      if(!draft) return;
+      try{
+        const updated = await apiFetch(`/passengers/${id}`, { method:'PUT', body: JSON.stringify(draft) });
+        const idx = customers.findIndex(x=>x.id===id);
+        if(idx>-1) customers[idx] = updated;
+        delete pendingPassengerEdits[id];
+        showToast('Changes saved');
+      }catch(e){
+        showToast(e.message || 'Could not save changes');
+      }
+      render();
+    });
+  });
+  container.querySelectorAll('[data-cancel-passenger]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      delete pendingPassengerEdits[el.dataset.cancelPassenger];
+      render();
+    });
+  });
+  container.querySelectorAll('[data-edit-cust]').forEach(el=>{
+    el.addEventListener('click', ()=>{ editingCustomerId = el.dataset.editCust; render(); openOverlay('overlay-customer'); });
+  });
+  container.querySelectorAll('[data-del-cust]').forEach(el=>{
+    el.addEventListener('click', ()=>handleDeleteCustomer(el.dataset.delCust, false));
+  });
+}
+
+// Lightweight update for the passenger-table keyword filter — swaps only
+// the <tbody> (not the whole detail view) so the filter input never loses
+// focus/cursor position while typing, the same reasoning as
+// renderListOnly() above. Re-binds the row handlers on the swapped
+// content for the same reason that function has to.
+function renderPassengerTableOnly(){
+  const t = trips.find(x=>x.id===view.tripId);
+  if(!t) return;
+  const tbody = document.getElementById('passenger-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = passengerRowsHTML(t);
+  bindPassengerRowHandlers(tbody);
 }
 
 async function handleSaveTrip(){
