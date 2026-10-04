@@ -1169,6 +1169,7 @@ function detailHTML(){
     <div class="stat-card"><div class="label">Paid</div><div class="value">${paidCount}</div></div>
     <div class="stat-card"><div class="label">Expected total</div><div class="value">${fmtMoney(total)}</div></div>
     <div class="stat-card"><div class="label">Collected</div><div class="value">${fmtMoney(collected)}</div></div>
+    <div class="stat-card"><div class="label">Balance</div><div class="value">${fmtMoney(Math.max(0,total-collected))}</div></div>
   </div>
 
   <div class="panel">
