@@ -896,6 +896,7 @@ function tempBannerHTML(){
 
 function headerHTML(){
   const roleColors = {admin:'var(--navy)', approver:'var(--gold)', user:'var(--ink-soft)'};
+  const pendingCount = trips.filter(t=>t.status==='Pending').length;
   return `
   <div class="topbar">
     <div class="brand">
@@ -911,6 +912,7 @@ function headerHTML(){
         <span class="badge" style="background:rgba(15,44,76,0.10);color:var(--navy);">${roleLabel(currentUser.role)}</span>
         ${DEMO_MODE ? `<span class="badge" style="background:rgba(244,185,60,0.25);color:#9C7A16;">🧪 Demo</span>` : ''}
       </div>
+      ${isApproverOrAdmin() ? `<button class="btn ${pendingCount>0?'btn-primary':'btn-ghost'}" data-action="open-approvals" title="Trips awaiting your approval">Approvals${pendingCount>0 ? ` <span class="badge" style="background:#fff;color:var(--navy);margin-left:4px;">${pendingCount}</span>` : ''}</button>` : ''}
       ${isAdmin() ? `<button class="btn btn-ghost" data-action="open-manage-users">Manage users</button><button class="btn btn-ghost" data-action="open-settings">Settings</button><button class="btn btn-ghost" data-action="open-activity-log">Activity log</button>` : ''}
       <button class="btn btn-ghost" data-action="open-upload">Bulk upload</button>
       <button class="btn btn-primary" data-action="open-new-trip">+ New trip</button>
@@ -1988,6 +1990,13 @@ function bindEvents(){
 
   const dismissBanner = app.querySelector('[data-action="dismiss-temp-banner"]');
   if(dismissBanner) dismissBanner.addEventListener('click', ()=>{ tempCredentialsBanner=null; render(); });
+
+  const openApprovals = app.querySelector('[data-action="open-approvals"]');
+  if(openApprovals) openApprovals.addEventListener('click', ()=>{
+    view = { mode:'list', tripId:null, search:'', statusFilter:'Pending', typeFilter:'All', layout:view.layout };
+    passengerFilterKeyword='';
+    render();
+  });
 
   const openManageUsers = app.querySelector('[data-action="open-manage-users"]');
   if(openManageUsers) openManageUsers.addEventListener('click', ()=>{ manageUsersError=''; render(); openOverlay('overlay-users'); });
