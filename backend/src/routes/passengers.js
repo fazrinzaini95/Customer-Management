@@ -19,6 +19,7 @@ function mapPassenger(row) {
     passportExpiry: row.passport_expiry,
     amount: Number(row.amount),
     depositAmount: Number(row.deposit_amount),
+    balancePaid: Number(row.balance_paid),
     paymentStatus: row.payment_status,
     ticketPurchaser: row.ticket_purchaser,
     ticketStatus: row.ticket_status,
@@ -41,6 +42,7 @@ const passengerSchema = z.object({
   passportExpiry: z.string().optional().or(z.literal('')),
   amount: z.number().nonnegative().default(0),
   depositAmount: z.number().nonnegative().default(0),
+  balancePaid: z.number().nonnegative().default(0),
   paymentStatus: z.enum(['Pending', 'Deposit', 'Paid', 'Cancelled']).default('Pending'),
   ticketPurchaser: z.enum(['Self Purchase', 'Excapism']).optional().or(z.literal('')),
   ticketStatus: z.enum(['Pending', 'Purchased']).default('Pending'),
@@ -68,12 +70,12 @@ router.post('/trips/:tripId/passengers', asyncHandler(async (req, res) => {
   const { rows } = await query(
     `INSERT INTO passengers
        (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry,
-        amount, deposit_amount, payment_status, ticket_purchaser, ticket_status, airline, booking_reference, pic_id, notes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+        amount, deposit_amount, balance_paid, payment_status, ticket_purchaser, ticket_status, airline, booking_reference, pic_id, notes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
     [
       req.params.tripId, d.name, d.dob || null, d.phone || null, d.idNumber || null,
       d.medicalCondition || null, d.passportNumber || null, d.passportExpiry || null,
-      d.amount, d.depositAmount, d.paymentStatus, d.ticketPurchaser || null, d.ticketStatus,
+      d.amount, d.depositAmount, d.balancePaid, d.paymentStatus, d.ticketPurchaser || null, d.ticketStatus,
       d.airline || null, d.bookingReference || null, req.user.id, d.notes || null,
     ]
   );
@@ -86,7 +88,7 @@ router.put('/passengers/:id', asyncHandler(async (req, res) => {
   const colMap = {
     name: 'name', dob: 'dob', phone: 'phone', idNumber: 'id_number',
     medicalCondition: 'medical_condition', passportNumber: 'passport_number', passportExpiry: 'passport_expiry',
-    amount: 'amount', depositAmount: 'deposit_amount',
+    amount: 'amount', depositAmount: 'deposit_amount', balancePaid: 'balance_paid',
     paymentStatus: 'payment_status', ticketPurchaser: 'ticket_purchaser',
     ticketStatus: 'ticket_status', airline: 'airline', bookingReference: 'booking_reference',
     notes: 'notes',

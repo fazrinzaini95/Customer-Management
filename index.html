@@ -525,7 +525,7 @@ async function demoFetchInner(path, options = {}){
       g.rows.forEach(r=>{
         state.passengers.push({ id:demoId('cust'), tripId:t.id, name:r.name, dob:r.dob||null, phone:r.phone||null,
           idNumber:r.idNumber||null, medicalCondition:r.medicalCondition||null, passportNumber:r.passportNumber||null, passportExpiry:r.passportExpiry||null,
-          amount:0, depositAmount:0, paymentStatus:'Pending', notes:r.notes||null, submittedAt:r.timestamp||null,
+          amount:0, depositAmount:0, balancePaid:0, paymentStatus:'Pending', notes:r.notes||null, submittedAt:r.timestamp||null,
           addedAt:new Date().toISOString() });
         importedCount += 1;
       });
@@ -538,7 +538,7 @@ async function demoFetchInner(path, options = {}){
   // ---- Passengers ----
   if((m=path.match(/^\/trips\/([^/]+)\/passengers$/)) && method==='POST'){
     const u = requireAuthed();
-    const c = { id:demoId('cust'), tripId:m[1], amount:0, depositAmount:0, paymentStatus:'Pending', addedAt:new Date().toISOString(), ...body };
+    const c = { id:demoId('cust'), tripId:m[1], amount:0, depositAmount:0, balancePaid:0, paymentStatus:'Pending', addedAt:new Date().toISOString(), ...body };
     state.passengers.push(c);
     logDemoActivity(state, u, 'passenger.created', 'passenger', c.id, c.name, { tripId:c.tripId });
     persistDemo();
@@ -670,7 +670,7 @@ async function demoFetchInner(path, options = {}){
     const created = passengers.map(p=>{
       const c = { id:demoId('cust'), tripId:t.id, name:String(p.name).trim().toUpperCase(), dob:p.dob||null, phone:p.phone||null,
         idNumber:p.idNumber||null, medicalCondition:p.medicalCondition||null, passportNumber:p.passportNumber||null, passportExpiry:p.passportExpiry||null,
-        amount:0, depositAmount:0, paymentStatus:'Pending', ticketPurchaser: p.wantsFlight ? 'Excapism' : null, ticketStatus:'Pending', airline:null,
+        amount:0, depositAmount:0, balancePaid:0, paymentStatus:'Pending', ticketPurchaser: p.wantsFlight ? 'Excapism' : null, ticketStatus:'Pending', airline:null,
         bookingReference:null, notes:p.notes||null, addedAt:new Date().toISOString() };
       state.passengers.push(c);
       return c;
@@ -1045,7 +1045,7 @@ function applySort(list, sortState, extractors){
 
 function passengerRowsHTML(t){
   const showTicketCols = t.status==='Approved' || t.status==='Completed';
-  const colCount = showTicketCols ? 10 : 7;
+  const colCount = showTicketCols ? 12 : 9;
   const allCs = custByTrip(t.id).sort((a,b)=>(b.addedAt||'').localeCompare(a.addedAt||''));
 
   const kw = passengerFilterKeyword.trim().toLowerCase();
@@ -1059,6 +1059,8 @@ function passengerRowsHTML(t){
     contact: c=>{ const digits=(c.phone||'').replace(/\D/g,''); return digits ? Number(digits) : 0; }, // numerical
     amount: c=>Number(c.amount)||0,                                               // numerical
     deposit: c=>Number(c.depositAmount)||0,                                       // numerical
+    balanceAmount: c=>Math.max(0,(Number(c.amount)||0)-(Number(c.depositAmount)||0)), // numerical
+    balancePaid: c=>Number(c.balancePaid)||0,                                     // numerical
     paymentStatus: c=>(c.paymentStatus||'').toLowerCase(),                        // alphabetical
     pic: c=>(c.picName||'').toLowerCase(),                                        // alphabetical
     ticketPurchaser: c=>(c.ticketPurchaser||'').toLowerCase(),                    // alphabetical
@@ -1089,6 +1091,8 @@ function passengerRowsHTML(t){
       </td>
       <td>${fmtMoney(c.amount)}</td>
       <td>${c.paymentStatus==='Deposit' ? fmtMoney(c.depositAmount) : '—'}</td>
+      <td>${fmtMoney(Math.max(0,(Number(c.amount)||0)-(Number(c.depositAmount)||0)))}</td>
+      <td>${fmtMoney(c.balancePaid)}</td>
       <td>
         <select class="status-select" data-cust-status="${c.id}">
           ${PAY_STATUSES.map(s=>`<option value="${s}" ${paymentVal===s?'selected':''}>${s}</option>`).join('')}
@@ -1128,7 +1132,7 @@ function detailHTML(){
   const total = cs.reduce((s,c)=>s+(Number(c.amount)||0),0);
   const collected = cs.reduce((s,c)=>{
     if(c.paymentStatus==='Paid') return s+(Number(c.amount)||0);
-    if(c.paymentStatus==='Deposit') return s+(Number(c.depositAmount)||0);
+    if(c.paymentStatus==='Deposit') return s+(Number(c.depositAmount)||0)+(Number(c.balancePaid)||0);
     return s;
   },0);
   const paidCount = cs.filter(c=>c.paymentStatus==='Paid').length;
@@ -1182,7 +1186,7 @@ function detailHTML(){
     </div>
     <div style="overflow-x:auto;">
       <table>
-        <thead><tr>${sortHeader('Name / DOB','name',passengerSort)}${sortHeader('Contact','contact',passengerSort)}${sortHeader('Amount','amount',passengerSort)}${sortHeader('Deposit paid','deposit',passengerSort)}${sortHeader('Payment status','paymentStatus',passengerSort)}${sortHeader('PIC','pic',passengerSort)}${ticketHeaderCells}<th></th></tr></thead>
+        <thead><tr>${sortHeader('Name / DOB','name',passengerSort)}${sortHeader('Contact','contact',passengerSort)}${sortHeader('Amount','amount',passengerSort)}${sortHeader('Deposit paid','deposit',passengerSort)}${sortHeader('Balance amount','balanceAmount',passengerSort)}${sortHeader('Balance paid','balancePaid',passengerSort)}${sortHeader('Payment status','paymentStatus',passengerSort)}${sortHeader('PIC','pic',passengerSort)}${ticketHeaderCells}<th></th></tr></thead>
         <tbody id="passenger-tbody">${rows}</tbody>
       </table>
     </div>
@@ -1428,7 +1432,8 @@ function tripModal(){
 
 function customerModal(){
   const editing = editingCustomerId ? customers.find(c=>c.id===editingCustomerId) : null;
-  const v = editing || {name:'',dob:'',phone:'',idNumber:'',medicalCondition:'',passportNumber:'',passportExpiry:'',amount:0,depositAmount:0,paymentStatus:'Pending',ticketPurchaser:'',ticketStatus:'Pending',airline:'',bookingReference:'',notes:''};
+  const v = editing || {name:'',dob:'',phone:'',idNumber:'',medicalCondition:'',passportNumber:'',passportExpiry:'',amount:0,depositAmount:0,balancePaid:0,paymentStatus:'Pending',ticketPurchaser:'',ticketStatus:'Pending',airline:'',bookingReference:'',notes:''};
+  const balanceAmount = Math.max(0,(Number(v.amount)||0)-(Number(v.depositAmount)||0));
   const trip = trips.find(t=>t.id===(editing ? editing.tripId : view.tripId));
   const showTicketFields = trip && (trip.status==='Approved' || trip.status==='Completed');
   return `
@@ -1448,8 +1453,12 @@ function customerModal(){
           <div class="field"><label>Passport expiry date</label><input type="date" id="cu-passport-expiry" value="${esc(v.passportExpiry)}"></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Package amount (RM)</label><input type="number" id="cu-amount" min="0" step="0.01" value="${v.amount||0}"></div>
-          <div class="field"><label>Deposit paid (RM)</label><input type="number" id="cu-deposit" min="0" step="0.01" value="${v.depositAmount||0}"></div>
+          <div class="field"><label>Package amount (RM)</label><input type="number" id="cu-amount" min="0" step="0.01" value="${v.amount||0}" oninput="document.getElementById('cu-balance-amount').value=Math.max(0,(Number(this.value)||0)-(Number(document.getElementById('cu-deposit').value)||0)).toFixed(2)"></div>
+          <div class="field"><label>Deposit paid (RM)</label><input type="number" id="cu-deposit" min="0" step="0.01" value="${v.depositAmount||0}" oninput="document.getElementById('cu-balance-amount').value=Math.max(0,(Number(document.getElementById('cu-amount').value)||0)-(Number(this.value)||0)).toFixed(2)"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Balance amount (RM)</label><input type="number" id="cu-balance-amount" disabled value="${balanceAmount.toFixed(2)}" style="opacity:0.65;"></div>
+          <div class="field"><label>Balance paid (RM)</label><input type="number" id="cu-balance-paid" min="0" step="0.01" value="${v.balancePaid||0}"></div>
         </div>
         <div class="field">
           <label>Payment status</label>
@@ -1608,6 +1617,8 @@ function exportTripToExcel(tripId){
     'Payment Status': c.paymentStatus || 'Pending',
     'Amount (RM)': Number(c.amount)||0,
     'Deposit Paid (RM)': Number(c.depositAmount)||0,
+    'Balance Amount (RM)': Math.max(0,(Number(c.amount)||0)-(Number(c.depositAmount)||0)),
+    'Balance Paid (RM)': Number(c.balancePaid)||0,
     'Ticket Purchased By': c.ticketPurchaser || '',
     'Ticket Status': c.ticketStatus || 'Pending',
     'Airline': c.airline || '',
@@ -1620,7 +1631,7 @@ function exportTripToExcel(tripId){
   const ws = XLSX.utils.json_to_sheet(rows);
   ws['!cols'] = [
     {wch:26},{wch:14},{wch:16},{wch:16},{wch:12},{wch:20},
-    {wch:30},{wch:16},{wch:14},{wch:14},{wch:12},{wch:14},{wch:18},{wch:14},{wch:16},{wch:18},{wch:16},{wch:24},{wch:14}
+    {wch:30},{wch:16},{wch:14},{wch:14},{wch:12},{wch:14},{wch:14},{wch:14},{wch:18},{wch:14},{wch:16},{wch:18},{wch:16},{wch:24},{wch:14}
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Passengers');
@@ -2276,6 +2287,7 @@ async function handleSaveCustomer(){
     passportExpiry: document.getElementById('cu-passport-expiry').value,
     amount: Number(document.getElementById('cu-amount').value)||0,
     depositAmount: Number(document.getElementById('cu-deposit').value)||0,
+    balancePaid: Number(document.getElementById('cu-balance-paid').value)||0,
     paymentStatus: document.getElementById('cu-status').value,
     notes: document.getElementById('cu-notes').value.trim()
   };

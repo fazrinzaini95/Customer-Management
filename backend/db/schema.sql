@@ -121,6 +121,10 @@ CREATE TABLE IF NOT EXISTS passengers (
   medical_condition  TEXT,
   amount             NUMERIC(12,2) NOT NULL DEFAULT 0,
   deposit_amount     NUMERIC(12,2) NOT NULL DEFAULT 0,
+  -- How much of the remaining balance (amount - deposit_amount) has been
+  -- paid so far. Tracked separately from deposit_amount so a deposit and
+  -- a later partial/full balance payment can both be recorded.
+  balance_paid       NUMERIC(12,2) NOT NULL DEFAULT 0,
   payment_status     payment_status NOT NULL DEFAULT 'Pending',
   ticket_purchaser   ticket_purchaser,             -- who's buying the flight ticket — set once the trip is Approved
   ticket_status      ticket_status NOT NULL DEFAULT 'Pending',
@@ -154,6 +158,7 @@ ALTER TABLE passengers ADD COLUMN IF NOT EXISTS booking_reference TEXT;
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS passport_number TEXT;
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS passport_expiry DATE;
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS pic_id UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE passengers ADD COLUMN IF NOT EXISTS balance_paid NUMERIC(12,2) NOT NULL DEFAULT 0;
 
 -- ---------------------------------------------------------------
 -- App settings (trip-numbering format)
