@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Excapism · Passenger Manifest</title>
+<title>Excapism · Passenger Management</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -756,6 +756,15 @@ function tripCode(t){
   parts.push(String(t.seq).padStart(numberSettings.padding||3,'0'));
   return parts.join('-');
 }
+// Reads the year straight out of the trip code (e.g. "EXC-2026-017" → "2026"),
+// same as the user sees it. Falls back to the trip's start/created date if the
+// numbering format doesn't include a year segment (Settings → "Include year" off).
+function tripYear(t){
+  const m = tripCode(t).match(/-(\d{4})-/);
+  if(m) return m[1];
+  const d = t.startDate || t.createdAt;
+  return d ? String(new Date(d).getFullYear()) : '—';
+}
 function fmtDate(d){
   if(!d) return '—';
   const dt = new Date(d + (String(d).length<=10 ? 'T00:00:00' : ''));
@@ -825,7 +834,7 @@ function authShell(inner){
     <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:26px;">
       <div class="brand-badge">EX</div>
       <div>
-        <h1 style="font-family:var(--font-display);font-weight:700;font-size:20px;margin:0;color:var(--navy-deep);">Excapism Passenger Manifest</h1>
+        <h1 style="font-family:var(--font-display);font-weight:700;font-size:20px;margin:0;color:var(--navy-deep);">Excapism Passenger Management</h1>
         <p style="margin:0;font-size:12.5px;color:var(--ink-soft);">Customer &amp; trip management</p>
       </div>
     </div>
@@ -902,7 +911,7 @@ function headerHTML(){
     <div class="brand">
       <div class="brand-badge">EX</div>
       <div>
-        <h1>Excapism Passenger Manifest</h1>
+        <h1>Excapism Passenger Management</h1>
         <p>Customer &amp; trip management</p>
       </div>
     </div>
@@ -963,6 +972,7 @@ function listHTML(){
   if(view.layout==='list'){
     const tripListExtractors = {
       code: t=>t.seq||0,
+      year: t=>Number(tripYear(t))||0,
       trip: t=>(t.name||'').toLowerCase(),
       type: t=>t.type||'',
       dates: t=>t.startDate||'',
@@ -977,6 +987,7 @@ function listHTML(){
       return `
       <tr data-open-trip="${t.id}" style="cursor:pointer;">
         <td><span style="font-family:var(--font-mono);font-size:12px;color:var(--navy);font-weight:600;">${tripCode(t)}</span></td>
+        <td><span class="cust-sub">${esc(tripYear(t))}</span></td>
         <td>
           <div class="cust-name">${esc(t.name)}</div>
           <div class="cust-sub">${esc(t.destination||'Destination TBC')}</div>
@@ -992,7 +1003,7 @@ function listHTML(){
     <div class="panel">
       <div style="overflow-x:auto;">
         <table>
-          <thead><tr>${sortHeader('Code','code',tripListSort)}${sortHeader('Trip','trip',tripListSort)}${sortHeader('Type','type',tripListSort)}${sortHeader('Dates','dates',tripListSort)}${sortHeader('Status','status',tripListSort)}${sortHeader('Pax','pax',tripListSort)}${sortHeader('Paid','paid',tripListSort)}</tr></thead>
+          <thead><tr>${sortHeader('Code','code',tripListSort)}${sortHeader('Year','year',tripListSort)}${sortHeader('Trip','trip',tripListSort)}${sortHeader('Type','type',tripListSort)}${sortHeader('Dates','dates',tripListSort)}${sortHeader('Status','status',tripListSort)}${sortHeader('Pax','pax',tripListSort)}${sortHeader('Paid','paid',tripListSort)}</tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -2475,7 +2486,7 @@ function publicRegShell(inner){
     <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:26px;">
       <div class="brand-badge">EX</div>
       <div>
-        <h1 style="font-family:var(--font-display);font-weight:700;font-size:20px;margin:0;color:var(--navy-deep);">Excapism Passenger Manifest</h1>
+        <h1 style="font-family:var(--font-display);font-weight:700;font-size:20px;margin:0;color:var(--navy-deep);">Excapism Passenger Management</h1>
         <p style="margin:0;font-size:12.5px;color:var(--ink-soft);">Passenger registration</p>
       </div>
     </div>
