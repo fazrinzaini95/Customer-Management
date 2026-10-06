@@ -280,6 +280,45 @@
     .mh-right{align-items:flex-start;}
     .approval-row{justify-content:flex-start;}
   }
+
+  /* ---------- Calendar ---------- */
+  .cal-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin-bottom:12px;}
+  .cal-arrow{width:40px;height:40px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--navy);font-size:22px;line-height:1;cursor:pointer;font-family:inherit;}
+  .cal-arrow:hover{border-color:var(--navy);}
+  .cal-title{font-family:var(--font-display);font-size:24px;margin:0 4px;color:var(--navy-deep);min-width:200px;text-align:center;}
+  .cal-count{font-size:12.5px;color:var(--ink-soft);margin-left:auto;}
+  .cal-tools{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:12px;}
+  .cal-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink-soft);margin:0 0 12px;}
+  .cal-sw{display:inline-block;width:14px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border-left:3px solid var(--ink-soft);background:rgba(90,107,122,0.14);}
+  .cal{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;}
+  .cal-dow{display:grid;grid-template-columns:repeat(7,1fr);background:var(--paper-dim);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;color:var(--ink-soft);}
+  .cal-dow div{padding:8px 10px;}
+  .cal-week{position:relative;border-top:1px solid var(--line);}
+  .cal-days{position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,1fr);}
+  .cal-day{border-right:1px solid var(--line);padding:5px 6px;font-size:12px;color:var(--ink);}
+  .cal-day:last-child{border-right:none;}
+  .cal-day.out{background:rgba(15,44,76,0.035);color:rgba(90,107,122,0.75);}
+  .cal-day .dn{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 4px;border-radius:11px;font-weight:600;}
+  .cal-day.today .dn{background:var(--navy);color:#fff;}
+  .cal-bar{position:absolute;height:21px;border:none;border-left:3px solid var(--ink-soft);background:rgba(90,107,122,0.14);color:var(--navy-deep);font:600 12px/21px var(--font-body);text-align:left;padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;border-radius:3px;z-index:1;}
+  .cal-bar.is-start{border-top-left-radius:6px;border-bottom-left-radius:6px;}
+  .cal-bar.is-end{border-top-right-radius:6px;border-bottom-right-radius:6px;}
+  .cal-bar:hover,.cal-bar:focus-visible{box-shadow:0 0 0 1.5px var(--navy);outline:none;}
+  .cal-bar.st-Approved,.cal-sw.st-Approved{border-left-color:var(--green);background:rgba(46,139,87,0.17);}
+  .cal-bar.st-Pending,.cal-sw.st-Pending{border-left-color:var(--gold);background:rgba(244,185,60,0.30);}
+  .cal-bar.st-Completed,.cal-sw.st-Completed{border-left-color:var(--navy);background:rgba(15,44,76,0.13);}
+  .cal-bar.st-Declined,.cal-bar.st-Cancelled,.cal-sw.st-Declined,.cal-sw.st-Cancelled{border-left-color:var(--coral);background:rgba(225,85,84,0.12);}
+  .cal-bar.st-Declined,.cal-bar.st-Cancelled{text-decoration:line-through;}
+  table.dash-table tr[data-cal-trip]{cursor:pointer;}
+  .cal-empty{padding:18px 20px;font-size:13.5px;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+  @media (max-width:640px){
+    .cal-title{font-size:20px;min-width:0;flex:1;}
+    .cal-count{margin-left:0;width:100%;}
+    .cal-dow div{padding:7px 4px;text-align:center;}
+    .cal-day{padding:3px 3px;}
+    .cal-bar{font-size:11px;padding:0 4px;}
+  }
+
 </style>
 </head>
 <body>
@@ -869,7 +908,7 @@ function render(){
   if(API_NOT_CONFIGURED && !DEMO_MODE){ app.innerHTML = apiNotConfiguredHTML(); bindAuthEvents(); return; }
   if(authView==='signup'){ app.innerHTML = signupHTML(); bindAuthEvents(); return; }
   if(authView==='login'){ app.innerHTML = loginHTML(); bindAuthEvents(); return; }
-  app.innerHTML = headerHTML() + tempBannerHTML() + tabsHTML() + (view.mode==='detail' ? detailHTML() : view.mode==='dashboard' ? dashboardHTML() : listHTML()) + modalsHTML() + (isAdmin() ? manageUsersModalHTML() + settingsModalHTML() + activityLogModalHTML() : '');
+  app.innerHTML = headerHTML() + tempBannerHTML() + tabsHTML() + (view.mode==='detail' ? detailHTML() : view.mode==='dashboard' ? dashboardHTML() : view.mode==='calendar' ? calendarHTML() : listHTML()) + modalsHTML() + (isAdmin() ? manageUsersModalHTML() + settingsModalHTML() + activityLogModalHTML() : '');
   bindEvents();
 }
 
@@ -1306,10 +1345,10 @@ function columnChartSVG(buckets, metric){
 
 function tabsHTML(){
   if(view.mode==='detail') return '';
-  const on = view.mode==='dashboard';
+  const m = view.mode;
+  const t = (id,label)=>`<button class="tab ${m===id?'active':''}" role="tab" aria-selected="${m===id}" data-view-mode="${id}">${label}</button>`;
   return `<div class="tabs" role="tablist">
-    <button class="tab ${on?'':'active'}" role="tab" aria-selected="${!on}" data-view-mode="list">Trips</button>
-    <button class="tab ${on?'active':''}" role="tab" aria-selected="${on}" data-view-mode="dashboard">Dashboard</button>
+    ${t('list','Trips')}${t('dashboard','Dashboard')}${t('calendar','Calendar')}
   </div>`;
 }
 
@@ -1360,6 +1399,164 @@ function bindDashboardEvents(app){
     el.addEventListener('focus', ()=>{ const r=el.getBoundingClientRect(); showTip(el, r.left+r.width/2, r.top+30); });
     el.addEventListener('blur', hideTip);
   });
+}
+
+/* =========================================================
+   Calendar — one month at a time; each trip is a bar across its dates
+   (it wraps across week rows and continues into the next month).
+   Same data as everything else (trips[]), so nothing extra to load.
+   ========================================================= */
+let calCursor = null;        // { y, m } with m = 0..11; null means "the current month"
+let calType = 'All';         // 'All' | 'open' | 'private'
+let calShowDead = false;     // declined / cancelled trips hidden unless switched on
+let calKeysBound = false;
+const CAL_HEAD = 28, CAL_LANE = 24, CAL_MIN_WEEK = 92;
+const DOW_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function dayNum(s){ const [y,m,d] = s.split('-').map(Number); return Date.UTC(y, m-1, d)/86400000; }
+function dayYmd(n){ const d = new Date(n*86400000); return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}-${pad2(d.getUTCDate())}`; }
+function calEnsure(){
+  if(!calCursor){ const t = todayYmd(); calCursor = { y:Number(t.slice(0,4)), m:Number(t.slice(5,7))-1 }; }
+  return calCursor;
+}
+function calShift(delta){
+  const c = calEnsure();
+  const total = c.y*12 + c.m + delta;
+  calCursor = { y:Math.floor(total/12), m:((total%12)+12)%12 };
+}
+function calItems(){
+  return trips.filter(t=>ymd(t.startDate) && (calShowDead || !DEAD_STATUSES.includes(t.status)) && (calType==='All' || t.type===calType))
+    .map(t=>{
+      const s = dayNum(ymd(t.startDate));
+      const e = Math.max(s, ymd(t.endDate) ? dayNum(ymd(t.endDate)) : s);
+      return { t, s, e };
+    })
+    .sort((a,b)=>a.s-b.s || (b.e-b.s)-(a.e-a.s) || (a.t.name||'').localeCompare(b.t.name||''));
+}
+function calWeekStarts(y, m){
+  const first = Date.UTC(y, m, 1)/86400000;
+  const dow = new Date(first*86400000).getUTCDay();            // 0 = Sunday
+  const dim = new Date(Date.UTC(y, m+1, 0)).getUTCDate();
+  return Array.from({ length: Math.ceil((dow+dim)/7) }, (_, w)=>first - dow + w*7);
+}
+
+function calWeekHTML(ws, y, m, items, todayN){
+  const we = ws + 6;
+  const segs = items.filter(i=>i.s<=we && i.e>=ws).map(i=>({
+    ...i, c0: Math.max(i.s, ws)-ws, c1: Math.min(i.e, we)-ws, startsHere: i.s>=ws, endsHere: i.e<=we,
+  }));
+  const laneEnd = [];
+  segs.forEach(sg=>{
+    let l = laneEnd.findIndex(end=>end < sg.c0);
+    if(l < 0){ l = laneEnd.length; laneEnd.push(-1); }
+    laneEnd[l] = sg.c1; sg.lane = l;
+  });
+  const height = Math.max(CAL_MIN_WEEK, CAL_HEAD + laneEnd.length*CAL_LANE + 8);
+
+  const days = Array.from({ length:7 }, (_, i)=>{
+    const n = ws + i, d = new Date(n*86400000);
+    const inMonth = d.getUTCMonth()===m && d.getUTCFullYear()===y;
+    const label = d.getUTCDate()===1 ? `${d.getUTCDate()} ${MONTH_SHORT[d.getUTCMonth()]}` : d.getUTCDate();
+    return `<div class="cal-day ${inMonth?'':'out'} ${n===todayN?'today':''}"><span class="dn" ${n===todayN?'aria-label="Today"':''}>${label}</span></div>`;
+  }).join('');
+
+  const bars = segs.map(sg=>{
+    const t = sg.t, span = sg.c1 - sg.c0 + 1;
+    const pax = custByTrip(t.id).length;
+    const tip = `${tripCode(t)} · ${t.name}\n${fmtDate(dayYmd(sg.s))} → ${fmtDate(dayYmd(sg.e))}\n${t.status} · ${pax} pax`;
+    return `<button class="cal-bar st-${esc(t.status)} ${sg.startsHere?'is-start':''} ${sg.endsHere?'is-end':''}" data-cal-trip="${esc(t.id)}"
+      style="left:calc(${sg.c0}/7*100% + 2px);width:calc(${span}/7*100% - 4px);top:${CAL_HEAD + sg.lane*CAL_LANE}px;"
+      title="${esc(tip)}" aria-label="${esc(tip.replace(/\n/g,', '))}">${sg.startsHere?'':'◂ '}${esc(t.name)}${sg.endsHere?'':' ▸'}</button>`;
+  }).join('');
+
+  return `<div class="cal-week" style="height:${height}px;"><div class="cal-days">${days}</div>${bars}</div>`;
+}
+
+function calendarHTML(){
+  const { y, m } = calEnsure();
+  const today = todayYmd(), todayN = dayNum(today);
+  const items = calItems();
+  const monthStart = Date.UTC(y, m, 1)/86400000, monthEnd = Date.UTC(y, m+1, 0)/86400000;
+  const inMonth = items.filter(i=>i.s<=monthEnd && i.e>=monthStart);
+  const weeks = calWeekStarts(y, m).map(ws=>calWeekHTML(ws, y, m, items, todayN)).join('');
+
+  const yearSet = new Set([y, Number(today.slice(0,4))-1, Number(today.slice(0,4)), Number(today.slice(0,4))+1]);
+  items.forEach(i=>yearSet.add(new Date(i.s*86400000).getUTCFullYear()));
+  const yearOpts = [...yearSet].sort((a,b)=>a-b).map(v=>`<option value="${v}" ${v===y?'selected':''}>${v}</option>`).join('');
+  const monthOpts = MONTH_NAMES.map((n,i)=>`<option value="${i}" ${i===m?'selected':''}>${n}</option>`).join('');
+  const chip = (attr, val, label, on) => `<button class="chip ${on?'active':''}" ${attr}="${esc(val)}">${esc(label)}</button>`;
+
+  const legendStatuses = ['Draft','Pending','Approved','Completed', ...(calShowDead ? ['Declined','Cancelled'] : [])];
+  const legend = `<div class="cal-legend" aria-label="Colour key">${legendStatuses.map(s=>`<span><span class="cal-sw st-${s}"></span>${s}</span>`).join('')}</div>`;
+
+  // Agenda for the month (also the easy way to read it on a phone)
+  let agenda;
+  if(inMonth.length){
+    agenda = `<div style="overflow-x:auto;"><table class="dash-table">
+      <thead><tr><th>Dates</th><th>Trip</th><th>Status</th><th class="num">Pax</th></tr></thead>
+      <tbody>${inMonth.map(i=>`<tr data-cal-trip="${esc(i.t.id)}">
+        <td>${fmtDate(dayYmd(i.s))}${i.e>i.s?` → ${fmtDate(dayYmd(i.e))}`:''}</td>
+        <td><b>${esc(i.t.name)}</b><div class="cust-sub">${esc(tripCode(i.t))}${i.t.destination?' · '+esc(i.t.destination):''}</div></td>
+        <td><div class="stamp ${esc(i.t.status)}" style="display:inline-block;">${esc(i.t.status)}</div></td>
+        <td class="num">${custByTrip(i.t.id).length}</td></tr>`).join('')}</tbody></table></div>`;
+  } else {
+    const prev = [...items].filter(i=>i.e<monthStart).sort((a,b)=>b.e-a.e)[0];
+    const next = items.find(i=>i.s>monthEnd);
+    const jump = (it, label) => { if(!it) return ''; const d = new Date(it.s*86400000); return `<button class="btn btn-sm btn-ghost" data-cal-jump="${d.getUTCFullYear()}-${d.getUTCMonth()}">${label}: ${esc(it.t.name)} (${MONTH_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()})</button>`; };
+    agenda = `<div class="cal-empty"><span>No trips in ${MONTH_NAMES[m]} ${y}.</span>${jump(prev,'← Previous trip')}${jump(next,'Next trip →')}</div>`;
+  }
+
+  return `
+  <div class="cal-head">
+    <button class="cal-arrow" data-cal-shift="-1" aria-label="Previous month" title="Previous month (←)">‹</button>
+    <h2 class="cal-title" aria-live="polite">${MONTH_NAMES[m]} ${y}</h2>
+    <button class="cal-arrow" data-cal-shift="1" aria-label="Next month" title="Next month (→)">›</button>
+    <button class="btn btn-ghost" data-cal-today title="Back to this month (T)">Today</button>
+    <span class="cal-count">${inMonth.length} trip${inMonth.length===1?'':'s'} this month · tip: use ← → keys to change month</span>
+  </div>
+  <div class="cal-tools">
+    <select class="status-select" id="cal-month" aria-label="Month">${monthOpts}</select>
+    <select class="status-select" id="cal-year" aria-label="Year">${yearOpts}</select>
+    <div class="chip-row">${[['All','All types'],['open','Open trip'],['private','Private trip']].map(([v,l])=>chip('data-cal-type', v, l, calType===v)).join('')}</div>
+    <button class="chip ${calShowDead?'active':''}" data-cal-dead title="Show or hide declined and cancelled trips">Declined / cancelled: ${calShowDead?'shown':'hidden'}</button>
+  </div>
+  ${legend}
+  <div class="cal">
+    <div class="cal-dow">${DOW_SHORT.map(d=>`<div>${d}</div>`).join('')}</div>
+    ${weeks}
+  </div>
+  <div class="panel"><div class="panel-head"><h3>Trips in ${MONTH_NAMES[m]} ${y}</h3><span class="dash-note" style="margin:0;">Click a trip to open it</span></div>${agenda}</div>`;
+}
+
+function bindCalendarEvents(app){
+  if(!calKeysBound){
+    calKeysBound = true;
+    document.addEventListener('keydown', e=>{
+      if(view.mode!=='calendar' || e.metaKey || e.ctrlKey || e.altKey) return;
+      const tag = (e.target && e.target.tagName) || '';
+      if(/INPUT|TEXTAREA|SELECT/.test(tag) || document.querySelector('.overlay.open')) return;
+      if(e.key==='ArrowLeft' || e.key==='PageUp'){ e.preventDefault(); calShift(-1); render(); }
+      else if(e.key==='ArrowRight' || e.key==='PageDown'){ e.preventDefault(); calShift(1); render(); }
+      else if(e.key==='t' || e.key==='T'){ calCursor = null; render(); }
+    });
+  }
+  if(view.mode!=='calendar') return;
+  app.querySelectorAll('[data-cal-shift]').forEach(el=>el.addEventListener('click', ()=>{ calShift(Number(el.dataset.calShift)); render(); }));
+  const todayBtn = app.querySelector('[data-cal-today]');
+  if(todayBtn) todayBtn.addEventListener('click', ()=>{ calCursor = null; render(); });
+  const jumpTo = () => { calCursor = { y:Number(app.querySelector('#cal-year').value), m:Number(app.querySelector('#cal-month').value) }; render(); };
+  const ms = app.querySelector('#cal-month'), ys = app.querySelector('#cal-year');
+  if(ms) ms.addEventListener('change', jumpTo);
+  if(ys) ys.addEventListener('change', jumpTo);
+  app.querySelectorAll('[data-cal-type]').forEach(el=>el.addEventListener('click', ()=>{ calType = el.dataset.calType; render(); }));
+  const dead = app.querySelector('[data-cal-dead]');
+  if(dead) dead.addEventListener('click', ()=>{ calShowDead = !calShowDead; render(); });
+  app.querySelectorAll('[data-cal-jump]').forEach(el=>el.addEventListener('click', ()=>{
+    const [yy, mm] = el.dataset.calJump.split('-').map(Number); calCursor = { y:yy, m:mm }; render();
+  }));
+  app.querySelectorAll('[data-cal-trip]').forEach(el=>el.addEventListener('click', ()=>{
+    view.mode = 'detail'; view.tripId = el.dataset.calTrip; view.returnTo = 'calendar'; passengerFilterKeyword = ''; render();
+  }));
 }
 
 /* =========================================================
@@ -1588,7 +1785,7 @@ function detailHTML(){
   const rows = passengerRowsHTML(t);
 
   return `
-  <button class="back-link" data-action="back-to-list">${view.returnTo==='dashboard' ? '← Dashboard' : '← All trips'}</button>
+  <button class="back-link" data-action="back-to-list">${view.returnTo==='dashboard' ? '← Dashboard' : view.returnTo==='calendar' ? '← Calendar' : '← All trips'}</button>
   <div class="manifest-head">
     <div class="mh-left">
       <div class="eyebrow">${tripCode(t)} · ${t.type} trip</div>
@@ -2415,6 +2612,7 @@ async function handleDeleteUser(userId){
 function bindEvents(){
   const app = document.getElementById('app');
   bindDashboardEvents(app);
+  bindCalendarEvents(app);
 
   const logoutBtn = app.querySelector('[data-action="do-logout"]');
   if(logoutBtn) logoutBtn.addEventListener('click', handleLogout);
