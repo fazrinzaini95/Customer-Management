@@ -144,6 +144,54 @@
   .stat-card .label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);font-weight:600;margin-bottom:4px;}
   .stat-card .value{font-family:var(--font-display);font-size:22px;color:var(--navy-deep);font-weight:600;}
 
+  /* ---------- Tabs + Dashboard ---------- */
+  .tabs{display:flex;gap:4px;margin:0 0 18px;border-bottom:1.5px solid var(--line);}
+  .tab{background:none;border:none;padding:10px 18px;font-family:inherit;font-weight:600;font-size:14px;color:var(--ink-soft);border-bottom:3px solid transparent;margin-bottom:-1.5px;cursor:pointer;}
+  .tab:hover{color:var(--navy);}
+  .tab.active{color:var(--navy);border-bottom-color:var(--gold);}
+  .dash-filters{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:flex-end;margin-bottom:14px;}
+  .dash-fgroup{display:flex;flex-direction:column;gap:5px;}
+  .dash-flabel{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);font-weight:600;}
+  .dash-scope{font-size:12.5px;color:var(--ink-soft);margin:0 0 14px;}
+  .dash-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:12px;}
+  .dash-kpis .stat-card .value{font-size:24px;}
+  .stat-card .sub{font-size:12px;color:var(--ink-soft);margin-top:3px;line-height:1.35;}
+  .stat-card.is-link{cursor:pointer;text-align:left;font-family:inherit;}
+  .stat-card.is-link:hover{border-color:var(--navy);}
+  .stat-card.is-alert{border-left:4px solid var(--gold);}
+  .dash-grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:16px;margin:16px 0;}
+  .dash-body{padding:14px 20px 18px;}
+  .dash-note{font-size:12px;color:var(--ink-soft);margin:6px 0 0;line-height:1.5;}
+  .dash-sub{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);font-weight:600;margin:16px 0 4px;}
+  .hbar-row{display:grid;grid-template-columns:96px 1fr 44px;gap:10px;align-items:center;font-size:13px;margin:8px 0;}
+  .hbar-label{color:var(--ink);}
+  .hbar-track{height:12px;background:rgba(15,44,76,0.08);border-radius:4px;}
+  .hbar-fill{height:100%;background:var(--navy);border-radius:0 4px 4px 0;}
+  .hbar-val{text-align:right;font-weight:600;color:var(--navy-deep);font-variant-numeric:tabular-nums;}
+  table.dash-table td,table.dash-table th{padding:9px 10px;text-align:left;white-space:nowrap;}
+  table.dash-table th{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);background:var(--paper-dim);}
+  table.dash-table td.num,table.dash-table th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  table.dash-table tr.is-total td{font-weight:700;border-top:1.5px solid var(--line);}
+  table.dash-table tr.is-selected td{background:rgba(244,185,60,0.14);}
+  table.dash-table tr[data-dash-year],table.dash-table tr[data-dash-open-trip]{cursor:pointer;}
+  table.dash-table tbody tr:hover td{background:rgba(15,44,76,0.04);}
+  .dash-attn{list-style:none;margin:0;padding:0;}
+  .dash-attn li{display:flex;gap:12px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+  .dash-attn li:last-child{border-bottom:none;}
+  .dash-attn .n{min-width:34px;font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--navy-deep);}
+  .dash-attn .ok{color:var(--green);}
+  .dash-attn .t{color:var(--ink-soft);font-size:12.5px;display:block;}
+  .dash-chart{width:100%;height:auto;display:block;}
+  .dash-chart text{font-family:var(--font-body);fill:var(--ink-soft);font-size:12.5px;}
+  .dash-chart .peak{fill:var(--navy-deep);font-weight:600;}
+  .dash-chart .grid{stroke:rgba(15,44,76,0.10);stroke-width:1;}
+  .dash-chart .bar{fill:var(--navy);}
+  .dash-chart .hit{fill:transparent;cursor:default;outline:none;}
+  .dash-chart .hit:hover,.dash-chart .hit:focus{fill:rgba(15,44,76,0.07);}
+  #dash-tip{position:fixed;display:none;z-index:200;background:var(--navy-deep);color:#fff;border-radius:8px;padding:8px 11px;font-size:12px;pointer-events:none;box-shadow:var(--shadow);max-width:240px;}
+  #dash-tip .tip-v{font-weight:700;font-size:14px;}
+  #dash-tip .tip-l{opacity:0.85;margin-top:1px;}
+
   .panel{background:#fff;border-radius:var(--radius);border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden;}
   .panel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px;}
   .panel-head h3{font-family:var(--font-display);font-size:16px;margin:0;color:var(--navy-deep);}
@@ -821,7 +869,7 @@ function render(){
   if(API_NOT_CONFIGURED && !DEMO_MODE){ app.innerHTML = apiNotConfiguredHTML(); bindAuthEvents(); return; }
   if(authView==='signup'){ app.innerHTML = signupHTML(); bindAuthEvents(); return; }
   if(authView==='login'){ app.innerHTML = loginHTML(); bindAuthEvents(); return; }
-  app.innerHTML = headerHTML() + tempBannerHTML() + (view.mode==='detail' ? detailHTML() : listHTML()) + modalsHTML() + (isAdmin() ? manageUsersModalHTML() + settingsModalHTML() + activityLogModalHTML() : '');
+  app.innerHTML = headerHTML() + tempBannerHTML() + tabsHTML() + (view.mode==='detail' ? detailHTML() : view.mode==='dashboard' ? dashboardHTML() : listHTML()) + modalsHTML() + (isAdmin() ? manageUsersModalHTML() + settingsModalHTML() + activityLogModalHTML() : '');
   bindEvents();
 }
 
@@ -929,6 +977,389 @@ function headerHTML(){
       <button class="btn btn-ghost" data-action="do-logout" title="Log out">Log out</button>
     </div>
   </div>`;
+}
+
+/* =========================================================
+   Dashboard — summary across all trips, computed client-side from the
+   trips[] and customers[] already loaded (so it also works in demo mode).
+   Year = the year in the trip code (same as the list view's Year column).
+   Money uses the same rules as each trip page: Paid = full amount,
+   Deposit = deposit + payment, anything else = nothing collected yet.
+   ========================================================= */
+let dashFilter = { year:'All', month:'All', type:'All', status:'All' };
+let dashMetric = 'pax';          // 'pax' | 'trips' | 'amount' | 'collected'
+let dashPeriodView = 'chart';    // 'chart' | 'table'
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DEAD_STATUSES = ['Declined','Cancelled'];
+const DASH_METRICS = {
+  pax:       { label:'Passengers', money:false },
+  trips:     { label:'Trips',      money:false },
+  amount:    { label:'Amount',     money:true  },
+  collected: { label:'Collected',  money:true  },
+};
+
+function ymd(d){ return d ? String(d).slice(0,10) : ''; }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function todayYmd(){ const n=new Date(); return `${n.getFullYear()}-${pad2(n.getMonth()+1)}-${pad2(n.getDate())}`; }
+function addDaysYmd(s, days){ const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+days); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function daysBetweenYmd(a, b){ return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00'))/86400000); }
+function tripStartYmd(t){ return ymd(t.startDate) || ymd(t.createdAt); }
+function tripEndYmd(t){ return ymd(t.endDate) || ymd(t.startDate); }
+function paidOf(c){
+  if(c.paymentStatus==='Paid') return Number(c.amount)||0;
+  if(c.paymentStatus==='Deposit') return (Number(c.depositAmount)||0)+(Number(c.balancePaid)||0);
+  return 0;
+}
+function tripMoney(t){
+  const cs = custByTrip(t.id);
+  let amount = 0, collected = 0;
+  cs.forEach(c=>{ amount += Number(c.amount)||0; collected += paidOf(c); });
+  return { pax: cs.length, amount, collected, balance: Math.max(0, amount-collected) };
+}
+function fmtRM(n){ return 'RM ' + (Number(n)||0).toLocaleString('en-MY',{minimumFractionDigits:0,maximumFractionDigits:2}); }
+function fmtCompact(n){
+  const v = Number(n)||0;
+  if(v>=1e6) return (v/1e6).toFixed(v%1e6===0?0:1)+'M';
+  if(v>=1e3) return (v/1e3).toFixed(v%1e3===0?0:1)+'K';
+  return String(v);
+}
+function pctText(part, whole){ return whole>0 ? Math.round(part/whole*100)+'%' : '—'; }
+
+function dashModel(){
+  const f = dashFilter;
+  const today = todayYmd();
+  const monthPrefix = today.slice(0,7);
+  const in30 = addDaysYmd(today, 30);
+  const years = [...new Set(trips.map(tripYear))].filter(y=>/^\d{4}$/.test(y)).sort();
+  const isDead = t => DEAD_STATUSES.includes(t.status);
+  // Declined/Cancelled trips aren't going ahead, so they're left out of pax and money
+  // unless the Status filter is set to one of them on purpose.
+  const counted = t => f.status!=='All' || !isDead(t);
+  const matches = (t, ignoreYear) =>
+    (ignoreYear || f.year==='All' || tripYear(t)===String(f.year)) &&
+    (f.month==='All' || Number(tripStartYmd(t).slice(5,7))===Number(f.month)) &&
+    (f.type==='All' || t.type===f.type) &&
+    (f.status==='All' || t.status===f.status);
+
+  const cache = new Map();
+  const money = t => { let x = cache.get(t.id); if(!x){ x = tripMoney(t); cache.set(t.id, x); } return x; };
+  const sum = arr => arr.reduce((a,t)=>{ const x=money(t); a.pax+=x.pax; a.amount+=x.amount; a.collected+=x.collected; a.balance+=x.balance; return a; }, {pax:0,amount:0,collected:0,balance:0});
+  const bucket = (label, full, tl) => ({ label, full, trips: tl.length, ...sum(tl.filter(counted)) });
+
+  const list = trips.filter(t=>matches(t,false));
+  const countedList = list.filter(counted);
+  const totals = sum(countedList);
+  const activeCount = list.filter(t=>!isDead(t)).length;
+
+  const live = list.filter(t=>!isDead(t) && t.status!=='Completed');
+  const thisMonth = list.filter(t=>!isDead(t) && ymd(t.startDate).startsWith(monthPrefix) && tripEndYmd(t)>=today);
+  const upcoming = live.filter(t=>tripStartYmd(t) && tripEndYmd(t)>=today)
+                       .sort((a,b)=>tripStartYmd(a).localeCompare(tripStartYmd(b)));
+  const awaiting = list.filter(t=>t.status==='Pending');
+
+  const yearly = years.map(y=>bucket(y, y, trips.filter(t=>matches(t,true) && tripYear(t)===y)));
+  const buckets = f.year==='All'
+    ? yearly
+    : MONTH_SHORT.map((lab,i)=>bucket(lab, `${MONTH_NAMES[i]} ${f.year}`, list.filter(t=>Number(tripStartYmd(t).slice(5,7))===i+1)));
+
+  const statusRows = TRIP_STATUSES.map(s=>({ label:s, n:list.filter(t=>t.status===s).length }));
+  const typeRows = [['open','Open trip'],['private','Private trip']].map(([k,label])=>{
+    const tl = list.filter(t=>t.type===k);
+    return { label, trips: tl.length, pax: sum(tl.filter(counted)).pax };
+  });
+  const payRows = PAY_STATUSES.map(s=>({ label:s, n:0 }));
+  countedList.forEach(t=>custByTrip(t.id).forEach(c=>{ const r=payRows.find(x=>x.label===c.paymentStatus); if(r) r.n++; }));
+
+  const destMap = new Map();
+  countedList.forEach(t=>{
+    const base = (t.destination||'').trim().replace(/\s*\([^)]*\)\s*$/,'').trim() || 'Unspecified';
+    const key = base.toUpperCase();
+    let d = destMap.get(key);
+    if(!d){ d = { name:base, trips:0, pax:0, amount:0, collected:0 }; destMap.set(key, d); }
+    const x = money(t);
+    d.trips++; d.pax+=x.pax; d.amount+=x.amount; d.collected+=x.collected;
+  });
+  const destinations = [...destMap.values()].sort((a,b)=>b.pax-a.pax||b.trips-a.trips||a.name.localeCompare(b.name)).slice(0,8);
+
+  let ticketPax = 0; const ticketTrips = new Set();
+  countedList.filter(t=>t.status==='Approved').forEach(t=>custByTrip(t.id).forEach(c=>{
+    if(c.ticketPurchaser && c.ticketStatus==='Pending' && c.paymentStatus!=='Cancelled'){ ticketPax++; ticketTrips.add(t.id); }
+  }));
+  const due30 = upcoming.filter(t=>tripStartYmd(t)>=today && tripStartYmd(t)<=in30 && money(t).balance>0);
+  const emptyTrips = upcoming.filter(t=>money(t).pax===0);
+
+  return { f, today, in30, years, list, countedList, totals, activeCount, thisMonth, upcoming, awaiting,
+           yearly, buckets, statusRows, typeRows, payRows, destinations, ticketPax, ticketTrips, due30, emptyTrips, money };
+}
+
+function dashboardHTML(){
+  if(!trips.length){
+    return `<div class="empty"><h3>No trips yet</h3><p>The dashboard fills in once trips are created.</p></div>`;
+  }
+  const m = dashModel();
+  const f = m.f;
+  const anyFilter = f.year!=='All' || f.month!=='All' || f.type!=='All' || f.status!=='All';
+  const chip = (attr, val, label, on) => `<button class="chip ${on?'active':''}" ${attr}="${esc(val)}">${esc(label)}</button>`;
+  const scope = [
+    f.year==='All' ? 'All years' : f.year,
+    f.month==='All' ? null : MONTH_NAMES[Number(f.month)-1],
+    f.type==='All' ? null : (f.type==='open' ? 'Open trips' : 'Private trips'),
+    f.status==='All' ? null : f.status,
+  ].filter(Boolean).join(' · ');
+
+  const filters = `
+  <div class="dash-filters">
+    <div class="dash-fgroup"><span class="dash-flabel">Year</span>
+      <div class="chip-row">${['All',...m.years].map(y=>chip('data-dash-year', y, y==='All'?'All years':y, String(f.year)===y)).join('')}</div></div>
+    <div class="dash-fgroup"><span class="dash-flabel">Month</span>
+      <select class="status-select" id="dash-month">
+        <option value="All">All months</option>
+        ${MONTH_NAMES.map((n,i)=>`<option value="${i+1}" ${String(f.month)===String(i+1)?'selected':''}>${n}</option>`).join('')}
+      </select></div>
+    <div class="dash-fgroup"><span class="dash-flabel">Trip type</span>
+      <div class="chip-row">${[['All','All types'],['open','Open trip'],['private','Private trip']].map(([v,l])=>chip('data-dash-type', v, l, f.type===v)).join('')}</div></div>
+    <div class="dash-fgroup"><span class="dash-flabel">Status</span>
+      <select class="status-select" id="dash-status">
+        <option value="All">All statuses</option>
+        ${TRIP_STATUSES.map(s=>`<option value="${s}" ${f.status===s?'selected':''}>${s}</option>`).join('')}
+      </select></div>
+    ${anyFilter ? `<button class="btn btn-sm btn-ghost" data-dash-reset>Reset filters</button>` : ''}
+  </div>
+  <p class="dash-scope">Showing: <b>${esc(scope)}</b> · ${m.list.length} trip${m.list.length===1?'':'s'}</p>`;
+
+  const canApprove = isApproverOrAdmin();
+  const approvedUp = m.upcoming.filter(t=>t.status==='Approved').length;
+  const approvedMonth = m.thisMonth.filter(t=>t.status==='Approved').length;
+  const deadN = m.list.length - m.activeCount;
+  const kpi = (label, value, sub, extra='', title='') => `
+    <div class="stat-card ${extra}" ${title?`title="${esc(title)}"`:''}><div class="label">${label}</div><div class="value">${value}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>`;
+
+  const row1 = `
+  <div class="dash-kpis">
+    ${kpi('Total trips', m.list.length, `${m.activeCount} active${deadN?` · ${deadN} declined/cancelled`:''}`, '', 'All trips matching the filters, whatever their status')}
+    ${kpi('Trips this month', m.thisMonth.length, `${approvedMonth} approved · ${m.thisMonth.length-approvedMonth} not yet approved`, '', 'Trips starting this month that have not ended yet (declined/cancelled excluded)')}
+    ${kpi('Upcoming trips', m.upcoming.length, `${approvedUp} approved · ${m.upcoming.length-approvedUp} draft / pending`, '', 'Trips not yet completed whose end date has not passed (declined/cancelled excluded)')}
+    ${canApprove
+      ? `<button class="stat-card is-link ${m.awaiting.length?'is-alert':''}" data-dash-approvals title="Open the trips waiting for approval"><div class="label">Awaiting approval</div><div class="value">${m.awaiting.length}</div><div class="sub">${m.awaiting.length?'Click to review':'Nothing waiting'}</div></button>`
+      : kpi('Awaiting approval', m.awaiting.length, m.awaiting.length?'With the approvers':'Nothing waiting', m.awaiting.length?'is-alert':'')}
+  </div>`;
+
+  const t = m.totals;
+  const row2 = `
+  <div class="dash-kpis">
+    ${kpi('Total passengers', t.pax, m.countedList.length ? `avg ${(t.pax/m.countedList.length).toFixed(1)} per trip` : '', '', 'Passengers on the trips in view (declined/cancelled trips excluded unless filtered)')}
+    ${kpi('Total amount', fmtRM(t.amount), 'Package amounts, all passengers')}
+    ${kpi('Total payment', fmtRM(t.collected), `${pctText(t.collected, t.amount)} of amount collected`, '', 'Paid = full amount; Deposit = deposit + payment')}
+    ${kpi('Outstanding balance', fmtRM(t.balance), `${m.countedList.filter(x=>m.money(x).balance>0).length} trip(s) still owing`)}
+  </div>`;
+
+  // ---- Period chart / table ----
+  const md = DASH_METRICS[dashMetric];
+  const unitLabel = f.year==='All' ? 'year' : `month · ${f.year}`;
+  const metricChips = Object.entries(DASH_METRICS).map(([k,d])=>chip('data-dash-metric', k, d.label, dashMetric===k)).join('');
+  const viewChips = [['chart','Chart'],['table','Table']].map(([k,l])=>chip('data-dash-periodview', k, l, dashPeriodView===k)).join('');
+  const periodBody = dashPeriodView==='table' ? periodTableHTML(m.buckets, f.year==='All' ? 'Year' : 'Month') : columnChartSVG(m.buckets, dashMetric);
+  const periodPanel = `
+  <div class="panel">
+    <div class="panel-head"><h3>${md.label} by ${unitLabel}</h3><div class="chip-row">${viewChips}</div></div>
+    <div class="dash-body">
+      <div class="chip-row" style="margin-bottom:10px;">${metricChips}</div>
+      ${periodBody}
+    </div>
+  </div>`;
+
+  // ---- Yearly summary ----
+  const yTot = m.yearly.reduce((a,r)=>({trips:a.trips+r.trips,pax:a.pax+r.pax,amount:a.amount+r.amount,collected:a.collected+r.collected,balance:a.balance+r.balance}),{trips:0,pax:0,amount:0,collected:0,balance:0});
+  const yearlyPanel = `
+  <div class="panel">
+    <div class="panel-head"><h3>Yearly summary</h3><span class="dash-note" style="margin:0;">Click a year to filter</span></div>
+    <div style="overflow-x:auto;"><table class="dash-table">
+      <thead><tr><th>Year</th><th class="num">Trips</th><th class="num">Pax</th><th class="num">Amount</th><th class="num">Payment</th><th class="num">Balance</th><th class="num">% paid</th></tr></thead>
+      <tbody>
+        ${m.yearly.length ? m.yearly.map(r=>`<tr data-dash-year="${esc(r.label)}" class="${String(f.year)===r.label?'is-selected':''}">
+          <td><b>${esc(r.label)}</b></td><td class="num">${r.trips}</td><td class="num">${r.pax}</td><td class="num">${fmtRM(r.amount)}</td><td class="num">${fmtRM(r.collected)}</td><td class="num">${fmtRM(r.balance)}</td><td class="num">${pctText(r.collected,r.amount)}</td></tr>`).join('')
+          + (m.yearly.length>1 ? `<tr class="is-total"><td>All years</td><td class="num">${yTot.trips}</td><td class="num">${yTot.pax}</td><td class="num">${fmtRM(yTot.amount)}</td><td class="num">${fmtRM(yTot.collected)}</td><td class="num">${fmtRM(yTot.balance)}</td><td class="num">${pctText(yTot.collected,yTot.amount)}</td></tr>` : '')
+          : `<tr><td colspan="7" style="text-align:center;color:var(--ink-soft);">No trips match.</td></tr>`}
+      </tbody>
+    </table></div>
+  </div>`;
+
+  // ---- Status / type / payment ----
+  const maxStatus = Math.max(1, ...m.statusRows.map(r=>r.n));
+  const maxPay = Math.max(1, ...m.payRows.map(r=>r.n));
+  const hbars = (rows, max) => rows.map(r=>`<div class="hbar-row"><div class="hbar-label">${esc(r.label)}</div><div class="hbar-track"><div class="hbar-fill" style="width:${r.n/max*100}%;${r.n>0?'min-width:4px;':''}"></div></div><div class="hbar-val">${r.n}</div></div>`).join('');
+  const breakdownPanel = `
+  <div class="panel">
+    <div class="panel-head"><h3>Trips &amp; passengers breakdown</h3></div>
+    <div class="dash-body">
+      <div class="dash-sub" style="margin-top:0;">Trips by status</div>
+      ${hbars(m.statusRows, maxStatus)}
+      <div class="dash-sub">Passengers by payment status</div>
+      ${hbars(m.payRows, maxPay)}
+      <div class="dash-sub">Open vs private</div>
+      ${m.typeRows.map(r=>`<div class="hbar-row" style="grid-template-columns:96px 1fr;"><div class="hbar-label">${esc(r.label)}</div><div>${r.trips} trip${r.trips===1?'':'s'} · ${r.pax} pax</div></div>`).join('')}
+    </div>
+  </div>`;
+
+  // ---- Attention ----
+  const attn = (n, title, detail) => `<li><span class="n ${n===0?'ok':''}">${n===0?'✓':n}</span><span>${title}<span class="t">${n===0?'All clear':detail}</span></span></li>`;
+  const attentionPanel = `
+  <div class="panel">
+    <div class="panel-head"><h3>Needs attention</h3></div>
+    <div class="dash-body"><ul class="dash-attn">
+      ${attn(m.awaiting.length, 'Trips awaiting approval', 'Status is Pending')}
+      ${attn(m.ticketPax, 'Flight tickets to purchase', `${m.ticketPax} passenger(s) on ${m.ticketTrips.size} approved trip(s) with the ticket still Pending`)}
+      ${attn(m.due30.length, 'Departing within 30 days with a balance due', 'Collect the remaining payment before departure')}
+      ${attn(m.emptyTrips.length, 'Upcoming trips with no passengers', 'Add passengers or share the registration link')}
+    </ul></div>
+  </div>`;
+
+  // ---- Destinations ----
+  const destPanel = `
+  <div class="panel">
+    <div class="panel-head"><h3>Top destinations</h3><span class="dash-note" style="margin:0;">By passengers</span></div>
+    <div style="overflow-x:auto;"><table class="dash-table">
+      <thead><tr><th>Destination</th><th class="num">Trips</th><th class="num">Pax</th><th class="num">Amount</th><th class="num">Payment</th></tr></thead>
+      <tbody>${m.destinations.length ? m.destinations.map(d=>`<tr><td>${esc(d.name)}</td><td class="num">${d.trips}</td><td class="num">${d.pax}</td><td class="num">${fmtRM(d.amount)}</td><td class="num">${fmtRM(d.collected)}</td></tr>`).join('')
+        : `<tr><td colspan="5" style="text-align:center;color:var(--ink-soft);">No trips match.</td></tr>`}</tbody>
+    </table></div>
+  </div>`;
+
+  // ---- Upcoming departures ----
+  const upRows = m.upcoming.slice(0,8).map(tr=>{
+    const start = tripStartYmd(tr);
+    const days = daysBetweenYmd(m.today, start);
+    const when = days<0 ? 'Ongoing' : days===0 ? 'Today' : `in ${days} day${days===1?'':'s'}`;
+    const x = m.money(tr);
+    const warn = x.balance>0 && days>=0 && days<=30;
+    return `<tr data-dash-open-trip="${esc(tr.id)}">
+      <td>${fmtDate(start)}<div class="cust-sub">${when}</div></td>
+      <td><span style="font-family:var(--font-mono);font-size:12px;color:var(--navy);font-weight:600;">${esc(tripCode(tr))}</span><div class="cust-sub">${esc(tr.name)}</div></td>
+      <td><div class="stamp ${esc(tr.status)}" style="display:inline-block;">${esc(tr.status)}</div></td>
+      <td class="num">${x.pax}</td>
+      <td class="num">${warn?`<span title="Departing within 30 days with a balance due">⚠ </span>`:''}${fmtRM(x.balance)}</td></tr>`;
+  }).join('');
+  const upcomingPanel = `
+  <div class="panel">
+    <div class="panel-head"><h3>Next departures</h3><span class="dash-note" style="margin:0;">${m.upcoming.length>8?`Next 8 of ${m.upcoming.length}`:'Click a trip to open it'}</span></div>
+    <div style="overflow-x:auto;"><table class="dash-table">
+      <thead><tr><th>Departs</th><th>Trip</th><th>Status</th><th class="num">Pax</th><th class="num">Balance</th></tr></thead>
+      <tbody>${upRows || `<tr><td colspan="5" style="text-align:center;color:var(--ink-soft);">No upcoming trips.</td></tr>`}</tbody>
+    </table></div>
+  </div>`;
+
+  return `
+  ${filters}
+  ${row1}
+  ${row2}
+  <div class="dash-grid2">${periodPanel}${yearlyPanel}</div>
+  <div class="dash-grid2">${upcomingPanel}${attentionPanel}</div>
+  <div class="dash-grid2">${breakdownPanel}${destPanel}</div>
+  <p class="dash-note">Year follows the trip code (the year of the start date). Passengers and money leave out Declined/Cancelled trips unless you filter to them, and use the same rules as each trip page: Paid = full amount, Deposit = deposit + payment. Balance = amount − payment.</p>`;
+}
+
+function periodTableHTML(buckets, firstCol){
+  return `<div style="overflow-x:auto;"><table class="dash-table">
+    <thead><tr><th>${firstCol}</th><th class="num">Trips</th><th class="num">Pax</th><th class="num">Amount</th><th class="num">Payment</th><th class="num">Balance</th></tr></thead>
+    <tbody>${buckets.map(b=>`<tr><td>${esc(b.full)}</td><td class="num">${b.trips}</td><td class="num">${b.pax}</td><td class="num">${fmtRM(b.amount)}</td><td class="num">${fmtRM(b.collected)}</td><td class="num">${fmtRM(b.balance)}</td></tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+function columnChartSVG(buckets, metric){
+  const def = DASH_METRICS[metric];
+  const vals = buckets.map(b=>Number(b[metric])||0);
+  const maxVal = Math.max(0, ...vals);
+  if(!buckets.length || maxVal===0){
+    return `<p class="dash-note" style="padding:26px 0;text-align:center;">No ${def.label.toLowerCase()} to chart for these filters.</p>`;
+  }
+  const niceCeil = v => { const p=Math.pow(10,Math.floor(Math.log10(v))); const n=v/p; return (n<=1?1:n<=2?2:n<=5?5:10)*p; };
+  let step = niceCeil(maxVal/4);
+  if(!def.money) step = Math.max(1, step);
+  const top = step*Math.ceil(maxVal/step);
+  const W=640, H=250, L=54, R=10, T=22, B=28;
+  const pw=W-L-R, ph=H-T-B, base=T+ph;
+  const y = v => T + ph - (v/top)*ph;
+  const band = pw/buckets.length;
+  const bw = Math.min(24, band-4);
+  const fmtTick = v => def.money ? (v===0?'0':'RM '+fmtCompact(v)) : String(v);
+  const fmtVal = v => def.money ? fmtRM(v) : String(v);
+  let g = '';
+  for(let v=0; v<=top+1e-9; v+=step){
+    g += `<line class="grid" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end">${fmtTick(v)}</text>`;
+  }
+  const peakIdx = vals.indexOf(maxVal);
+  buckets.forEach((b,i)=>{
+    const v = vals[i];
+    const cx = L + band*i + band/2, x = cx - bw/2;
+    if(v>0){
+      const yy = y(v), h = base-yy, r = Math.min(4, h);
+      g += `<path class="bar" d="M${x},${base} V${yy+r} Q${x},${yy} ${x+r},${yy} H${x+bw-r} Q${x+bw},${yy} ${x+bw},${yy+r} V${base} Z"/>`;
+    }
+    if(i===peakIdx) g += `<text class="peak" x="${cx}" y="${Math.max(12, y(v)-6)}" text-anchor="middle">${fmtVal(v)}</text>`;
+    g += `<text x="${cx}" y="${H-9}" text-anchor="middle">${esc(b.label)}</text>`;
+    const tip = `${b.trips} trip${b.trips===1?'':'s'} · ${b.pax} pax`;
+    g += `<rect class="hit" x="${L+band*i}" y="${T}" width="${band}" height="${ph}" tabindex="0" data-tv="${esc(fmtVal(v))}" data-tl="${esc(b.full+' · '+def.label)}" data-tx="${esc(tip)}" aria-label="${esc(b.full+': '+fmtVal(v)+' '+def.label.toLowerCase())}"/>`;
+  });
+  return `<svg class="dash-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(def.label)} chart, highest ${esc(buckets[peakIdx].full)} at ${esc(fmtVal(maxVal))}">${g}</svg>`;
+}
+
+function tabsHTML(){
+  if(view.mode==='detail') return '';
+  const on = view.mode==='dashboard';
+  return `<div class="tabs" role="tablist">
+    <button class="tab ${on?'':'active'}" role="tab" aria-selected="${!on}" data-view-mode="list">Trips</button>
+    <button class="tab ${on?'active':''}" role="tab" aria-selected="${on}" data-view-mode="dashboard">Dashboard</button>
+  </div>`;
+}
+
+function bindDashboardEvents(app){
+  let tip = document.getElementById('dash-tip');
+  if(!tip){ tip = document.createElement('div'); tip.id = 'dash-tip'; tip.setAttribute('role','tooltip'); document.body.appendChild(tip); }
+  tip.style.display = 'none';
+
+  app.querySelectorAll('[data-view-mode]').forEach(el=>{
+    el.addEventListener('click', ()=>{ view.mode = el.dataset.viewMode; view.returnTo = null; render(); });
+  });
+  if(view.mode!=='dashboard') return;
+
+  const set = (k, v) => { dashFilter[k] = v; render(); };
+  app.querySelectorAll('[data-dash-year]').forEach(el=>el.addEventListener('click', ()=>set('year', el.dataset.dashYear)));
+  app.querySelectorAll('[data-dash-type]').forEach(el=>el.addEventListener('click', ()=>set('type', el.dataset.dashType)));
+  const mSel = app.querySelector('#dash-month'); if(mSel) mSel.addEventListener('change', ()=>set('month', mSel.value));
+  const sSel = app.querySelector('#dash-status'); if(sSel) sSel.addEventListener('change', ()=>set('status', sSel.value));
+  const reset = app.querySelector('[data-dash-reset]');
+  if(reset) reset.addEventListener('click', ()=>{ dashFilter = { year:'All', month:'All', type:'All', status:'All' }; render(); });
+  app.querySelectorAll('[data-dash-metric]').forEach(el=>el.addEventListener('click', ()=>{ dashMetric = el.dataset.dashMetric; render(); }));
+  app.querySelectorAll('[data-dash-periodview]').forEach(el=>el.addEventListener('click', ()=>{ dashPeriodView = el.dataset.dashPeriodview; render(); }));
+  const appr = app.querySelector('[data-dash-approvals]');
+  if(appr) appr.addEventListener('click', ()=>{
+    view = { mode:'list', tripId:null, search:'', statusFilter:'Pending', typeFilter:'All', layout:view.layout };
+    render();
+  });
+  app.querySelectorAll('[data-dash-open-trip]').forEach(el=>el.addEventListener('click', ()=>{
+    view.mode = 'detail'; view.tripId = el.dataset.dashOpenTrip; view.returnTo = 'dashboard'; passengerFilterKeyword = ''; render();
+  }));
+
+  // Chart tooltip: value first, then what it is, then context. textContent only.
+  const showTip = (el, x, y) => {
+    tip.textContent = '';
+    [['tip-v', el.dataset.tv], ['tip-l', el.dataset.tl], ['tip-l', el.dataset.tx]].forEach(([cls, txt])=>{
+      if(!txt) return;
+      const d = document.createElement('div'); d.className = cls; d.textContent = txt; tip.appendChild(d);
+    });
+    tip.style.display = 'block';
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.max(8, Math.min(x+14, window.innerWidth-w-8)) + 'px';
+    tip.style.top = Math.max(8, Math.min(y-h-10, window.innerHeight-h-8)) + 'px';
+  };
+  const hideTip = () => { tip.style.display = 'none'; };
+  app.querySelectorAll('.dash-chart .hit').forEach(el=>{
+    el.addEventListener('pointermove', e=>showTip(el, e.clientX, e.clientY));
+    el.addEventListener('pointerleave', hideTip);
+    el.addEventListener('focus', ()=>{ const r=el.getBoundingClientRect(); showTip(el, r.left+r.width/2, r.top+30); });
+    el.addEventListener('blur', hideTip);
+  });
 }
 
 /* =========================================================
@@ -1143,11 +1574,7 @@ function detailHTML(){
   if(!t){ view.mode='list'; return listHTML(); }
   const cs = custByTrip(t.id).sort((a,b)=>(b.addedAt||'').localeCompare(a.addedAt||''));
   const total = cs.reduce((s,c)=>s+(Number(c.amount)||0),0);
-  const collected = cs.reduce((s,c)=>{
-    if(c.paymentStatus==='Paid') return s+(Number(c.amount)||0);
-    if(c.paymentStatus==='Deposit') return s+(Number(c.depositAmount)||0)+(Number(c.balancePaid)||0);
-    return s;
-  },0);
+  const collected = cs.reduce((s,c)=>s+paidOf(c),0);
   const paidCount = cs.filter(c=>c.paymentStatus==='Paid').length;
 
   const allActions = nextActions(t.status);
@@ -1161,7 +1588,7 @@ function detailHTML(){
   const rows = passengerRowsHTML(t);
 
   return `
-  <button class="back-link" data-action="back-to-list">← All trips</button>
+  <button class="back-link" data-action="back-to-list">${view.returnTo==='dashboard' ? '← Dashboard' : '← All trips'}</button>
   <div class="manifest-head">
     <div class="mh-left">
       <div class="eyebrow">${tripCode(t)} · ${t.type} trip</div>
@@ -1987,6 +2414,7 @@ async function handleDeleteUser(userId){
 
 function bindEvents(){
   const app = document.getElementById('app');
+  bindDashboardEvents(app);
 
   const logoutBtn = app.querySelector('[data-action="do-logout"]');
   if(logoutBtn) logoutBtn.addEventListener('click', handleLogout);
@@ -2040,10 +2468,10 @@ function bindEvents(){
   if(applyNextNumberBtn) applyNextNumberBtn.addEventListener('click', handleApplyNextNumber);
 
   app.querySelectorAll('[data-open-trip]').forEach(el=>{
-    el.addEventListener('click', ()=>{ view.mode='detail'; view.tripId = el.dataset.openTrip; passengerFilterKeyword=''; render(); });
+    el.addEventListener('click', ()=>{ view.mode='detail'; view.tripId = el.dataset.openTrip; view.returnTo = null; passengerFilterKeyword=''; render(); });
   });
   const back = app.querySelector('[data-action="back-to-list"]');
-  if(back) back.addEventListener('click', ()=>{ view.mode='list'; passengerFilterKeyword=''; render(); });
+  if(back) back.addEventListener('click', ()=>{ view.mode = view.returnTo || 'list'; view.returnTo = null; passengerFilterKeyword=''; render(); });
 
   const searchInput = app.querySelector('#search-input');
   if(searchInput){
@@ -2173,7 +2601,7 @@ function renderListOnly(){
     // — otherwise trip cards/rows shown after typing a search become
     // unclickable (they exist in the DOM but nothing is listening).
     newGrid.querySelectorAll('[data-open-trip]').forEach(el=>{
-      el.addEventListener('click', ()=>{ view.mode='detail'; view.tripId = el.dataset.openTrip; passengerFilterKeyword=''; render(); });
+      el.addEventListener('click', ()=>{ view.mode='detail'; view.tripId = el.dataset.openTrip; view.returnTo = null; passengerFilterKeyword=''; render(); });
     });
     newGrid.querySelectorAll('[data-action="open-new-trip"]').forEach(btn=>{
       btn.addEventListener('click', ()=>{ editingTripId=null; render(); openOverlay('overlay-trip'); });
