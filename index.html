@@ -319,6 +319,47 @@
     .cal-bar{font-size:11px;padding:0 4px;}
   }
 
+
+  /* ---------- Trip form: country combobox + range calendar ---------- */
+  .combo{position:relative;}
+  .combo input{padding-right:40px;}
+  .combo-toggle{position:absolute;right:4px;top:4px;width:34px;height:34px;border:none;background:none;color:var(--ink-soft);font-size:15px;border-radius:8px;}
+  .combo-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:#fff;border:1.5px solid var(--line);border-radius:10px;box-shadow:var(--shadow);max-height:250px;overflow-y:auto;padding:4px;}
+  .combo-list[hidden]{display:none;}
+  .combo-sec{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);font-weight:600;padding:8px 10px 4px;}
+  .combo-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 2px 10px;border-radius:7px;font-size:14px;cursor:pointer;}
+  .combo-row .nm{flex:1;padding:7px 0;}
+  .combo-row .ct{font-size:11px;color:var(--ink-soft);}
+  .combo-row.hl,.combo-row:hover{background:var(--paper-dim);}
+  .combo-row.sel .nm{font-weight:700;color:var(--navy-deep);}
+  .combo-star{border:none;background:none;font-size:18px;line-height:1;width:34px;height:34px;border-radius:8px;color:var(--ink-soft);}
+  .combo-star.on{color:var(--gold);}
+  .combo-star:hover{background:#fff;color:var(--gold);}
+  .combo-empty{padding:12px 10px;font-size:13px;color:var(--ink-soft);}
+
+  .rp-box{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .rp-field{text-align:left;border:1.5px solid var(--line);border-radius:9px;background:#fff;padding:7px 12px;font-size:14px;color:var(--ink);min-height:50px;}
+  .rp-field small{display:block;font-size:11px;color:var(--ink-soft);font-weight:600;}
+  .rp-field.active{border-color:var(--navy);box-shadow:0 0 0 3px rgba(20,40,80,.1);}
+  .rp-field .ph{color:var(--ink-soft);}
+  .rp-cal{margin-top:10px;border:1.5px solid var(--line);border-radius:12px;background:#fff;padding:10px 10px 12px;user-select:none;-webkit-user-select:none;touch-action:none;}
+  .rp-cal[hidden]{display:none;}
+  .rp-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .rp-nav b{font-family:var(--font-display);font-size:15px;color:var(--navy-deep);}
+  .rp-nav button{border:1.5px solid var(--line);background:#fff;border-radius:8px;width:34px;height:34px;font-size:16px;}
+  .rp-grid{display:grid;grid-template-columns:repeat(7,1fr);row-gap:2px;}
+  .rp-dow{font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-soft);text-align:center;padding:4px 0;font-weight:600;}
+  .rp-day{border:none;background:none;height:38px;font-size:13.5px;color:var(--ink);border-radius:0;position:relative;font-variant-numeric:tabular-nums;}
+  .rp-day.out{color:#b3b8c2;}
+  .rp-day.today{font-weight:700;text-decoration:underline;}
+  .rp-day.inr{background:rgba(232,176,48,.22);}
+  .rp-day.s,.rp-day.e{background:var(--navy);color:#fff;font-weight:700;}
+  .rp-day.s{border-radius:9px 0 0 9px;}
+  .rp-day.e{border-radius:0 9px 9px 0;}
+  .rp-day.s.e{border-radius:9px;}
+  .rp-day:focus-visible{outline:2px solid var(--navy);outline-offset:-2px;}
+  .rp-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;font-size:12.5px;color:var(--ink-soft);flex-wrap:wrap;}
+
 </style>
 </head>
 <body>
@@ -578,9 +619,16 @@ async function demoFetchInner(path, options = {}){
       Cancelled:[{to:'Draft',anyRole:true}],
       Completed:[]
     };
-    const move = (TRANSITIONS[t.status]||[]).find(a=>a.to===body.status);
-    if(!move) fail(400,`Can't move a trip from ${t.status} to ${body.status}`);
-    if(!move.anyRole && !['approver','admin'].includes(u.role)) fail(403,'Only an approver or admin can do that');
+    if(body.override){
+      // Manual routing from Edit Trip: approver/admin any status, user only Draft/Pending.
+      if(!TRIP_STATUSES.includes(body.status)) fail(400,'Unknown status');
+      if(body.status===t.status) fail(400,`Trip is already ${t.status}`);
+      if(!['approver','admin'].includes(u.role) && !['Draft','Pending'].includes(body.status)) fail(403,'You can only set Draft or Pending');
+    } else {
+      const move = (TRANSITIONS[t.status]||[]).find(a=>a.to===body.status);
+      if(!move) fail(400,`Can't move a trip from ${t.status} to ${body.status}`);
+      if(!move.anyRole && !['approver','admin'].includes(u.role)) fail(403,'Only an approver or admin can do that');
+    }
     const fromStatus = t.status;
     t.status = body.status;
     t.history.push({status:body.status, date:new Date().toISOString()});
@@ -2022,6 +2070,209 @@ function manageUsersModalHTML(){
   </div>`;
 }
 
+/* =========================================================
+   Trip form helpers: country combobox, range calendar
+   ========================================================= */
+const COUNTRIES = ['Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi','Cambodia','Cameroon','Canada','Cape Verde','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo (DRC)','Congo (Republic)','Costa Rica','Croatia','Cuba','Cyprus','Czech Republic','Denmark','Djibouti','Dominica','Dominican Republic','Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia','Fiji','Finland','France','Gabon','Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana','Haiti','Honduras','Hong Kong','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Ivory Coast','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kosovo','Kuwait','Kyrgyzstan','Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Macau','Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia','Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nauru','Nepal','Netherlands','New Zealand','Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway','Oman','Pakistan','Palau','Palestine','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino','Sao Tome and Principe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria','Taiwan','Tajikistan','Tanzania','Thailand','Timor-Leste','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Vatican City','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe'];
+const DEFAULT_FAV_COUNTRIES = ['Indonesia','Vietnam','Thailand','New Zealand'];
+const AUTO_FAV_AFTER = 5;   // a country used on MORE than this many trips is pinned automatically
+
+function favStoreKey(){ return 'excapism_fav_countries_' + (currentUser ? currentUser.id : 'anon'); }
+function loadFavStore(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(favStoreKey()) || 'null');
+    if(raw && Array.isArray(raw.pinned) && Array.isArray(raw.unpinned)) return raw;
+  }catch(e){}
+  return { pinned: DEFAULT_FAV_COUNTRIES.slice(), unpinned: [] };
+}
+function saveFavStore(st){ try{ localStorage.setItem(favStoreKey(), JSON.stringify(st)); }catch(e){} }
+
+// How many trips use each country. Counted from the trips themselves (shared,
+// persistent, includes bulk imports) rather than a per-browser counter.
+// A trip counts for a country if one of its comma/dash separated parts equals it.
+function countryUsage(){
+  const counts = {};
+  const byLower = new Map(COUNTRIES.map(c=>[c.toLowerCase(), c]));
+  trips.forEach(t=>{
+    const seen = new Set();
+    String(t.destination||'').split(/[,–—\-\/]/).forEach(part=>{
+      const c = byLower.get(part.replace(/\(.*?\)/g,'').trim().toLowerCase());
+      if(c && !seen.has(c)){ seen.add(c); counts[c] = (counts[c]||0) + 1; }
+    });
+  });
+  return counts;
+}
+// Returns { favs:[names in display order], isFav:Set, auto:Set, counts }
+function countryFavourites(){
+  const st = loadFavStore(), counts = countryUsage();
+  const auto = new Set(COUNTRIES.filter(c=>(counts[c]||0) > AUTO_FAV_AFTER && !st.unpinned.includes(c)));
+  const manual = st.pinned.filter(c=>COUNTRIES.includes(c));
+  const set = new Set([...manual, ...auto]);
+  const favs = [...set].sort((a,b)=>(counts[b]||0)-(counts[a]||0) || [...set].indexOf(a)-[...set].indexOf(b));
+  // most-used first; ties keep pin order (so the four defaults stay Indonesia, Vietnam, Thailand, New Zealand)
+  return { favs, isFav:set, auto, counts, manual:new Set(manual) };
+}
+function toggleFavCountry(c){
+  const st = loadFavStore(), f = countryFavourites();
+  if(f.isFav.has(c)){
+    st.pinned = st.pinned.filter(x=>x!==c);
+    if(f.auto.has(c) && !st.unpinned.includes(c)) st.unpinned.push(c);
+  } else {
+    st.unpinned = st.unpinned.filter(x=>x!==c);
+    if(!st.pinned.includes(c)) st.pinned.push(c);
+  }
+  saveFavStore(st);
+}
+
+function bindCountryCombo(){
+  const input = document.getElementById('tr-dest'), list = document.getElementById('tr-dest-list');
+  if(!input || !list) return;
+  const toggle = document.querySelector('.combo-toggle');
+  const original = input.dataset.original || '';
+  let hl = -1, rows = [];
+
+  const exact = v => COUNTRIES.find(c=>c.toLowerCase()===String(v).trim().toLowerCase());
+  const build = (filterText) => {
+    const f = countryFavourites(), q = (filterText||'').trim().toLowerCase();
+    const match = c => !q || c.toLowerCase().includes(q);
+    const row = c => {
+      const on = f.isFav.has(c), n = f.counts[c]||0;
+      const why = on ? (f.manual.has(c) ? 'Pinned — click to unpin' : `Pinned automatically (used on ${n} trips) — click to unpin`) : 'Pin to top';
+      return `<div class="combo-row ${exact(input.value)===c?'sel':''}" role="option" data-country="${esc(c)}">
+        <span class="nm">${esc(c)}</span>${n?`<span class="ct">${n} trip${n===1?'':'s'}</span>`:''}
+        <button type="button" class="combo-star ${on?'on':''}" data-star="${esc(c)}" aria-pressed="${on}" aria-label="${esc(why+': '+c)}" title="${esc(why)}">${on?'★':'☆'}</button>
+      </div>`;
+    };
+    const favs = f.favs.filter(match), rest = COUNTRIES.filter(c=>!f.isFav.has(c) && match(c));
+    let h = '';
+    if(favs.length) h += `<div class="combo-sec">Favourites</div>` + favs.map(row).join('');
+    if(rest.length) h += `<div class="combo-sec">${favs.length?'All countries':'Countries'}</div>` + rest.map(row).join('');
+    if(!h) h = `<div class="combo-empty">No country matches “${esc(filterText)}”.</div>`;
+    list.innerHTML = h;
+    rows = [...list.querySelectorAll('.combo-row')]; hl = -1;
+  };
+  const open = (filterText) => { build(filterText); list.hidden = false; input.setAttribute('aria-expanded','true'); };
+  const close = () => { list.hidden = true; input.setAttribute('aria-expanded','false'); hl = -1; };
+  const choose = c => { input.value = c; input.dataset.chosen = c; close(); };
+  const mark = () => { rows.forEach((r,i)=>r.classList.toggle('hl', i===hl)); if(rows[hl]) rows[hl].scrollIntoView({block:'nearest'}); };
+
+  // Opening with a value already chosen shows the full list so it is easy to change.
+  input.addEventListener('focus', ()=>open(exact(input.value) ? '' : input.value));
+  input.addEventListener('input', ()=>open(input.value));
+  toggle.addEventListener('click', ()=>{ if(list.hidden){ input.focus(); open(''); } else close(); });
+  input.addEventListener('keydown', e=>{
+    if(e.key==='ArrowDown'){ e.preventDefault(); if(list.hidden) open(input.value); hl = Math.min(rows.length-1, hl+1); mark(); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); hl = Math.max(0, hl-1); mark(); }
+    else if(e.key==='Enter' && !list.hidden){ e.preventDefault(); const r = rows[hl>=0?hl:0]; if(r && r.dataset.country) choose(r.dataset.country); }
+    else if(e.key==='Escape' && !list.hidden){ e.stopPropagation(); close(); }
+  });
+  // mousedown keeps focus in the input so the list does not close before the click lands
+  list.addEventListener('mousedown', e=>e.preventDefault());
+  list.addEventListener('click', e=>{
+    const star = e.target.closest('[data-star]');
+    if(star){ e.stopPropagation(); toggleFavCountry(star.dataset.star); build(input.value && !exact(input.value) ? input.value : ''); return; }
+    const r = e.target.closest('[data-country]'); if(r) choose(r.dataset.country);
+  });
+  document.addEventListener('click', e=>{ if(!document.body.contains(input)) return; if(!e.target.closest('.combo')) close(); });
+  input.addEventListener('blur', ()=>setTimeout(()=>{ if(document.activeElement!==input && !list.matches(':hover')) close(); }, 120));
+}
+// Resolves what to save from the combobox: a listed country, or the trip's
+// existing legacy text if it was left untouched. Returns null if invalid.
+function resolveCountryValue(){
+  const input = document.getElementById('tr-dest'), v = input.value.trim();
+  if(!v) return '';
+  const hit = COUNTRIES.find(c=>c.toLowerCase()===v.toLowerCase());
+  if(hit) return hit;
+  if(v === (input.dataset.original||'')) return v;
+  return null;
+}
+
+/* ---- Range calendar (start + end picked in one calendar) ---- */
+let rp = { start:'', end:'', anchor:null, dragging:false, y:0, m:0, open:false, hoverEnd:null };
+function rpInit(start, end){
+  const t = ymd(start) || todayYmd();
+  rp = { start: ymd(start)||'', end: ymd(end)||'', anchor:null, dragging:false, y:Number(t.slice(0,4)), m:Number(t.slice(5,7))-1, open:false, hoverEnd:null };
+}
+function rpDuration(s, e){
+  if(!s || !e) return '';
+  const days = daysBetweenYmd(s, e) + 1;
+  return days===1 ? '1 day' : `${days} days · ${days-1} night${days-1===1?'':'s'}`;
+}
+function rpFieldsHTML(){
+  const f = (label, v, which) => `<button type="button" class="rp-field ${rp.open && ((which==='start' && !rp.anchor) || (which==='end' && rp.anchor))?'active':''}" data-rp-open="${which}"><small>${label}</small>${v ? esc(fmtDate(v)) : '<span class="ph">Select date</span>'}</button>`;
+  return f('Start date', rp.start, 'start') + f('End date', rp.end, 'end');
+}
+function rpGridHTML(){
+  const first = Date.UTC(rp.y, rp.m, 1)/86400000, dow = new Date(first*86400000).getUTCDay();
+  const dim = new Date(Date.UTC(rp.y, rp.m+1, 0)).getUTCDate();
+  const total = Math.ceil((dow+dim)/7)*7, today = todayYmd();
+  let h = DOW_SHORT.map(d=>`<div class="rp-dow">${d.slice(0,2)}</div>`).join('');
+  for(let i=0;i<total;i++){
+    const n = first - dow + i, s = dayYmd(n), inM = new Date(n*86400000).getUTCMonth()===rp.m;
+    h += `<button type="button" class="rp-day ${inM?'':'out'} ${s===today?'today':''}" data-rp-day="${s}" aria-label="${esc(fmtDate(s))}">${Number(s.slice(8))}</button>`;
+  }
+  return h;
+}
+function rpPaint(){
+  const grid = document.getElementById('rp-grid'); if(!grid) return;
+  const a = rp.anchor ? rp.anchor : rp.start;
+  let s = rp.start, e = rp.end;
+  if(rp.anchor){ s = rp.anchor; e = rp.hoverEnd || rp.anchor; if(e < s){ const x=s; s=e; e=x; } }
+  grid.querySelectorAll('.rp-day').forEach(b=>{
+    const d = b.dataset.rpDay;
+    b.classList.toggle('s', !!s && d===s);
+    b.classList.toggle('e', !!e && d===e);
+    b.classList.toggle('inr', !!s && !!e && d>s && d<e);
+  });
+  const sum = document.getElementById('rp-sum');
+  if(sum) sum.textContent = rp.anchor ? (rp.hoverEnd && rp.hoverEnd!==rp.anchor ? rpDuration(...[rp.anchor, rp.hoverEnd].sort()) : 'Now pick the end date (or drag)') : (rp.start && rp.end ? rpDuration(rp.start, rp.end) : 'Pick a start date, then an end date');
+  document.getElementById('rp-label').textContent = `${MONTH_NAMES[rp.m]} ${rp.y}`;
+  const box = document.getElementById('rp-box'); if(box) box.innerHTML = rpFieldsHTML();
+  document.getElementById('tr-start').value = rp.start; document.getElementById('tr-end').value = rp.end;
+}
+function rpRenderGrid(){ const g = document.getElementById('rp-grid'); if(g){ g.innerHTML = rpGridHTML(); rpPaint(); } }
+function rpComplete(a, b){
+  const [s, e] = a <= b ? [a, b] : [b, a];
+  rp.start = s; rp.end = e; rp.anchor = null; rp.dragging = false; rp.hoverEnd = null; rpPaint();
+}
+function rpDown(day){
+  if(rp.anchor){ rpComplete(rp.anchor, day); rp.justDone = true; return; }   // second click finishes the range
+  rp.start = ''; rp.end = ''; rp.anchor = day; rp.dragging = true; rp.hoverEnd = day; rp.justDone = false; rpPaint();
+}
+function rpUp(day){
+  if(rp.justDone){ rp.justDone = false; return; }
+  if(rp.dragging && rp.anchor && day && day!==rp.anchor) rpComplete(rp.anchor, day);   // dragged to another day
+  rp.dragging = false;                                                                   // plain click: wait for the end date
+}
+function rpDayAt(x, y){ const el = document.elementFromPoint(x, y); const b = el && el.closest ? el.closest('[data-rp-day]') : null; return b ? b.dataset.rpDay : null; }
+
+function bindRangePicker(){
+  const cal = document.getElementById('rp-cal'); if(!cal) return;
+  const setOpen = o => { rp.open = o; cal.hidden = !o; rpPaint(); };
+  document.getElementById('rp-box').addEventListener('click', e=>{
+    const b = e.target.closest('[data-rp-open]'); if(!b) return;
+    const t = rp.start || todayYmd(); rp.y = Number(t.slice(0,4)); rp.m = Number(t.slice(5,7))-1; rpRenderGrid();
+    if(b.dataset.rpOpen==='end' && rp.start && !rp.anchor){ rp.anchor = rp.start; rp.hoverEnd = rp.start; }   // jump straight to choosing the end date
+    setOpen(true);
+  });
+  const grid = document.getElementById('rp-grid');
+  grid.addEventListener('pointerdown', e=>{ const b = e.target.closest('[data-rp-day]'); if(!b || e.button>0) return; e.preventDefault(); rpDown(b.dataset.rpDay); });
+  grid.addEventListener('pointermove', e=>{ if(!rp.anchor) return; const d = rpDayAt(e.clientX, e.clientY); if(d && d!==rp.hoverEnd){ rp.hoverEnd = d; rpPaint(); } });
+  grid.addEventListener('pointerup', e=>{ rpUp(rpDayAt(e.clientX, e.clientY)); });
+  grid.addEventListener('click', e=>{ const b = e.target.closest('[data-rp-day]'); if(b && e.detail===0){ rpDown(b.dataset.rpDay); rp.justDone = false; rpUp(null); } });   // keyboard Enter/Space
+  cal.querySelector('[data-rp-nav="-1"]').addEventListener('click', ()=>{ rp.m--; if(rp.m<0){ rp.m=11; rp.y--; } rpRenderGrid(); });
+  cal.querySelector('[data-rp-nav="1"]').addEventListener('click', ()=>{ rp.m++; if(rp.m>11){ rp.m=0; rp.y++; } rpRenderGrid(); });
+  cal.querySelector('[data-rp-clear]').addEventListener('click', ()=>{ rp.start=''; rp.end=''; rp.anchor=null; rp.hoverEnd=null; rpPaint(); });
+  cal.querySelector('[data-rp-done]').addEventListener('click', ()=>{ if(rp.anchor){ rpComplete(rp.anchor, rp.anchor); } setOpen(false); });
+  rpRenderGrid();
+}
+
+
+function tripStatusOptions(current){
+  const all = TRIP_STATUSES, allowed = isApproverOrAdmin() ? all : ['Draft','Pending'];
+  return { allowed, locked: !allowed.includes(current) };
+}
+
 function tripModal(){
   const editing = editingTripId ? trips.find(t=>t.id===editingTripId) : null;
   const v = {
@@ -2031,6 +2282,8 @@ function tripModal(){
     start: editing ? editing.startDate : '',
     end: editing ? editing.endDate : ''
   };
+  rpInit(v.start, v.end);
+  const so = editing ? tripStatusOptions(editing.status) : null;
   return `
   <div class="overlay" id="overlay-trip">
     <div class="modal">
@@ -2049,13 +2302,33 @@ function tripModal(){
           <input type="hidden" id="tr-type" value="${v.type}">
         </div>
         <div class="field">
-          <label>Location / destination</label>
-          <input id="tr-dest" placeholder="e.g. East Java, Indonesia" value="${esc(v.dest)}">
+          <label for="tr-dest">Location / country</label>
+          <div class="combo">
+            <input id="tr-dest" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="tr-dest-list" placeholder="Search or choose a country" value="${esc(v.dest)}" data-original="${esc(v.dest)}">
+            <button type="button" class="combo-toggle" aria-label="Show countries" tabindex="-1">▾</button>
+            <div class="combo-list" id="tr-dest-list" role="listbox" hidden></div>
+          </div>
+          <div class="hint">Tap ☆ beside a country to pin it to the top. Countries used on more than ${AUTO_FAV_AFTER} trips are pinned automatically.</div>
         </div>
-        <div class="field-row">
-          <div class="field"><label>Start date</label><input type="date" id="tr-start" value="${esc(v.start)}"></div>
-          <div class="field"><label>End date</label><input type="date" id="tr-end" value="${esc(v.end)}"></div>
+        <div class="field">
+          <label>Trip dates</label>
+          <div class="rp-box" id="rp-box">${rpFieldsHTML()}</div>
+          <input type="hidden" id="tr-start" value="${esc(v.start)}"><input type="hidden" id="tr-end" value="${esc(v.end)}">
+          <div class="rp-cal" id="rp-cal" hidden>
+            <div class="rp-nav"><button type="button" data-rp-nav="-1" aria-label="Previous month">‹</button><b id="rp-label"></b><button type="button" data-rp-nav="1" aria-label="Next month">›</button></div>
+            <div class="rp-grid" id="rp-grid"></div>
+            <div class="rp-foot"><span id="rp-sum"></span><span><button type="button" class="link-btn" data-rp-clear>Clear</button> &nbsp; <button type="button" class="link-btn" data-rp-done>Done</button></span></div>
+          </div>
+          <div class="hint">Click the start date, then the end date, all in one calendar — or drag from start to end.</div>
         </div>
+        ${editing ? `<div class="field">
+          <label for="tr-status">Status</label>
+          <select id="tr-status" class="status-select" style="width:100%;padding:9px 12px;font-size:14px;">
+            ${so.locked ? `<option value="${esc(editing.status)}" selected disabled>${esc(editing.status)} (current)</option>` : ''}
+            ${so.allowed.map(st=>`<option value="${st}" ${st===editing.status?'selected':''}>${st}</option>`).join('')}
+          </select>
+          <div class="hint">${isApproverOrAdmin() ? 'Approvers and admins can set any status.' : 'You can set a trip to Draft or Pending. Approvers and admins can set other statuses.'}</div>
+        </div>` : ''}
       </div>
       <div class="modal-foot">
         <div>${editing && isAdmin() ? `<button class="btn btn-sm btn-danger" data-action="delete-trip">Delete trip</button>` : ''}</div>
@@ -2720,6 +2993,8 @@ function bindEvents(){
     });
   });
 
+  bindCountryCombo();
+  bindRangePicker();
   const saveTripBtn = app.querySelector('[data-action="save-trip"]');
   if(saveTripBtn) saveTripBtn.addEventListener('click', handleSaveTrip);
   const delTripBtn = app.querySelector('[data-action="delete-trip"]');
@@ -2883,10 +3158,14 @@ function renderPassengerTableOnly(){
 async function handleSaveTrip(){
   const name = document.getElementById('tr-name').value.trim();
   if(!name){ showToast('Trip name is required'); return; }
+  const dest = resolveCountryValue();
+  if(dest===null){ showToast('Please choose a country from the list'); document.getElementById('tr-dest').focus(); return; }
+  const startV = document.getElementById('tr-start').value, endV = document.getElementById('tr-end').value;
+  if(startV && endV && endV < startV){ showToast('End date cannot be before the start date'); return; }
   const payload = {
     name,
     type: document.getElementById('tr-type').value,
-    destination: document.getElementById('tr-dest').value.trim(),
+    destination: dest,
     startDate: document.getElementById('tr-start').value,
     endDate: document.getElementById('tr-end').value
   };
@@ -2895,6 +3174,17 @@ async function handleSaveTrip(){
       const updated = await apiFetch(`/trips/${editingTripId}`, { method:'PUT', body: JSON.stringify(payload) });
       const idx = trips.findIndex(t=>t.id===editingTripId);
       if(idx>-1) trips[idx] = { ...trips[idx], ...updated };
+      // Status is routed through its own endpoint (role-checked server-side), only if it was changed.
+      const stSel = document.getElementById('tr-status');
+      if(stSel && idx>-1 && stSel.value !== trips[idx].status){
+        try{
+          const moved = await apiFetch(`/trips/${editingTripId}/status`, { method:'POST', body: JSON.stringify({ status: stSel.value, override: true }) });
+          trips[idx] = { ...trips[idx], ...moved };
+        }catch(e){
+          showToast('Trip saved, but the status was not changed: ' + (e.message || 'not allowed'));
+          closeOverlay('overlay-trip'); render(); return;
+        }
+      }
       showToast('Trip updated');
       closeOverlay('overlay-trip');
     }catch(e){
