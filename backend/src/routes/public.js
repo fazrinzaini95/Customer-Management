@@ -11,13 +11,14 @@ const { asyncHandler } = require('../middleware/errorHandler');
 
 function safeTripView(trip) {
   const closedStatuses = ['Declined', 'Cancelled', 'Completed'];
+  const closedOps = ['Completed', 'Rejected'];   // Operations finished or rejected: no more sign-ups
   return {
     name: trip.name,
     type: trip.type,
     destination: trip.destination,
     startDate: trip.start_date,
     endDate: trip.end_date,
-    acceptingRegistrations: !closedStatuses.includes(trip.status),
+    acceptingRegistrations: !closedStatuses.includes(trip.status) && !closedOps.includes(trip.ops_status),
   };
 }
 

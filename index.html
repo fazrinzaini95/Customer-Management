@@ -114,6 +114,8 @@
   .stamp.Declined{color:var(--coral);background:rgba(225,85,84,0.10);}
   .stamp.Cancelled{color:var(--coral);background:rgba(225,85,84,0.10);}
   .stamp.Completed{color:var(--navy);background:rgba(15,44,76,0.10);}
+  .stamp.PendingPayment{color:#9C7A16;background:rgba(244,185,60,0.16);}
+  .stamp.Paid{color:var(--green);background:rgba(46,139,87,0.12);}
   .stub-meta{padding:0 18px 16px;display:flex;gap:14px;font-size:12px;color:var(--ink-soft);}
   .stub-meta b{color:var(--ink);font-weight:600;}
 
@@ -305,6 +307,8 @@
   .cal-bar.is-end{border-top-right-radius:6px;border-bottom-right-radius:6px;}
   .cal-bar:hover,.cal-bar:focus-visible{box-shadow:0 0 0 1.5px var(--navy);outline:none;}
   .cal-bar.st-Approved,.cal-sw.st-Approved{border-left-color:var(--green);background:rgba(46,139,87,0.17);}
+  .cal-bar.st-Paid,.cal-sw.st-Paid{border-left-color:var(--green);background:rgba(46,139,87,0.17);}
+  .cal-bar.st-PendingPayment,.cal-sw.st-PendingPayment,
   .cal-bar.st-Pending,.cal-sw.st-Pending{border-left-color:var(--gold);background:rgba(244,185,60,0.30);}
   .cal-bar.st-Completed,.cal-sw.st-Completed{border-left-color:var(--navy);background:rgba(15,44,76,0.13);}
   .cal-bar.st-Declined,.cal-bar.st-Cancelled,.cal-sw.st-Declined,.cal-sw.st-Cancelled{border-left-color:var(--coral);background:rgba(225,85,84,0.12);}
@@ -373,6 +377,17 @@
   .pill.s-Onhold{background:rgba(122,90,166,0.14);color:#6B4A9A;}
   .pill.s-Completed{background:rgba(15,44,76,0.10);color:var(--navy);}
   .stub-bal b.owing{color:var(--coral);}
+  .ops-panel{margin-bottom:18px;}
+  .ops-body{padding:14px 20px 16px;}
+  .ops-flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .ops-step{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--ink-soft);}
+  .ops-step.done{border-color:var(--green);color:var(--green);background:rgba(46,139,87,0.08);}
+  .ops-step.current{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .ops-step.side.current{background:#6B4A9A;border-color:#6B4A9A;}
+  .ops-step.side.current.rej{background:var(--coral);border-color:var(--coral);}
+  .ops-step:disabled{cursor:default;opacity:.85;}
+  .ops-arrow{color:var(--ink-soft);}
+  .ops-sep{width:1px;height:22px;background:var(--line);margin:0 6px;}
   .bal-cell{white-space:nowrap;font-variant-numeric:tabular-nums;}
   .bal-cell small{display:block;color:var(--ink-soft);font-size:11px;}
 
@@ -601,7 +616,7 @@ async function demoFetchInner(path, options = {}){
     state.tripSeq += 1;
     const t = { id:demoId('trip'), seq:state.tripSeq, name:body.name, type:body.type||'open', destination:body.destination||null,
       startDate:body.startDate||null, endDate:body.endDate||null, status:'Draft',
-      payStatus: body.payStatus||'Draft', opsStatus: body.opsStatus||'Pending Ops',
+      opsStatus:'Pending Ops',
       history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), createdByName:u.name, publicToken:demoId('tok') };
     state.trips.push(t);
     logDemoActivity(state, u, 'trip.created', 'trip', t.id, t.name, { type:t.type, destination:t.destination });
@@ -630,26 +645,32 @@ async function demoFetchInner(path, options = {}){
     const t = state.trips.find(x=>x.id===m[1]); if(!t) fail(404,'Trip not found');
     const TRANSITIONS = {
       Draft:[{to:'Pending',anyRole:true}],
-      Pending:[{to:'Approved',anyRole:false},{to:'Declined',anyRole:false}],
+      Pending:[{to:'Cancelled',anyRole:false},{to:'Approved',anyRole:false},{to:'Declined',anyRole:false}],
       Approved:[{to:'Completed',anyRole:false},{to:'Cancelled',anyRole:false}],
       Declined:[{to:'Draft',anyRole:true}],
       Cancelled:[{to:'Draft',anyRole:true}],
       Completed:[]
     };
-    if(body.override){
-      // Manual routing from Edit Trip: approver/admin any status, user only Draft/Pending.
-      if(!TRIP_STATUSES.includes(body.status)) fail(400,'Unknown status');
-      if(body.status===t.status) fail(400,`Trip is already ${t.status}`);
-      if(!['approver','admin'].includes(u.role) && !['Draft','Pending'].includes(body.status)) fail(403,'You can only set Draft or Pending');
-    } else {
-      const move = (TRANSITIONS[t.status]||[]).find(a=>a.to===body.status);
-      if(!move) fail(400,`Can't move a trip from ${t.status} to ${body.status}`);
-      if(!move.anyRole && !['approver','admin'].includes(u.role)) fail(403,'Only an approver or admin can do that');
-    }
+    const move = (TRANSITIONS[t.status]||[]).find(a=>a.to===body.status);
+    if(!move) fail(400,`Can't move a trip from ${t.status} to ${body.status}`);
+    if(!move.anyRole && !['approver','admin'].includes(u.role)) fail(403,'Only an approver or admin can do that');
     const fromStatus = t.status;
     t.status = body.status;
+    if(body.status==='Pending') t.opsStatus = 'Pending Ops';   // submitting always starts Operations at Pending Ops
     t.history.push({status:body.status, date:new Date().toISOString()});
     logDemoActivity(state, u, 'trip.status_changed', 'trip', t.id, t.name, { from:fromStatus, to:body.status });
+    persistDemo();
+    return t;
+  }
+  if((m=path.match(/^\/trips\/([^/]+)\/ops-status$/)) && method==='POST'){
+    const u = requireRoleIn('approver','admin');
+    const t = state.trips.find(x=>x.id===m[1]); if(!t) fail(404,'Trip not found');
+    const OPS = ['Pending Ops','Ongoing','Ready','Completed','Onhold','Rejected'];
+    if(!OPS.includes(body.opsStatus)) fail(400,'Unknown operations status');
+    if(['Draft','Cancelled','Declined'].includes(t.status)) fail(400,'Operations can only be routed once the trip has been submitted');
+    const from = t.opsStatus || 'Pending Ops';
+    t.opsStatus = body.opsStatus;
+    logDemoActivity(state, u, 'trip.ops_status_changed', 'trip', t.id, t.name, { from, to:body.opsStatus });
     persistDemo();
     return t;
   }
@@ -802,13 +823,13 @@ async function demoFetchInner(path, options = {}){
   if((m=path.match(/^\/public\/trips\/([^/]+)$/)) && method==='GET'){
     const t = state.trips.find(x=>x.publicToken===m[1]);
     if(!t) fail(404,'Registration link not found');
-    const closed = ['Declined','Cancelled','Completed'].includes(t.status);
+    const closed = ['Declined','Cancelled','Completed'].includes(t.status) || ['Completed','Rejected'].includes(t.opsStatus);
     return { name:t.name, type:t.type, destination:t.destination, startDate:t.startDate, endDate:t.endDate, acceptingRegistrations:!closed };
   }
   if((m=path.match(/^\/public\/trips\/([^/]+)\/register$/)) && method==='POST'){
     const t = state.trips.find(x=>x.publicToken===m[1]);
     if(!t) fail(404,'Registration link not found');
-    const closed = ['Declined','Cancelled','Completed'].includes(t.status);
+    const closed = ['Declined','Cancelled','Completed'].includes(t.status) || ['Completed','Rejected'].includes(t.opsStatus);
     if(closed) fail(400,'Registration is closed for this trip');
     const passengers = Array.isArray(body.passengers) ? body.passengers : [];
     if(!passengers.length) fail(400,'At least one passenger is required');
@@ -945,11 +966,10 @@ function normType(v){
 /* =========================================================
    Approval flow rules
    ========================================================= */
-function nextActions(status){
-  if(status==='Draft') return [{to:'Pending',label:'Submit for approval',cls:'btn-primary',anyRole:true}];
-  if(status==='Pending') return [{to:'Approved',label:'Approve trip',cls:'btn-gold'},{to:'Declined',label:'Decline trip',cls:'btn-danger'}];
-  if(status==='Approved') return [{to:'Completed',label:'Mark completed',cls:'btn-gold'},{to:'Cancelled',label:'Cancel trip',cls:'btn-danger'}];
-  if(status==='Declined' || status==='Cancelled') return [{to:'Draft',label:'Reopen as draft',cls:'btn-ghost',anyRole:true}];
+function tripActions(t){
+  if(t.status==='Draft') return [{to:'Pending',label:'Submit',cls:'btn-primary',anyRole:true,confirm:'Submit this trip? It moves to Pending Payment and Operations starts at Pending Ops.'}];
+  if(['Pending','Approved'].includes(t.status)) return [{to:'Cancelled',label:'Decline trip',cls:'btn-danger',confirm:'Decline this trip? It will be marked Cancelled.'}];
+  if(t.status==='Declined' || t.status==='Cancelled') return [{to:'Draft',label:'Reopen as draft',cls:'btn-ghost',anyRole:true}];
   return [];
 }
 async function setTripStatus(tripId, newStatus){
@@ -957,7 +977,7 @@ async function setTripStatus(tripId, newStatus){
     const updated = await apiFetch(`/trips/${tripId}/status`, { method:'POST', body: JSON.stringify({ status: newStatus }) });
     const idx = trips.findIndex(t=>t.id===tripId);
     if(idx>-1) trips[idx] = { ...trips[idx], ...updated };
-    showToast('Trip marked ' + newStatus);
+    showToast(newStatus==='Pending' ? 'Trip submitted — now Pending Payment' : newStatus==='Cancelled' ? 'Trip declined — Cancelled' : newStatus==='Draft' ? 'Trip reopened as draft' : 'Trip marked ' + newStatus);
   }catch(e){
     showToast(e.message || 'Could not update trip status');
   }
@@ -1057,7 +1077,7 @@ function tempBannerHTML(){
 
 function headerHTML(){
   const roleColors = {admin:'var(--navy)', approver:'var(--gold)', user:'var(--ink-soft)'};
-  const pendingCount = trips.filter(t=>t.status==='Pending').length;
+  const pendingCount = trips.filter(needsOpsAction).length;
   return `
   <div class="topbar">
     <div class="brand">
@@ -1073,7 +1093,7 @@ function headerHTML(){
         <span class="badge" style="background:rgba(15,44,76,0.10);color:var(--navy);">${roleLabel(currentUser.role)}</span>
         ${DEMO_MODE ? `<span class="badge" style="background:rgba(244,185,60,0.25);color:#9C7A16;">🧪 Demo</span>` : ''}
       </div>
-      ${isApproverOrAdmin() ? `<button class="btn ${pendingCount>0?'btn-primary':'btn-ghost'}" data-action="open-approvals" title="Trips awaiting your approval">Approvals${pendingCount>0 ? ` <span class="badge" style="background:#fff;color:var(--navy);margin-left:4px;">${pendingCount}</span>` : ''}</button>` : ''}
+      ${isApproverOrAdmin() ? `<button class="btn ${pendingCount>0?'btn-primary':'btn-ghost'}" data-action="open-approvals" title="Trips submitted and waiting for Operations to start">Actions needed${pendingCount>0 ? ` <span class="badge" style="background:#fff;color:var(--navy);margin-left:4px;">${pendingCount}</span>` : ''}</button>` : ''}
       ${isAdmin() ? `<button class="btn btn-ghost" data-action="open-manage-users">Manage users</button><button class="btn btn-ghost" data-action="open-settings">Settings</button><button class="btn btn-ghost" data-action="open-activity-log">Activity log</button>` : ''}
       <button class="btn btn-ghost" data-action="open-upload">Bulk upload</button>
       <button class="btn btn-primary" data-action="open-new-trip">+ New trip</button>
@@ -1110,16 +1130,26 @@ function addDaysYmd(s, days){ const d=new Date(s+'T00:00:00'); d.setDate(d.getDa
 function daysBetweenYmd(a, b){ return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00'))/86400000); }
 function tripStartYmd(t){ return ymd(t.startDate) || ymd(t.createdAt); }
 function tripEndYmd(t){ return ymd(t.endDate) || ymd(t.startDate); }
+// One set of rules for every figure in the app (passenger table, trip page,
+// homepage, dashboard, export). A passenger marked Cancelled is not counted.
+// Paid = the full amount is in. Otherwise what is collected is simply
+// deposit + payment, whatever the status dropdown says, so the numbers always
+// follow what was typed in. Balance = amount - deposit - payment (never below 0).
+function paxCounted(c){ return c.paymentStatus!=='Cancelled'; }
 function paidOf(c){
+  if(!paxCounted(c)) return 0;
   if(c.paymentStatus==='Paid') return Number(c.amount)||0;
-  if(c.paymentStatus==='Deposit') return (Number(c.depositAmount)||0)+(Number(c.balancePaid)||0);
-  return 0;
+  return (Number(c.depositAmount)||0)+(Number(c.balancePaid)||0);
+}
+function paxBalance(c){
+  if(!paxCounted(c) || c.paymentStatus==='Paid') return 0;
+  return Math.max(0, (Number(c.amount)||0)-(Number(c.depositAmount)||0)-(Number(c.balancePaid)||0));
 }
 function tripMoney(t){
   const cs = custByTrip(t.id);
-  let amount = 0, collected = 0;
-  cs.forEach(c=>{ amount += Number(c.amount)||0; collected += paidOf(c); });
-  return { pax: cs.length, amount, collected, balance: Math.max(0, amount-collected) };
+  let amount = 0, collected = 0, balance = 0;
+  cs.forEach(c=>{ if(!paxCounted(c)) return; amount += Number(c.amount)||0; collected += paidOf(c); balance += paxBalance(c); });
+  return { pax: cs.length, amount, collected, balance };
 }
 function fmtRM(n){ return 'RM ' + (Number(n)||0).toLocaleString('en-MY',{minimumFractionDigits:0,maximumFractionDigits:2}); }
 function fmtCompact(n){
@@ -1136,7 +1166,7 @@ function dashModel(){
   const monthPrefix = today.slice(0,7);
   const in30 = addDaysYmd(today, 30);
   const years = [...new Set(trips.map(tripYear))].filter(y=>/^\d{4}$/.test(y)).sort();
-  const isDead = t => DEAD_STATUSES.includes(t.status);
+  const isDead = t => isCancelledTrip(t);
   // Declined/Cancelled trips aren't going ahead, so they're left out of pax and money
   // unless the Status filter is set to one of them on purpose.
   const counted = t => f.status!=='All' || !isDead(t);
@@ -1144,7 +1174,7 @@ function dashModel(){
     (ignoreYear || f.year==='All' || tripYear(t)===String(f.year)) &&
     (f.month==='All' || Number(tripStartYmd(t).slice(5,7))===Number(f.month)) &&
     (f.type==='All' || t.type===f.type) &&
-    (f.status==='All' || t.status===f.status);
+    (f.status==='All' || tripMainStatus(t)===f.status);
 
   const cache = new Map();
   const money = t => { let x = cache.get(t.id); if(!x){ x = tripMoney(t); cache.set(t.id, x); } return x; };
@@ -1156,18 +1186,19 @@ function dashModel(){
   const totals = sum(countedList);
   const activeCount = list.filter(t=>!isDead(t)).length;
 
-  const live = list.filter(t=>!isDead(t) && t.status!=='Completed');
+  const live = list.filter(t=>!isDead(t) && !opsClosed(t));
   const thisMonth = list.filter(t=>!isDead(t) && ymd(t.startDate).startsWith(monthPrefix) && tripEndYmd(t)>=today);
   const upcoming = live.filter(t=>tripStartYmd(t) && tripEndYmd(t)>=today)
                        .sort((a,b)=>tripStartYmd(a).localeCompare(tripStartYmd(b)));
-  const awaiting = list.filter(t=>t.status==='Pending');
+  const awaiting = list.filter(needsOpsAction);
 
   const yearly = years.map(y=>bucket(y, y, trips.filter(t=>matches(t,true) && tripYear(t)===y)));
   const buckets = f.year==='All'
     ? yearly
     : MONTH_SHORT.map((lab,i)=>bucket(lab, `${MONTH_NAMES[i]} ${f.year}`, list.filter(t=>Number(tripStartYmd(t).slice(5,7))===i+1)));
 
-  const statusRows = TRIP_STATUSES.map(s=>({ label:s, n:list.filter(t=>t.status===s).length }));
+  const statusRows = MAIN_STATUSES.map(s=>({ label:s, n:list.filter(t=>tripMainStatus(t)===s).length }));
+  const opsRows = OPS_STATUSES.map(s=>({ label:opsLabel(s), n:list.filter(t=>isSubmittedTrip(t) && tripOpsStatus(t)===s).length }));
   const typeRows = [['open','Open trip'],['private','Private trip']].map(([k,label])=>{
     const tl = list.filter(t=>t.type===k);
     return { label, trips: tl.length, pax: sum(tl.filter(counted)).pax };
@@ -1187,14 +1218,14 @@ function dashModel(){
   const destinations = [...destMap.values()].sort((a,b)=>b.pax-a.pax||b.trips-a.trips||a.name.localeCompare(b.name)).slice(0,8);
 
   let ticketPax = 0; const ticketTrips = new Set();
-  countedList.filter(t=>t.status==='Approved').forEach(t=>custByTrip(t.id).forEach(c=>{
+  countedList.filter(ticketStageTrip).forEach(t=>custByTrip(t.id).forEach(c=>{
     if(c.ticketPurchaser && c.ticketStatus==='Pending' && c.paymentStatus!=='Cancelled'){ ticketPax++; ticketTrips.add(t.id); }
   }));
   const due30 = upcoming.filter(t=>tripStartYmd(t)>=today && tripStartYmd(t)<=in30 && money(t).balance>0);
   const emptyTrips = upcoming.filter(t=>money(t).pax===0);
 
   return { f, today, in30, years, list, countedList, totals, activeCount, thisMonth, upcoming, awaiting,
-           yearly, buckets, statusRows, typeRows, payRows, destinations, ticketPax, ticketTrips, due30, emptyTrips, money };
+           yearly, buckets, statusRows, opsRows, typeRows, payRows, destinations, ticketPax, ticketTrips, due30, emptyTrips, money };
 }
 
 function dashboardHTML(){
@@ -1226,33 +1257,33 @@ function dashboardHTML(){
     <div class="dash-fgroup"><span class="dash-flabel">Status</span>
       <select class="status-select" id="dash-status">
         <option value="All">All statuses</option>
-        ${TRIP_STATUSES.map(s=>`<option value="${s}" ${f.status===s?'selected':''}>${s}</option>`).join('')}
+        ${MAIN_STATUSES.map(s=>`<option value="${s}" ${f.status===s?'selected':''}>${s}</option>`).join('')}
       </select></div>
     ${anyFilter ? `<button class="btn btn-sm btn-ghost" data-dash-reset>Reset filters</button>` : ''}
   </div>
   <p class="dash-scope">Showing: <b>${esc(scope)}</b> · ${m.list.length} trip${m.list.length===1?'':'s'}</p>`;
 
   const canApprove = isApproverOrAdmin();
-  const approvedUp = m.upcoming.filter(t=>t.status==='Approved').length;
-  const approvedMonth = m.thisMonth.filter(t=>t.status==='Approved').length;
+  const approvedUp = m.upcoming.filter(t=>tripMainStatus(t)==='Paid').length;
+  const approvedMonth = m.thisMonth.filter(t=>tripMainStatus(t)==='Paid').length;
   const deadN = m.list.length - m.activeCount;
   const kpi = (label, value, sub, extra='', title='') => `
     <div class="stat-card ${extra}" ${title?`title="${esc(title)}"`:''}><div class="label">${label}</div><div class="value">${value}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>`;
 
   const row1 = `
   <div class="dash-kpis">
-    ${kpi('Total trips', m.list.length, `${m.activeCount} active${deadN?` · ${deadN} declined/cancelled`:''}`, '', 'All trips matching the filters, whatever their status')}
-    ${kpi('Trips this month', m.thisMonth.length, `${approvedMonth} approved · ${m.thisMonth.length-approvedMonth} not yet approved`, '', 'Trips starting this month that have not ended yet (declined/cancelled excluded)')}
-    ${kpi('Upcoming trips', m.upcoming.length, `${approvedUp} approved · ${m.upcoming.length-approvedUp} draft / pending`, '', 'Trips not yet completed whose end date has not passed (declined/cancelled excluded)')}
+    ${kpi('Total trips', m.list.length, `${m.activeCount} active${deadN?` · ${deadN} cancelled`:''}`, '', 'All trips matching the filters, whatever their status')}
+    ${kpi('Trips this month', m.thisMonth.length, `${approvedMonth} paid · ${m.thisMonth.length-approvedMonth} not yet paid`, '', 'Trips starting this month that have not ended yet (cancelled excluded)')}
+    ${kpi('Upcoming trips', m.upcoming.length, `${approvedUp} paid · ${m.upcoming.length-approvedUp} draft / pending payment`, '', 'Trips not yet completed whose end date has not passed (cancelled excluded)')}
     ${canApprove
-      ? `<button class="stat-card is-link ${m.awaiting.length?'is-alert':''}" data-dash-approvals title="Open the trips waiting for approval"><div class="label">Awaiting approval</div><div class="value">${m.awaiting.length}</div><div class="sub">${m.awaiting.length?'Click to review':'Nothing waiting'}</div></button>`
-      : kpi('Awaiting approval', m.awaiting.length, m.awaiting.length?'With the approvers':'Nothing waiting', m.awaiting.length?'is-alert':'')}
+      ? `<button class="stat-card is-link ${m.awaiting.length?'is-alert':''}" data-dash-approvals title="Open the trips waiting for Operations to start"><div class="label">Pending Ops</div><div class="value">${m.awaiting.length}</div><div class="sub">${m.awaiting.length?'Click to review':'Nothing waiting'}</div></button>`
+      : kpi('Pending Ops', m.awaiting.length, m.awaiting.length?'With the approvers':'Nothing waiting', m.awaiting.length?'is-alert':'')}
   </div>`;
 
   const t = m.totals;
   const row2 = `
   <div class="dash-kpis">
-    ${kpi('Total passengers', t.pax, m.countedList.length ? `avg ${(t.pax/m.countedList.length).toFixed(1)} per trip` : '', '', 'Passengers on the trips in view (declined/cancelled trips excluded unless filtered)')}
+    ${kpi('Total passengers', t.pax, m.countedList.length ? `avg ${(t.pax/m.countedList.length).toFixed(1)} per trip` : '', '', 'Passengers on the trips in view (cancelled trips excluded unless filtered)')}
     ${kpi('Total amount', fmtRM(t.amount), 'Package amounts, all passengers')}
     ${kpi('Total payment', fmtRM(t.collected), `${pctText(t.collected, t.amount)} of amount collected`, '', 'Paid = full amount; Deposit = deposit + payment')}
     ${kpi('Outstanding balance', fmtRM(t.balance), `${m.countedList.filter(x=>m.money(x).balance>0).length} trip(s) still owing`)}
@@ -1299,6 +1330,8 @@ function dashboardHTML(){
     <div class="dash-body">
       <div class="dash-sub" style="margin-top:0;">Trips by status</div>
       ${hbars(m.statusRows, maxStatus)}
+      <div class="dash-sub">Operations (submitted trips)</div>
+      ${hbars(m.opsRows, Math.max(1, ...m.opsRows.map(r=>r.n)))}
       <div class="dash-sub">Passengers by payment status</div>
       ${hbars(m.payRows, maxPay)}
       <div class="dash-sub">Open vs private</div>
@@ -1312,8 +1345,8 @@ function dashboardHTML(){
   <div class="panel">
     <div class="panel-head"><h3>Needs attention</h3></div>
     <div class="dash-body"><ul class="dash-attn">
-      ${attn(m.awaiting.length, 'Trips awaiting approval', 'Status is Pending')}
-      ${attn(m.ticketPax, 'Flight tickets to purchase', `${m.ticketPax} passenger(s) on ${m.ticketTrips.size} approved trip(s) with the ticket still Pending`)}
+      ${attn(m.awaiting.length, 'Trips waiting for Operations to start', 'Operations is still Pending Ops')}
+      ${attn(m.ticketPax, 'Flight tickets to purchase', `${m.ticketPax} passenger(s) on ${m.ticketTrips.size} trip(s) in Operations with the ticket still Pending`)}
       ${attn(m.due30.length, 'Departing within 30 days with a balance due', 'Collect the remaining payment before departure')}
       ${attn(m.emptyTrips.length, 'Upcoming trips with no passengers', 'Add passengers or share the registration link')}
     </ul></div>
@@ -1340,7 +1373,7 @@ function dashboardHTML(){
     return `<tr data-dash-open-trip="${esc(tr.id)}">
       <td>${fmtDate(start)}<div class="cust-sub">${when}</div></td>
       <td><span style="font-family:var(--font-mono);font-size:12px;color:var(--navy);font-weight:600;">${esc(tripCode(tr))}</span><div class="cust-sub">${esc(tr.name)}</div></td>
-      <td><div class="stamp ${esc(tr.status)}" style="display:inline-block;">${esc(tr.status)}</div></td>
+      <td>${stampHTML(tr, 'style="display:inline-block;"')}</td>
       <td class="num">${x.pax}</td>
       <td class="num">${warn?`<span title="Departing within 30 days with a balance due">⚠ </span>`:''}${fmtRM(x.balance)}</td></tr>`;
   }).join('');
@@ -1438,7 +1471,7 @@ function bindDashboardEvents(app){
   app.querySelectorAll('[data-dash-periodview]').forEach(el=>el.addEventListener('click', ()=>{ dashPeriodView = el.dataset.dashPeriodview; render(); }));
   const appr = app.querySelector('[data-dash-approvals]');
   if(appr) appr.addEventListener('click', ()=>{
-    view = { mode:'list', tripId:null, search:'', statusFilter:'Pending', typeFilter:'All', layout:view.layout };
+    view = { mode:'list', tripId:null, search:'', statusFilter:'All', opsFilter:'Pending Ops', typeFilter:'All', layout:view.layout };
     render();
   });
   app.querySelectorAll('[data-dash-open-trip]').forEach(el=>el.addEventListener('click', ()=>{
@@ -1490,7 +1523,7 @@ function calShift(delta){
   calCursor = { y:Math.floor(total/12), m:((total%12)+12)%12 };
 }
 function calItems(){
-  return trips.filter(t=>ymd(t.startDate) && (calShowDead || !DEAD_STATUSES.includes(t.status)) && (calType==='All' || t.type===calType))
+  return trips.filter(t=>ymd(t.startDate) && (calShowDead || !isCancelledTrip(t)) && (calType==='All' || t.type===calType))
     .map(t=>{
       const s = dayNum(ymd(t.startDate));
       const e = Math.max(s, ymd(t.endDate) ? dayNum(ymd(t.endDate)) : s);
@@ -1528,8 +1561,8 @@ function calWeekHTML(ws, y, m, items, todayN){
   const bars = segs.map(sg=>{
     const t = sg.t, span = sg.c1 - sg.c0 + 1;
     const pax = custByTrip(t.id).length;
-    const tip = `${tripCode(t)} · ${t.name}\n${fmtDate(dayYmd(sg.s))} → ${fmtDate(dayYmd(sg.e))}\n${t.status} · ${pax} pax`;
-    return `<button class="cal-bar st-${esc(t.status)} ${sg.startsHere?'is-start':''} ${sg.endsHere?'is-end':''}" data-cal-trip="${esc(t.id)}"
+    const tip = `${tripCode(t)} · ${t.name}\n${fmtDate(dayYmd(sg.s))} → ${fmtDate(dayYmd(sg.e))}\n${tripMainStatus(t)}${isSubmittedTrip(t)?' · Ops: '+opsLabel(tripOpsStatus(t)):''} · ${pax} pax`;
+    return `<button class="cal-bar st-${slugS(tripMainStatus(t))} ${sg.startsHere?'is-start':''} ${sg.endsHere?'is-end':''}" data-cal-trip="${esc(t.id)}"
       style="left:calc(${sg.c0}/7*100% + 2px);width:calc(${span}/7*100% - 4px);top:${CAL_HEAD + sg.lane*CAL_LANE}px;"
       title="${esc(tip)}" aria-label="${esc(tip.replace(/\n/g,', '))}">${sg.startsHere?'':'◂ '}${esc(t.name)}${sg.endsHere?'':' ▸'}</button>`;
   }).join('');
@@ -1551,8 +1584,8 @@ function calendarHTML(){
   const monthOpts = MONTH_NAMES.map((n,i)=>`<option value="${i}" ${i===m?'selected':''}>${n}</option>`).join('');
   const chip = (attr, val, label, on) => `<button class="chip ${on?'active':''}" ${attr}="${esc(val)}">${esc(label)}</button>`;
 
-  const legendStatuses = ['Draft','Pending','Approved','Completed', ...(calShowDead ? ['Declined','Cancelled'] : [])];
-  const legend = `<div class="cal-legend" aria-label="Colour key">${legendStatuses.map(s=>`<span><span class="cal-sw st-${s}"></span>${s}</span>`).join('')}</div>`;
+  const legendStatuses = ['Draft','Pending Payment','Paid', ...(calShowDead ? ['Cancelled'] : [])];
+  const legend = `<div class="cal-legend" aria-label="Colour key">${legendStatuses.map(s=>`<span><span class="cal-sw st-${slugS(s)}"></span>${s}</span>`).join('')}</div>`;
 
   // Agenda for the month (also the easy way to read it on a phone)
   let agenda;
@@ -1562,7 +1595,7 @@ function calendarHTML(){
       <tbody>${inMonth.map(i=>`<tr data-cal-trip="${esc(i.t.id)}">
         <td>${fmtDate(dayYmd(i.s))}${i.e>i.s?` → ${fmtDate(dayYmd(i.e))}`:''}</td>
         <td><b>${esc(i.t.name)}</b><div class="cust-sub">${esc(tripCode(i.t))}${i.t.destination?' · '+esc(i.t.destination):''}</div></td>
-        <td><div class="stamp ${esc(i.t.status)}" style="display:inline-block;">${esc(i.t.status)}</div></td>
+        <td>${stampHTML(i.t, 'style="display:inline-block;"')}${opsPillHTML(i.t) ? ' ' + opsPillHTML(i.t, true) : ''}</td>
         <td class="num">${custByTrip(i.t.id).length}</td></tr>`).join('')}</tbody></table></div>`;
   } else {
     const prev = [...items].filter(i=>i.e<monthStart).sort((a,b)=>b.e-a.e)[0];
@@ -1630,16 +1663,20 @@ function bindCalendarEvents(app){
 function listHTML(){
   let list = trips.filter(t=>{
     const matchSearch = !view.search || (t.name+t.destination+tripCode(t)).toLowerCase().includes(view.search.toLowerCase());
-    const matchStatus = view.statusFilter==='All' || t.status===view.statusFilter;
+    const matchStatus = view.statusFilter==='All' || tripMainStatus(t)===view.statusFilter;
+    const matchOps = !view.opsFilter || view.opsFilter==='All' || (isSubmittedTrip(t) && tripOpsStatus(t)===view.opsFilter);
     const matchType = view.typeFilter==='All' || t.type===view.typeFilter;
-    return matchSearch && matchStatus && matchType;
+    return matchSearch && matchStatus && matchOps && matchType;
   }).sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
 
   const toolbar = `
   <div class="toolbar">
     <input class="search" id="search-input" placeholder="Search trips by name, destination or code…" value="${esc(view.search)}">
     <div class="chip-row" id="status-chips">
-      ${['All',...TRIP_STATUSES].map(s=>`<button class="chip ${view.statusFilter===s?'active':''}" data-filter-status="${s}">${s}</button>`).join('')}
+      ${['All',...MAIN_STATUSES].map(s=>`<button class="chip ${view.statusFilter===s?'active':''}" data-filter-status="${s}">${s}</button>`).join('')}
+    </div>
+    <div class="chip-row" id="ops-chips">
+      ${['All',...OPS_STATUSES].map(s=>`<button class="chip ${(view.opsFilter||'All')===s?'active':''}" data-filter-ops="${s}" title="Operations status">${s==='All'?'All Ops':opsLabel(s)}</button>`).join('')}
     </div>
     <div class="chip-row" id="type-chips">
       ${['All','open','private'].map(s=>`<button class="chip ${view.typeFilter===s?'active':''}" data-filter-type="${s}">${s==='All'?'All types':s.charAt(0).toUpperCase()+s.slice(1)+' trip'}</button>`).join('')}
@@ -1669,11 +1706,10 @@ function listHTML(){
       trip: t=>(t.name||'').toLowerCase(),
       type: t=>t.type||'',
       dates: t=>t.startDate||'',
-      status: t=>TRIP_STATUSES.indexOf(t.status),
+      status: t=>MAIN_STATUSES.indexOf(tripMainStatus(t)),
       pax: t=>custByTrip(t.id).length,
       paid: t=>custByTrip(t.id).filter(c=>c.paymentStatus==='Paid').length,
-      payStatus: t=>TRIP_PAY_STATUSES.indexOf(tripPayStatus(t)),
-      opsStatus: t=>TRIP_OPS_STATUSES.indexOf(tripOpsStatus(t)),
+      opsStatus: t=>isSubmittedTrip(t) ? OPS_STATUSES.indexOf(tripOpsStatus(t)) : -1,
       balance: t=>tripMoney(t).balance,
     };
     const sortedList = applySort(list, tripListSort, tripListExtractors);
@@ -1691,9 +1727,8 @@ function listHTML(){
         </td>
         <td><span class="cust-sub" style="text-transform:capitalize;">${t.type}</span></td>
         <td><span class="cust-sub">${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}</span></td>
-        <td><div class="stamp ${t.status}" style="display:inline-block;">${t.status}</div></td>
-        <td>${pillHTML('Payment', tripPayStatus(t), true)}</td>
-        <td>${pillHTML('Ops', tripOpsStatus(t), true)}</td>
+        <td>${stampHTML(t, 'style="display:inline-block;"')}</td>
+        <td>${opsPillHTML(t, true) || '<span class="cust-sub">—</span>'}</td>
         <td>${cs.length}</td>
         <td>${paid}</td>
         <td class="bal-cell"><b>${fmtRM(tm.balance)}</b><small>of ${fmtRM(tm.amount)}</small></td>
@@ -1703,7 +1738,7 @@ function listHTML(){
     <div class="panel">
       <div style="overflow-x:auto;">
         <table>
-          <thead><tr>${sortHeader('Code','code',tripListSort)}${sortHeader('Year','year',tripListSort)}${sortHeader('Trip','trip',tripListSort)}${sortHeader('Type','type',tripListSort)}${sortHeader('Dates','dates',tripListSort)}${sortHeader('Status','status',tripListSort)}${sortHeader('Payment','payStatus',tripListSort)}${sortHeader('Ops','opsStatus',tripListSort)}${sortHeader('Pax','pax',tripListSort)}${sortHeader('Paid','paid',tripListSort)}${sortHeader('Balance','balance',tripListSort)}</tr></thead>
+          <thead><tr>${sortHeader('Code','code',tripListSort)}${sortHeader('Year','year',tripListSort)}${sortHeader('Trip','trip',tripListSort)}${sortHeader('Type','type',tripListSort)}${sortHeader('Dates','dates',tripListSort)}${sortHeader('Status','status',tripListSort)}${sortHeader('Operations','opsStatus',tripListSort)}${sortHeader('Pax','pax',tripListSort)}${sortHeader('Paid','paid',tripListSort)}${sortHeader('Balance','balance',tripListSort)}</tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -1725,9 +1760,9 @@ function listHTML(){
       <div class="stub-perf"></div>
       <div class="stub-bottom">
         <div class="stub-dates">${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}</div>
-        <div class="stamp ${t.status}">${t.status}</div>
+        ${stampHTML(t)}
       </div>
-      <div class="pill-row">${tripPillsHTML(t)}</div>
+      ${isSubmittedTrip(t) ? `<div class="pill-row">${opsPillHTML(t)}</div>` : ''}
       <div class="stub-meta">
         <span><b>${cs.length}</b> pax</span>
         <span><b>${paid}</b> paid</span>
@@ -1760,7 +1795,7 @@ function applySort(list, sortState, extractors){
 }
 
 function passengerRowsHTML(t){
-  const showTicketCols = t.status==='Approved' || t.status==='Completed';
+  const showTicketCols = ticketStageTrip(t);
   const colCount = showTicketCols ? 12 : 9;
   const allCs = custByTrip(t.id).sort((a,b)=>(b.addedAt||'').localeCompare(a.addedAt||''));
 
@@ -1776,7 +1811,7 @@ function passengerRowsHTML(t){
     amount: c=>Number(c.amount)||0,                                               // numerical
     deposit: c=>Number(c.depositAmount)||0,                                       // numerical
     balancePaid: c=>Number(c.balancePaid)||0,                                     // numerical — "Payment" column
-    balanceAmount: c=>Math.max(0,(Number(c.amount)||0)-(Number(c.depositAmount)||0)-(Number(c.balancePaid)||0)), // numerical — "Balance" column
+    balanceAmount: c=>paxBalance(c), // numerical — "Balance" column
     paymentStatus: c=>(c.paymentStatus||'').toLowerCase(),                        // alphabetical
     pic: c=>(c.picName||'').toLowerCase(),                                        // alphabetical
     ticketPurchaser: c=>(c.ticketPurchaser||'').toLowerCase(),                    // alphabetical
@@ -1808,7 +1843,7 @@ function passengerRowsHTML(t){
       <td>${fmtMoney(c.amount)}</td>
       <td>${c.paymentStatus==='Deposit' ? fmtMoney(c.depositAmount) : '—'}</td>
       <td>${fmtMoney(c.balancePaid)}</td>
-      <td>${fmtMoney(Math.max(0,(Number(c.amount)||0)-(Number(c.depositAmount)||0)-(Number(c.balancePaid)||0)))}</td>
+      <td>${fmtMoney(paxBalance(c))}</td>
       <td>
         <select class="status-select" data-cust-status="${c.id}">
           ${PAY_STATUSES.map(s=>`<option value="${s}" ${paymentVal===s?'selected':''}>${s}</option>`).join('')}
@@ -1845,17 +1880,16 @@ function detailHTML(){
   const t = trips.find(x=>x.id===view.tripId);
   if(!t){ view.mode='list'; return listHTML(); }
   const cs = custByTrip(t.id).sort((a,b)=>(b.addedAt||'').localeCompare(a.addedAt||''));
-  const total = cs.reduce((s,c)=>s+(Number(c.amount)||0),0);
-  const collected = cs.reduce((s,c)=>s+paidOf(c),0);
+  const tm = tripMoney(t), total = tm.amount, collected = tm.collected;
   const paidCount = cs.filter(c=>c.paymentStatus==='Paid').length;
 
-  const allActions = nextActions(t.status);
+  const allActions = tripActions(t);
   const visibleActions = allActions.filter(a => a.anyRole || isApproverOrAdmin());
   const actions = visibleActions.length
-    ? visibleActions.map(a=>`<button class="btn btn-sm ${a.cls}" data-trip-action="${a.to}">${a.label}</button>`).join('')
-    : (allActions.length ? `<span class="hint" style="color:rgba(255,255,255,0.6);">Awaiting an approver</span>` : '');
+    ? visibleActions.map(a=>`<button class="btn btn-sm ${a.cls}" data-trip-action="${a.to}" ${a.confirm?`data-confirm="${esc(a.confirm)}"`:''}>${a.label}</button>`).join('')
+    : '';
 
-  const showTicketCols = t.status==='Approved' || t.status==='Completed';
+  const showTicketCols = ticketStageTrip(t);
   const ticketHeaderCells = showTicketCols ? `${sortHeader('Ticket purchaser','ticketPurchaser',passengerSort)}${sortHeader('Airline / Ref','airline',passengerSort)}${sortHeader('Ticket status','ticketStatus',passengerSort)}` : '';
   const rows = passengerRowsHTML(t);
 
@@ -1866,13 +1900,13 @@ function detailHTML(){
       <div class="eyebrow">${tripCode(t)} · ${t.type} trip</div>
       <h2>${esc(t.name)}</h2>
       <div class="mh-sub">${esc(t.destination||'Destination TBC')} · ${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}</div>
-      <div class="pill-row" style="padding:8px 0 0;">${tripPillsHTML(t)}</div>
+      ${isSubmittedTrip(t) ? `<div class="pill-row" style="padding:8px 0 0;">${opsPillHTML(t)}</div>` : ''}
       ${t.createdByName ? `<div class="mh-sub" style="margin-top:2px;opacity:0.8;">Created by ${esc(t.createdByName)}</div>` : ''}
       ${(t.lastEditedByName && t.lastEditedByName !== t.createdByName) ? `<div class="mh-sub" style="margin-top:2px;opacity:0.8;">Last edited by ${esc(t.lastEditedByName)}${t.lastEditedAt ? ' · ' + fmtDate(t.lastEditedAt) : ''}</div>` : ''}
       <button class="mh-edit" data-action="open-edit-trip">Edit trip details</button>
     </div>
     <div class="mh-right">
-      <div class="stamp ${t.status}">${t.status}</div>
+      ${stampHTML(t)}
       <div class="approval-row">${actions}</div>
     </div>
   </div>
@@ -1882,8 +1916,10 @@ function detailHTML(){
     <div class="stat-card"><div class="label">Paid</div><div class="value">${paidCount}</div></div>
     <div class="stat-card"><div class="label">Expected total</div><div class="value">${fmtMoney(total)}</div></div>
     <div class="stat-card"><div class="label">Collected</div><div class="value">${fmtMoney(collected)}</div></div>
-    <div class="stat-card"><div class="label">Balance</div><div class="value">${fmtMoney(Math.max(0,total-collected))}</div></div>
+    <div class="stat-card"><div class="label">Balance</div><div class="value">${fmtMoney(tm.balance)}</div></div>
   </div>
+
+  ${opsPanelHTML(t)}
 
   <div class="panel">
     <div class="panel-head">
@@ -1970,6 +2006,7 @@ const ACTIVITY_LABELS = {
   'trip.updated': 'edited trip',
   'trip.deleted': 'deleted trip',
   'trip.status_changed': 'changed status of trip',
+  'trip.ops_status_changed': 'changed operations status of trip',
   'trip.bulk_import': 'bulk-imported passengers into',
   'passenger.created': 'added passenger',
   'passenger.updated': 'edited passenger',
@@ -1984,7 +2021,7 @@ const ACTIVITY_LABELS = {
 };
 function activityDetailText(entry){
   const d = entry.details || {};
-  if(entry.action==='trip.status_changed' || entry.action==='passenger.payment_status_changed' || entry.action==='passenger.ticket_status_changed' || entry.action==='user.role_changed'){
+  if(entry.action==='trip.status_changed' || entry.action==='trip.ops_status_changed' || entry.action==='passenger.payment_status_changed' || entry.action==='passenger.ticket_status_changed' || entry.action==='user.role_changed'){
     return `${d.from || '—'} → ${d.to || '—'}`;
   }
   if(entry.action==='trip.updated' || entry.action==='passenger.updated'){
@@ -2063,7 +2100,7 @@ function manageUsersModalHTML(){
     <div class="modal" style="max-width:640px;">
       <div class="modal-head"><h3>Manage users</h3><button class="modal-close" data-close="overlay-users">✕</button></div>
       <div class="modal-body">
-        <p class="hint" style="margin:0 0 14px;">Users can create, edit, and remove passengers, and can create/edit trips. Approvers can also approve, decline, complete, or cancel trips. Admins have full control, including deleting trips and managing accounts.</p>
+        <p class="hint" style="margin:0 0 14px;">Users can create, edit, and remove passengers, and can create/edit trips. Approvers can also decline trips and route their Operations stage. Admins have full control, including deleting trips and managing accounts.</p>
         <div style="overflow-x:auto;margin-bottom:20px;">
           <table>
             <thead><tr><th>Name</th><th>Role</th><th></th></tr></thead>
@@ -2297,20 +2334,60 @@ function bindRangePicker(){
 
 
 
-/* ---- Trip-level Payment and Ops statuses ---- */
-const TRIP_PAY_STATUSES = ['Draft','Pending Payment','Paid','Cancelled'];
-const TRIP_OPS_STATUSES = ['Pending Ops','Ongoing','Onhold','Ready','Rejected','Completed'];
-function tripPayStatus(t){ return TRIP_PAY_STATUSES.includes(t.payStatus) ? t.payStatus : 'Draft'; }
-function tripOpsStatus(t){ return TRIP_OPS_STATUSES.includes(t.opsStatus) ? t.opsStatus : 'Pending Ops'; }
-function pillHTML(kind, status, bare){
-  return `<span class="pill s-${esc(status.replace(/\s+/g,''))}" title="${kind} status: ${esc(status)}">${bare ? '' : `<i>${kind}</i> `}${esc(status)}</span>`;
+/* ---- Trip flow ------------------------------------------------------
+   Main status:  Draft -> Pending Payment -> Paid   (or Cancelled)
+     - Draft: the creator is still filling things in.
+     - Submit moves it to Pending Payment (stored as 'Pending').
+     - Paid is not stored: a submitted trip shows Paid as soon as its balance is zero.
+     - Cancelled: an approver/admin declined it.
+   Operations sub-status (set from Submit onwards, routed by approver/admin):
+     Pending Ops -> Ongoing -> Ready -> Completed, or On-hold / Rejected at any stage. */
+const MAIN_STATUSES = ['Draft','Pending Payment','Paid','Cancelled'];
+const OPS_STATUSES = ['Pending Ops','Ongoing','Ready','Completed','Onhold','Rejected'];
+const OPS_FLOW = ['Pending Ops','Ongoing','Ready','Completed'];
+function opsLabel(s){ return s==='Onhold' ? 'On-hold' : s; }
+function slugS(s){ return String(s).replace(/[\s-]+/g,''); }
+function isCancelledTrip(t){ return t.status==='Cancelled' || t.status==='Declined'; }
+function isSubmittedTrip(t){ return !isCancelledTrip(t) && t.status!=='Draft'; }
+function tripMainStatus(t){
+  if(isCancelledTrip(t)) return 'Cancelled';
+  if(!isSubmittedTrip(t)) return 'Draft';
+  const m = tripMoney(t);
+  return (m.amount>0 && m.balance===0) ? 'Paid' : 'Pending Payment';
 }
-function tripPillsHTML(t){ return pillHTML('Payment', tripPayStatus(t)) + pillHTML('Ops', tripOpsStatus(t)); }
-function selectOptionsHTML(list, current){ return list.map(s=>`<option value="${esc(s)}" ${s===current?'selected':''}>${esc(s)}</option>`).join(''); }
-
-function tripStatusOptions(current){
-  const all = TRIP_STATUSES, allowed = isApproverOrAdmin() ? all : ['Draft','Pending'];
-  return { allowed, locked: !allowed.includes(current) };
+function tripOpsStatus(t){ return OPS_STATUSES.includes(t.opsStatus) ? t.opsStatus : 'Pending Ops'; }
+function opsClosed(t){ return isSubmittedTrip(t) && ['Completed','Rejected'].includes(tripOpsStatus(t)); }
+function ticketStageTrip(t){ return isSubmittedTrip(t) && ['Ongoing','Ready','Completed'].includes(tripOpsStatus(t)); }
+function needsOpsAction(t){ return isSubmittedTrip(t) && tripOpsStatus(t)==='Pending Ops'; }
+function stampHTML(t, attrs){ const m = tripMainStatus(t); return `<div class="stamp ${slugS(m)}" ${attrs||''}>${m}</div>`; }
+function opsPillHTML(t, bare){
+  if(!isSubmittedTrip(t)) return '';
+  const o = tripOpsStatus(t);
+  return `<span class="pill s-${slugS(o)}" title="Operations: ${esc(opsLabel(o))}">${bare ? '' : '<i>Ops</i> '}${esc(opsLabel(o))}</span>`;
+}
+function opsPanelHTML(t){
+  if(!isSubmittedTrip(t)){
+    return `<div class="panel ops-panel"><div class="panel-head"><h3>Operations</h3></div><div class="ops-body"><p class="hint" style="margin:0;">${isCancelledTrip(t) ? 'This trip is cancelled.' : 'Operations starts once the trip is submitted. Click <b>Submit</b> when all the information is filled in.'}</p></div></div>`;
+  }
+  const can = isApproverOrAdmin(), cur = tripOpsStatus(t), ci = OPS_FLOW.indexOf(cur);
+  const step = (s, i) => `${i?'<span class="ops-arrow">›</span>':''}<button type="button" class="ops-step ${ci>=0 && i<ci?'done':''} ${s===cur?'current':''}" data-ops="${s}" ${can?'':'disabled'} aria-pressed="${s===cur}">${esc(s)}</button>`;
+  const side = (s, extra) => `<button type="button" class="ops-step side ${extra} ${s===cur?'current':''}" data-ops="${s}" ${can?'':'disabled'} aria-pressed="${s===cur}">${esc(opsLabel(s))}</button>`;
+  return `<div class="panel ops-panel" id="ops-panel"><div class="panel-head"><h3>Operations</h3></div>
+    <div class="ops-body">
+      <div class="ops-flow">${OPS_FLOW.map(step).join('')}<span class="ops-sep"></span>${side('Onhold','')}${side('Rejected','rej')}</div>
+      <p class="hint" style="margin:10px 0 0;">${can ? 'Click a stage to move the trip to it. On-hold and Rejected can be set at any stage.' : 'Only approvers and admins can route Operations.'}</p>
+    </div></div>`;
+}
+async function setOpsStatus(tripId, opsStatus){
+  try{
+    const updated = await apiFetch(`/trips/${tripId}/ops-status`, { method:'POST', body: JSON.stringify({ opsStatus }) });
+    const idx = trips.findIndex(t=>t.id===tripId);
+    if(idx>-1) trips[idx] = { ...trips[idx], ...updated };
+    showToast('Operations: ' + opsLabel(opsStatus));
+  }catch(e){
+    showToast(e.message || 'Could not update Operations');
+  }
+  render();
 }
 
 function tripModal(){
@@ -2323,7 +2400,6 @@ function tripModal(){
     end: editing ? editing.endDate : ''
   };
   rpInit(v.start, v.end);
-  const so = editing ? tripStatusOptions(editing.status) : null;
   return `
   <div class="overlay" id="overlay-trip">
     <div class="modal">
@@ -2361,20 +2437,12 @@ function tripModal(){
           </div>
           <div class="hint">Click the start date, then the end date, all in one calendar — or drag from start to end.</div>
         </div>
-        <div class="field-row">
-          <div class="field"><label for="tr-pay-status">Payment status</label>
-            <select id="tr-pay-status">${selectOptionsHTML(TRIP_PAY_STATUSES, editing ? tripPayStatus(editing) : 'Draft')}</select></div>
-          <div class="field"><label for="tr-ops-status">Ops status</label>
-            <select id="tr-ops-status">${selectOptionsHTML(TRIP_OPS_STATUSES, editing ? tripOpsStatus(editing) : 'Pending Ops')}</select></div>
-        </div>
-        ${editing ? `<div class="field">
-          <label for="tr-status">Approval status</label>
-          <select id="tr-status" class="status-select" style="width:100%;padding:9px 12px;font-size:14px;">
-            ${so.locked ? `<option value="${esc(editing.status)}" selected disabled>${esc(editing.status)} (current)</option>` : ''}
-            ${so.allowed.map(st=>`<option value="${st}" ${st===editing.status?'selected':''}>${st}</option>`).join('')}
-          </select>
-          <div class="hint">${isApproverOrAdmin() ? 'Approvers and admins can set any status.' : 'You can set a trip to Draft or Pending. Approvers and admins can set other statuses.'}</div>
+        ${editing && isApproverOrAdmin() && isSubmittedTrip(editing) ? `<div class="field">
+          <label for="tr-ops-status">Operations status</label>
+          <select id="tr-ops-status">${OPS_STATUSES.map(o=>`<option value="${o}" ${o===tripOpsStatus(editing)?'selected':''}>${esc(opsLabel(o))}</option>`).join('')}</select>
+          <div class="hint">Pending Ops → Ongoing → Ready → Completed, or On-hold / Rejected at any stage.</div>
         </div>` : ''}
+        ${!editing ? `<p class="hint" style="margin:4px 0 0;">New trips start as <b>Draft</b>. When everything is filled in, open the trip and click <b>Submit</b>.</p>` : ''}
       </div>
       <div class="modal-foot">
         <div>${editing && isAdmin() ? `<button class="btn btn-sm btn-danger" data-action="delete-trip">Delete trip</button>` : ''}</div>
@@ -2402,7 +2470,7 @@ function customerModal(){
   const v = editing || {name:'',dob:'',phone:'',idNumber:'',medicalCondition:'',passportNumber:'',passportExpiry:'',amount:0,depositAmount:0,balancePaid:0,paymentStatus:'Pending',ticketPurchaser:'',ticketStatus:'Pending',airline:'',bookingReference:'',notes:''};
   const balanceAmount = Math.max(0,(Number(v.amount)||0)-(Number(v.depositAmount)||0)-(Number(v.balancePaid)||0));
   const trip = trips.find(t=>t.id===(editing ? editing.tripId : view.tripId));
-  const showTicketFields = trip && (trip.status==='Approved' || trip.status==='Completed');
+  const showTicketFields = trip && ticketStageTrip(trip);
   return `
   <div class="overlay" id="overlay-customer">
     <div class="modal">
@@ -2585,7 +2653,7 @@ function exportTripToExcel(tripId){
     'Amount (RM)': Number(c.amount)||0,
     'Deposit Paid (RM)': Number(c.depositAmount)||0,
     'Payment (RM)': Number(c.balancePaid)||0,
-    'Balance (RM)': Math.max(0,(Number(c.amount)||0)-(Number(c.depositAmount)||0)-(Number(c.balancePaid)||0)),
+    'Balance (RM)': paxBalance(c),
     'Ticket Purchased By': c.ticketPurchaser || '',
     'Ticket Status': c.ticketStatus || 'Pending',
     'Airline': c.airline || '',
@@ -2949,7 +3017,7 @@ function bindEvents(){
 
   const openApprovals = app.querySelector('[data-action="open-approvals"]');
   if(openApprovals) openApprovals.addEventListener('click', ()=>{
-    view = { mode:'list', tripId:null, search:'', statusFilter:'Pending', typeFilter:'All', layout:view.layout };
+    view = { mode:'list', tripId:null, search:'', statusFilter:'All', opsFilter:'Pending Ops', typeFilter:'All', layout:view.layout };
     passengerFilterKeyword='';
     render();
   });
@@ -2994,6 +3062,9 @@ function bindEvents(){
   if(searchInput){
     searchInput.addEventListener('input', ()=>{ view.search = searchInput.value; renderListOnly(); });
   }
+  app.querySelectorAll('[data-filter-ops]').forEach(el=>{
+    el.addEventListener('click', ()=>{ view.opsFilter = el.dataset.filterOps; render(); });
+  });
   app.querySelectorAll('[data-filter-status]').forEach(el=>{
     el.addEventListener('click', ()=>{ view.statusFilter = el.dataset.filterStatus; render(); });
   });
@@ -3052,7 +3123,10 @@ function bindEvents(){
   if(delCustModalBtn) delCustModalBtn.addEventListener('click', ()=>handleDeleteCustomer(editingCustomerId, true));
 
   app.querySelectorAll('[data-trip-action]').forEach(el=>{
-    el.addEventListener('click', ()=>setTripStatus(view.tripId, el.dataset.tripAction));
+    el.addEventListener('click', ()=>{ if(el.dataset.confirm && !confirm(el.dataset.confirm)) return; setTripStatus(view.tripId, el.dataset.tripAction); });
+  });
+  app.querySelectorAll('[data-ops]').forEach(el=>{
+    el.addEventListener('click', ()=>{ if(el.dataset.ops!==tripOpsStatus(trips.find(t=>t.id===view.tripId)||{})) setOpsStatus(view.tripId, el.dataset.ops); });
   });
 
   bindPassengerRowHandlers(app);
@@ -3212,8 +3286,6 @@ async function handleSaveTrip(){
     name,
     type: document.getElementById('tr-type').value,
     destination: dest,
-    payStatus: document.getElementById('tr-pay-status').value,
-    opsStatus: document.getElementById('tr-ops-status').value,
     startDate: document.getElementById('tr-start').value,
     endDate: document.getElementById('tr-end').value
   };
@@ -3222,14 +3294,14 @@ async function handleSaveTrip(){
       const updated = await apiFetch(`/trips/${editingTripId}`, { method:'PUT', body: JSON.stringify(payload) });
       const idx = trips.findIndex(t=>t.id===editingTripId);
       if(idx>-1) trips[idx] = { ...trips[idx], ...updated };
-      // Status is routed through its own endpoint (role-checked server-side), only if it was changed.
-      const stSel = document.getElementById('tr-status');
-      if(stSel && idx>-1 && stSel.value !== trips[idx].status){
+      // Operations is routed through its own endpoint (approver/admin only, checked server-side).
+      const opsSel = document.getElementById('tr-ops-status');
+      if(opsSel && idx>-1 && opsSel.value !== tripOpsStatus(trips[idx])){
         try{
-          const moved = await apiFetch(`/trips/${editingTripId}/status`, { method:'POST', body: JSON.stringify({ status: stSel.value, override: true }) });
+          const moved = await apiFetch(`/trips/${editingTripId}/ops-status`, { method:'POST', body: JSON.stringify({ opsStatus: opsSel.value }) });
           trips[idx] = { ...trips[idx], ...moved };
         }catch(e){
-          showToast('Trip saved, but the status was not changed: ' + (e.message || 'not allowed'));
+          showToast('Trip saved, but Operations was not changed: ' + (e.message || 'not allowed'));
           closeOverlay('overlay-trip'); render(); return;
         }
       }

@@ -22,7 +22,6 @@ function mapTrip(row, passengerCount) {
     lastEditedByName: row.editor_name || null,
     lastEditedAt: row.last_edited_at || null,
     publicToken: row.public_token,
-    payStatus: row.pay_status || 'Draft',
     opsStatus: row.ops_status || 'Pending Ops',
     ...(passengerCount !== undefined ? { passengerCount: Number(passengerCount) } : {}),
   };
@@ -35,7 +34,7 @@ function mapTrip(row, passengerCount) {
 // display convenience, not real access control.
 const TRANSITIONS = {
   Draft:     [{ to: 'Pending',   anyRole: true }],
-  Pending:   [{ to: 'Approved',  anyRole: false }, { to: 'Declined', anyRole: false }],
+  Pending:   [{ to: 'Cancelled', anyRole: false }, { to: 'Approved',  anyRole: false }, { to: 'Declined', anyRole: false }],
   Approved:  [{ to: 'Completed', anyRole: false }, { to: 'Cancelled', anyRole: false }],
   Declined:  [{ to: 'Draft',     anyRole: true }],
   Cancelled: [{ to: 'Draft',     anyRole: true }],
@@ -67,9 +66,9 @@ router.get('/:id', asyncHandler(async (req, res) => {
   res.json(mapTrip(rows[0]));
 }));
 
-// Payment and Ops statuses are separate from the approval status (Draft/Pending/Approved/...)
-// and can be set freely by any logged-in role when creating or editing a trip.
-const PAY_STATUSES = ['Draft', 'Pending Payment', 'Paid', 'Cancelled'];
+// Trip flow: the main status is Draft -> Pending (shown as "Pending Payment") -> Cancelled.
+// "Paid" is not stored: the app shows Paid once a submitted trip's balance reaches zero.
+// Operations is a sub-status that only approvers/admins can route, once the trip is submitted.
 const OPS_STATUSES = ['Pending Ops', 'Ongoing', 'Onhold', 'Ready', 'Rejected', 'Completed'];
 
 const tripSchema = z.object({
@@ -78,8 +77,6 @@ const tripSchema = z.object({
   destination: z.string().optional().or(z.literal('')),
   startDate: z.string().optional().or(z.literal('')),
   endDate: z.string().optional().or(z.literal('')),
-  payStatus: z.enum(PAY_STATUSES).optional(),
-  opsStatus: z.enum(OPS_STATUSES).optional(),
 });
 
 // Any logged-in role can create a trip — it starts as Draft either way,
@@ -90,9 +87,9 @@ router.post('/', asyncHandler(async (req, res) => {
   const d = tripSchema.parse(req.body);
   const history = JSON.stringify([{ status: 'Draft', date: new Date().toISOString() }]);
   const { rows } = await query(
-    `INSERT INTO trips (name, type, destination, start_date, end_date, status, history, created_by, last_edited_by, last_edited_at, pay_status, ops_status)
-     VALUES ($1,$2,$3,$4,$5,'Draft',$6,$7,$7,now(),$8,$9) RETURNING *`,
-    [d.name, d.type, d.destination || null, d.startDate || null, d.endDate || null, history, req.user.id, d.payStatus || 'Draft', d.opsStatus || 'Pending Ops']
+    `INSERT INTO trips (name, type, destination, start_date, end_date, status, history, created_by, last_edited_by, last_edited_at)
+     VALUES ($1,$2,$3,$4,$5,'Draft',$6,$7,$7,now()) RETURNING *`,
+    [d.name, d.type, d.destination || null, d.startDate || null, d.endDate || null, history, req.user.id]
   );
   res.status(201).json({ ...mapTrip(rows[0]), createdByName: req.user.name, lastEditedByName: req.user.name });
   logActivity({ actor: req.user, action: 'trip.created', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { type: rows[0].type, destination: rows[0].destination } });
@@ -106,7 +103,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
   const fields = [];
   const values = [];
   let i = 1;
-  const colMap = { name: 'name', type: 'type', destination: 'destination', startDate: 'start_date', endDate: 'end_date', payStatus: 'pay_status', opsStatus: 'ops_status' };
+  const colMap = { name: 'name', type: 'type', destination: 'destination', startDate: 'start_date', endDate: 'end_date' };
   for (const [key, col] of Object.entries(colMap)) {
     if (d[key] !== undefined) { fields.push(`${col} = $${i++}`); values.push(d[key] || null); }
   }
@@ -138,42 +135,30 @@ router.delete('/:id', requireRole('admin'), asyncHandler(async (req, res) => {
   logActivity({ actor: req.user, action: 'trip.deleted', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { destination: rows[0].destination } });
 }));
 
-const statusSchema = z.object({
-  status: z.enum(['Draft', 'Pending', 'Approved', 'Declined', 'Cancelled', 'Completed']),
-  // override: manual routing from the Edit Trip form instead of the workflow buttons.
-  override: z.boolean().optional(),
-});
+const statusSchema = z.object({ status: z.enum(['Draft', 'Pending', 'Approved', 'Declined', 'Cancelled', 'Completed']) });
 
 // A status change also counts as an edit — stamps last_edited_by/at too.
 router.post('/:id/status', asyncHandler(async (req, res) => {
-  const { status: newStatus, override } = statusSchema.parse(req.body);
+  const { status: newStatus } = statusSchema.parse(req.body);
 
   const current = await query('SELECT * FROM trips WHERE id = $1', [req.params.id]);
   const trip = current.rows[0];
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
-  if (override) {
-    // Manual routing from Edit Trip: approver/admin may set any status;
-    // a regular user may only set Draft or Pending.
-    if (newStatus === trip.status) return res.status(400).json({ error: `Trip is already ${trip.status}` });
-    if (!['approver', 'admin'].includes(req.user.role) && !['Draft', 'Pending'].includes(newStatus)) {
-      return res.status(403).json({ error: 'You can only set Draft or Pending' });
-    }
-  } else {
-    const allowed = TRANSITIONS[trip.status] || [];
-    const move = allowed.find((a) => a.to === newStatus);
-    if (!move) {
-      return res.status(400).json({ error: `Can't move a trip from ${trip.status} to ${newStatus}` });
-    }
-    if (!move.anyRole && !['approver', 'admin'].includes(req.user.role)) {
-      return res.status(403).json({ error: 'Only an approver or admin can do that' });
-    }
+  const allowed = TRANSITIONS[trip.status] || [];
+  const move = allowed.find((a) => a.to === newStatus);
+  if (!move) {
+    return res.status(400).json({ error: `Can't move a trip from ${trip.status} to ${newStatus}` });
+  }
+  if (!move.anyRole && !['approver', 'admin'].includes(req.user.role)) {
+    return res.status(403).json({ error: 'Only an approver or admin can do that' });
   }
 
   const history = [...(trip.history || []), { status: newStatus, date: new Date().toISOString() }];
   const { rows } = await query(
     `WITH updated AS (
        UPDATE trips SET status = $1, history = $2, last_edited_by = $3, last_edited_at = now()
+         ${newStatus === 'Pending' ? ", ops_status = 'Pending Ops'" : ''}  -- submitting always starts Operations at Pending Ops
        WHERE id = $4 RETURNING *
      )
      SELECT updated.*, u.name AS creator_name, le.name AS editor_name
@@ -184,6 +169,32 @@ router.post('/:id/status', asyncHandler(async (req, res) => {
   );
   res.json(mapTrip(rows[0]));
   logActivity({ actor: req.user, action: 'trip.status_changed', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { from: trip.status, to: newStatus } });
+}));
+
+// Operations sub-status — approvers and admins only, and only once the trip has
+// been submitted (Draft and Cancelled trips have no active Operations stage).
+const opsSchema = z.object({ opsStatus: z.enum(OPS_STATUSES) });
+router.post('/:id/ops-status', requireRole('approver', 'admin'), asyncHandler(async (req, res) => {
+  const { opsStatus } = opsSchema.parse(req.body);
+  const current = await query('SELECT * FROM trips WHERE id = $1', [req.params.id]);
+  const trip = current.rows[0];
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+  if (['Draft', 'Cancelled', 'Declined'].includes(trip.status)) {
+    return res.status(400).json({ error: 'Operations can only be routed once the trip has been submitted' });
+  }
+  const { rows } = await query(
+    `WITH updated AS (
+       UPDATE trips SET ops_status = $1, last_edited_by = $2, last_edited_at = now()
+       WHERE id = $3 RETURNING *
+     )
+     SELECT updated.*, u.name AS creator_name, le.name AS editor_name
+     FROM updated
+     LEFT JOIN users u ON u.id = updated.created_by
+     LEFT JOIN users le ON le.id = updated.last_edited_by`,
+    [opsStatus, req.user.id, req.params.id]
+  );
+  res.json(mapTrip(rows[0]));
+  logActivity({ actor: req.user, action: 'trip.ops_status_changed', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { from: trip.ops_status, to: opsStatus } });
 }));
 
 // ---------------------------------------------------------------
