@@ -387,6 +387,47 @@
   .ops-step.side.current.rej{background:var(--coral);border-color:var(--coral);}
   .ops-step:disabled{cursor:default;opacity:.85;}
   .ops-arrow{color:var(--ink-soft);}
+  .cl-wrap{border-top:1px solid var(--line);padding:12px 20px 14px;}
+  .cl-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;}
+  .cl-toggle{background:none;border:0;font:inherit;font-weight:700;color:var(--navy);cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:8px;font-size:15px;}
+  .cl-caret{display:inline-block;width:14px;}
+  .cl-prog{font-weight:600;font-size:12.5px;color:var(--ink-soft);background:rgba(15,44,76,0.07);border-radius:999px;padding:3px 10px;}
+  .cl-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .cl-tools .seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;}
+  .cl-tools .seg button{border:0;background:#fff;padding:6px 12px;font:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
+  .cl-tools .seg button.on{background:var(--navy);color:#fff;}
+  .btn-sm{padding:6px 12px;font-size:13px;}
+  .cl-wrap.full{position:fixed;inset:0;z-index:950;background:#fff;overflow:auto;padding:16px 22px;border:0;display:flex;flex-direction:column;}
+  .cl-wrap.full .cl-scroll{max-height:none;flex:1;}
+  .cl-scroll{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px;margin-top:10px;}
+  .cl-table{border-collapse:separate;border-spacing:0;width:100%;font-size:13px;}
+  .cl-table th,.cl-table td{padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left;vertical-align:middle;background:#fff;}
+  .cl-table thead th{position:sticky;top:0;z-index:2;background:#F4F6F9;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;}
+  .cl-table thead tr.cl-group th{text-align:center;color:var(--navy);border-left:1px solid var(--line);top:0;}
+  .cl-table thead tr:nth-child(2) th{top:31px;}
+  .cl-table .cl-sel{position:sticky;left:0;z-index:1;width:34px;text-align:center;}
+  .cl-table .cl-name{position:sticky;left:34px;z-index:1;font-weight:600;border-right:1px solid var(--line);}
+  .cl-table thead .cl-sel,.cl-table thead .cl-name{z-index:3;}
+  .cl-table .cl-tick{text-align:center;}
+  .cl-table .cl-tick input,.cl-table .cl-sel input{width:18px;height:18px;cursor:pointer;accent-color:var(--green);}
+  .cl-table thead .cl-tick label{display:block;line-height:1.5;}
+  .cl-table .cl-n{color:var(--ink-soft);font-weight:600;}
+  .cl-table tr.cl-complete td{background:rgba(46,139,87,0.08);}
+  .cl-table .cl-ro{color:var(--ink);}
+  .cl-dash{color:var(--ink-soft);opacity:.5;}
+  .cl-in{font:inherit;font-size:13px;padding:5px 8px;border:1.5px solid var(--line);border-radius:8px;background:#fff;width:100%;box-sizing:border-box;}
+  .cl-in:disabled{background:#F4F6F9;}
+  .cl-bulk{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:10px;padding:8px 12px;background:#F4F6F9;border-radius:10px;font-size:13px;}
+  .cl-bulk select{font:inherit;font-size:13px;padding:4px 6px;border-radius:8px;border:1.5px solid var(--line);max-width:210px;}
+  .cl-setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:10px;}
+  .cl-card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;}
+  .cl-card h4{margin:0 0 8px;font-size:13px;color:var(--navy);}
+  .cl-lrow{display:flex;gap:6px;align-items:flex-end;margin-bottom:8px;}
+  .cl-lrow input{font:inherit;font-size:13px;padding:5px 8px;border:1.5px solid var(--line);border-radius:8px;min-width:0;flex:1;box-sizing:border-box;}
+  .cl-lrow.cl-flight{flex-wrap:wrap;border-bottom:1px dashed var(--line);padding-bottom:8px;}
+  .cl-lrow.cl-flight input[data-lf="airline"],.cl-lrow.cl-flight input[data-lf="ref"]{flex:1 1 120px;}
+  .cl-lrow label{display:flex;flex-direction:column;font-size:11px;color:var(--ink-soft);flex:1 1 150px;}
+  .cl-x{border:0;background:none;color:var(--coral);cursor:pointer;font-size:15px;padding:4px 6px;}
   .ops-sep{width:1px;height:22px;background:var(--line);margin:0 6px;}
   .bal-cell{white-space:nowrap;font-variant-numeric:tabular-nums;}
   .bal-cell small{display:block;color:var(--ink-soft);font-size:11px;}
@@ -673,6 +714,17 @@ async function demoFetchInner(path, options = {}){
     logDemoActivity(state, u, 'trip.ops_status_changed', 'trip', t.id, t.name, { from, to:body.opsStatus });
     persistDemo();
     return t;
+  }
+  if((m=path.match(/^\/trips\/([^/]+)\/ops-checklist$/)) && method==='PATCH'){
+    requireRoleIn('approver','admin');
+    const t = state.trips.find(x=>x.id===m[1]); if(!t) fail(404,'Trip not found');
+    if(['Draft','Cancelled','Declined'].includes(t.status)) fail(400,'The Operations checklist is available once the trip has been submitted');
+    const d = t.opsChecklist = t.opsChecklist || {};
+    d.hotels = d.hotels||[]; d.flightsTo = d.flightsTo||[]; d.flightsReturn = d.flightsReturn||[]; d.pax = d.pax||{};
+    Object.assign(d, body.lists || {});
+    Object.entries(body.pax || {}).forEach(([pid,f])=>{ d.pax[pid] = Object.assign(d.pax[pid]||{}, f); });
+    persistDemo();
+    return { opsChecklist: d };
   }
   if(path==='/trips/bulk-import' && method==='POST'){
     const u = requireAuthed();
@@ -2374,6 +2426,198 @@ function opsPillHTML(t, bare){
   const o = tripOpsStatus(t);
   return `<span class="pill s-${slugS(o)}" title="Operations: ${esc(opsLabel(o))}">${bare ? '' : '<i>Ops</i> '}${esc(opsLabel(o))}</span>`;
 }
+// ---------------------------------------------------------------
+// Operations checklist — accommodation, flights to/return, add-ons per
+// passenger. Hotels and flights are defined ONCE per trip (setup lists), then
+// assigned to passengers; room details, luggage and notes are per passenger.
+// Stored on the trip as `opsChecklist` and saved through a debounced PATCH.
+// ---------------------------------------------------------------
+let clOpen=false, clDetail=false, clFull=false, clSetup=false;
+const clSel = new Set();
+const CL_DONE = ['hotelDone','toDone','retDone','addonsDone'];
+function clDoc(t){
+  const d = t.opsChecklist || (t.opsChecklist = {});
+  d.hotels = d.hotels || []; d.flightsTo = d.flightsTo || []; d.flightsReturn = d.flightsReturn || []; d.pax = d.pax || {};
+  return d;
+}
+function clPaxList(t){ return customers.filter(c=>c.tripId===t.id && paxCounted(c)); }
+function clProgress(t){
+  const px = clPaxList(t), d = clDoc(t); let done = 0;
+  px.forEach(c=>{ const r = d.pax[c.id] || {}; CL_DONE.forEach(k=>{ if(r[k]) done++; }); });
+  return { done, total: px.length*4 };
+}
+function clFmtDT(s){
+  if(!s) return '';
+  const d = new Date(s); if(isNaN(d)) return String(s);
+  return d.toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false});
+}
+function clNewId(p){ return p + Math.random().toString(36).slice(2,8); }
+const clQueueMap = {}; let clTimer = null;
+function clQueue(tripId, patch){
+  const q = clQueueMap[tripId] || (clQueueMap[tripId] = {});
+  if(patch.lists) q.lists = Object.assign(q.lists||{}, patch.lists);
+  if(patch.pax){ q.pax = q.pax || {}; Object.entries(patch.pax).forEach(([pid,f])=>{ q.pax[pid] = Object.assign(q.pax[pid]||{}, f); }); }
+  clearTimeout(clTimer); clTimer = setTimeout(clFlush, 600);
+}
+async function clFlush(){
+  clearTimeout(clTimer);
+  for(const id of Object.keys(clQueueMap)){
+    const body = clQueueMap[id]; delete clQueueMap[id];
+    try{ await apiFetch(`/trips/${id}/ops-checklist`, { method:'PATCH', body: JSON.stringify(body) }); }
+    catch(e){ showToast(e.message || 'Could not save the checklist'); }
+  }
+}
+function clSetPax(t, pids, fields){
+  const d = clDoc(t), patch = {};
+  pids.forEach(pid=>{ d.pax[pid] = Object.assign(d.pax[pid]||{}, fields); patch[pid] = fields; });
+  clQueue(t.id, { pax: patch });
+}
+function clQueueList(t, key){
+  const d = clDoc(t);
+  clQueue(t.id, { lists: { [key]: d[key].map(x=>({ ...x })) } });
+}
+function clHotelLabel(h){ return h.name || '(unnamed hotel)'; }
+function clFlightLabel(f){ return [f.airline || '(airline)', f.ref].filter(Boolean).join(' · ') + (f.departure ? ' · ' + clFmtDT(f.departure) : ''); }
+
+function clSetupHTML(t){
+  const d = clDoc(t), can = isApproverOrAdmin(), dis = can ? '' : 'disabled';
+  const del = (key,id) => can ? `<button type="button" class="cl-x" data-cl-del="${key}" data-lid="${esc(id)}" title="Remove">✕</button>` : '';
+  const add = (key,label) => can ? `<button type="button" class="btn btn-ghost btn-sm" data-cl-add="${key}">+ ${label}</button>` : '';
+  const flightRows = key => d[key].length ? d[key].map(f=>`
+    <div class="cl-lrow cl-flight">
+      <input data-cl-list="${key}" data-lid="${esc(f.id)}" data-lf="airline" placeholder="Airline" value="${esc(f.airline||'')}" ${dis}>
+      <input data-cl-list="${key}" data-lid="${esc(f.id)}" data-lf="ref" placeholder="Ref / booking" value="${esc(f.ref||'')}" ${dis}>
+      <label>Departure<input type="datetime-local" data-cl-list="${key}" data-lid="${esc(f.id)}" data-lf="departure" value="${esc(f.departure||'')}" ${dis}></label>
+      <label>Arrival<input type="datetime-local" data-cl-list="${key}" data-lid="${esc(f.id)}" data-lf="arrival" value="${esc(f.arrival||'')}" ${dis}></label>
+      ${del(key,f.id)}
+    </div>`).join('') : '<p class="hint" style="margin:4px 0;">None yet.</p>';
+  return `<div class="cl-setup">
+    <div class="cl-card"><h4>Hotels</h4>
+      ${d.hotels.length ? d.hotels.map(h=>`<div class="cl-lrow"><input data-cl-list="hotels" data-lid="${esc(h.id)}" data-lf="name" placeholder="Hotel name" value="${esc(h.name||'')}" ${dis}>${del('hotels',h.id)}</div>`).join('') : '<p class="hint" style="margin:4px 0;">None yet.</p>'}
+      ${add('hotels','Add hotel')}</div>
+    <div class="cl-card"><h4>Flights to</h4>${flightRows('flightsTo')}${add('flightsTo','Add flight')}</div>
+    <div class="cl-card"><h4>Flights return</h4>${flightRows('flightsReturn')}${add('flightsReturn','Add flight')}</div>
+  </div>
+  <p class="hint" style="margin:6px 0 10px;">Add each hotel / flight once here, then assign passengers to it in the table below.${can?'':' (View only.)'}</p>`;
+}
+
+function clTableHTML(t){
+  const px = clPaxList(t), d = clDoc(t), can = isApproverOrAdmin(), dis = can ? '' : 'disabled';
+  if(!px.length) return '<p class="hint" style="margin:8px 0;">No passengers yet — add passengers first, then they appear here.</p>';
+  const opts = (arr, sel, lab) => '<option value="">—</option>' + arr.map(x=>`<option value="${esc(x.id)}" ${x.id===sel?'selected':''}>${esc(lab(x))}</option>`).join('');
+  const hotel = id => d.hotels.find(h=>h.id===id), fTo = id => d.flightsTo.find(f=>f.id===id), fRet = id => d.flightsReturn.find(f=>f.id===id);
+  const allDone = k => px.every(c=>(d.pax[c.id]||{})[k]);
+  const tickHead = (k,label) => `<th class="cl-tick"><label title="Tick / untick everyone">${label}<br><input type="checkbox" data-cl-colall="${k}" ${allDone(k)?'checked':''} ${dis}></label></th>`;
+  const tick = (k,c,r) => `<td class="cl-tick"><input type="checkbox" data-cl-done="${k}" data-pid="${esc(c.id)}" ${r[k]?'checked':''} ${dis} aria-label="${k} ${esc(c.name)}"></td>`;
+  const txt = (f,c,r,ph,w) => `<td><input class="cl-in" style="min-width:${w||90}px" data-cl-field="${f}" data-pid="${esc(c.id)}" value="${esc(r[f]||'')}" placeholder="${ph||''}" ${dis}></td>`;
+  const sel = (f,c,r,arr,lab) => `<td><select class="cl-in" style="min-width:150px" data-cl-field="${f}" data-pid="${esc(c.id)}" ${dis}>${opts(arr,r[f],lab)}</select></td>`;
+  const ro = v => `<td class="cl-ro">${v ? esc(v) : '<span class="cl-dash">—</span>'}</td>`;
+  const selCount = px.filter(c=>clSel.has(c.id)).length;
+  const bulk = can ? `<div class="cl-bulk"><span><b>${selCount}</b> selected</span>
+      <label>Hotel <select data-cl-bulk="hotelId"><option value="">assign…</option>${d.hotels.map(h=>`<option value="${esc(h.id)}">${esc(clHotelLabel(h))}</option>`).join('')}</select></label>
+      <label>Flight to <select data-cl-bulk="toId"><option value="">assign…</option>${d.flightsTo.map(f=>`<option value="${esc(f.id)}">${esc(clFlightLabel(f))}</option>`).join('')}</select></label>
+      <label>Return <select data-cl-bulk="retId"><option value="">assign…</option>${d.flightsReturn.map(f=>`<option value="${esc(f.id)}">${esc(clFlightLabel(f))}</option>`).join('')}</select></label>
+      <span class="hint" style="margin:0;">Tick passengers on the left, then pick a hotel / flight to give it to all of them at once.</span></div>` : '';
+  let head, rows;
+  const selAll = `<th class="cl-sel"><input type="checkbox" data-cl-selall ${selCount===px.length?'checked':''} ${can?'':'disabled'} aria-label="Select all"></th>`;
+  if(!clDetail){
+    head = `<tr>${selAll}<th class="cl-name">Passenger</th>${tickHead('hotelDone','🏨 Accommodation')}${tickHead('toDone','✈ Flight to')}${tickHead('retDone','✈ Flight return')}${tickHead('addonsDone','＋ Add-ons')}<th>Done</th></tr>`;
+    rows = px.map(c=>{ const r = d.pax[c.id] || {}; const n = CL_DONE.filter(k=>r[k]).length;
+      return `<tr class="${n===4?'cl-complete':''}"><td class="cl-sel"><input type="checkbox" data-cl-sel="${esc(c.id)}" ${clSel.has(c.id)?'checked':''} ${can?'':'disabled'}></td><td class="cl-name">${esc(c.name)}</td>${tick('hotelDone',c,r)}${tick('toDone',c,r)}${tick('retDone',c,r)}${tick('addonsDone',c,r)}<td class="cl-n">${n}/4</td></tr>`; }).join('');
+  } else {
+    head = `<tr class="cl-group"><th class="cl-sel"></th><th class="cl-name"></th><th colspan="4">Accommodation</th><th colspan="7">Flight to</th><th colspan="7">Flight return</th><th colspan="2">Add-ons</th></tr>
+      <tr>${selAll}<th class="cl-name">Passenger</th>
+      <th>Hotel</th><th>Room type</th><th>Room no.</th>${tickHead('hotelDone','Done')}
+      <th>Flight</th><th>Airline</th><th>Ref</th><th>Departure</th><th>Arrival</th><th>Luggage</th>${tickHead('toDone','Done')}
+      <th>Flight</th><th>Airline</th><th>Ref</th><th>Departure</th><th>Arrival</th><th>Luggage</th>${tickHead('retDone','Done')}
+      <th>Note</th>${tickHead('addonsDone','Done')}</tr>`;
+    rows = px.map(c=>{ const r = d.pax[c.id] || {}; const to = fTo(r.toId) || {}, rt = fRet(r.retId) || {};
+      return `<tr><td class="cl-sel"><input type="checkbox" data-cl-sel="${esc(c.id)}" ${clSel.has(c.id)?'checked':''} ${can?'':'disabled'}></td><td class="cl-name">${esc(c.name)}</td>
+        ${sel('hotelId',c,r,d.hotels,clHotelLabel)}<td><input class="cl-in" style="min-width:110px" list="cl-roomtypes" data-cl-field="roomType" data-pid="${esc(c.id)}" value="${esc(r.roomType||'')}" ${dis}></td>${txt('roomNumber',c,r,'',70)}${tick('hotelDone',c,r)}
+        ${sel('toId',c,r,d.flightsTo,clFlightLabel)}${ro(to.airline)}${ro(to.ref)}${ro(clFmtDT(to.departure))}${ro(clFmtDT(to.arrival))}${txt('toLuggage',c,r,'e.g. 20kg',80)}${tick('toDone',c,r)}
+        ${sel('retId',c,r,d.flightsReturn,clFlightLabel)}${ro(rt.airline)}${ro(rt.ref)}${ro(clFmtDT(rt.departure))}${ro(clFmtDT(rt.arrival))}${txt('retLuggage',c,r,'e.g. 20kg',80)}${tick('retDone',c,r)}
+        ${txt('addons',c,r,'Free text note',220)}${tick('addonsDone',c,r)}</tr>`; }).join('');
+  }
+  return `${bulk}<div class="cl-scroll"><table class="cl-table ${clDetail?'detail':''}"><thead>${head}</thead><tbody>${rows}</tbody></table></div>
+    <datalist id="cl-roomtypes"><option>Single</option><option>Twin</option><option>Double</option><option>Triple</option><option>Family</option></datalist>`;
+}
+
+function clBlockHTML(t){
+  const pr = clProgress(t);
+  const prog = pr.total ? `${pr.done} / ${pr.total} ticked` : 'no passengers yet';
+  const tools = clOpen ? `<div class="cl-tools">
+      <span class="seg"><button type="button" class="${!clDetail?'on':''}" data-cl-mode="simple">Simple</button><button type="button" class="${clDetail?'on':''}" data-cl-mode="detail">Detailed</button></span>
+      <button type="button" class="btn btn-ghost btn-sm" data-cl-setup>${clSetup?'Hide':'Edit'} hotels &amp; flights</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-cl-full>${clFull?'✕ Exit full screen':'⤢ Full screen'}</button>
+    </div>` : '';
+  const head = `<div class="cl-head"><button type="button" class="cl-toggle" data-cl-toggle aria-expanded="${clOpen}"><span class="cl-caret">${clOpen?'▾':'▸'}</span> Operations checklist <span class="cl-prog" id="cl-prog">${prog}</span></button>${tools}</div>`;
+  if(!clOpen) return `<div class="cl-wrap" id="ops-cl">${head}</div>`;
+  return `<div class="cl-wrap ${clFull?'full':''}" id="ops-cl">${head}<div id="cl-setup-host">${clSetup?clSetupHTML(t):''}</div><div id="cl-table-host">${clTableHTML(t)}</div></div>`;
+}
+function clRefreshTable(t){
+  const host = document.getElementById('cl-table-host'); if(!host) return;
+  const sc = host.querySelector('.cl-scroll'); const left = sc ? sc.scrollLeft : 0, top = sc ? sc.scrollTop : 0;
+  host.innerHTML = clTableHTML(t);
+  const sc2 = host.querySelector('.cl-scroll'); if(sc2){ sc2.scrollLeft = left; sc2.scrollTop = top; }
+  const pr = clProgress(t), el = document.getElementById('cl-prog');
+  if(el) el.textContent = pr.total ? `${pr.done} / ${pr.total} ticked` : 'no passengers yet';
+}
+function bindChecklist(){
+  const root = document.getElementById('ops-cl'); if(!root) return;
+  const t = trips.find(x=>x.id===view.tripId); if(!t) return;
+  const can = isApproverOrAdmin();
+  root.addEventListener('click', e=>{
+    const q = s => e.target.closest(s);
+    if(q('[data-cl-toggle]')){ clOpen = !clOpen; if(!clOpen) clFull = false; render(); return; }
+    let b;
+    if((b = q('[data-cl-mode]'))){ clDetail = b.dataset.clMode==='detail'; render(); return; }
+    if(q('[data-cl-setup]')){ clSetup = !clSetup; render(); return; }
+    if(q('[data-cl-full]')){ clFull = !clFull; if(clFull) clDetail = true; render(); return; }
+    if(!can) return;
+    if((b = q('[data-cl-add]'))){
+      const key = b.dataset.clAdd, d = clDoc(t);
+      d[key].push(key==='hotels' ? { id: clNewId('h'), name:'' } : { id: clNewId('f'), airline:'', ref:'', departure:'', arrival:'' });
+      clQueueList(t, key);
+      document.getElementById('cl-setup-host').innerHTML = clSetupHTML(t);
+      const last = document.querySelectorAll(`#cl-setup-host [data-cl-list="${key}"]`); const target = key==='hotels' ? last[last.length-1] : last[last.length-4]; if(target) target.focus();
+      clRefreshTable(t); return;
+    }
+    if((b = q('[data-cl-del]'))){
+      const key = b.dataset.clDel, id = b.dataset.lid, d = clDoc(t);
+      if(!confirm('Remove this from the list? Passengers assigned to it will be unassigned.')) return;
+      d[key] = d[key].filter(x=>x.id!==id);
+      const field = key==='hotels' ? 'hotelId' : key==='flightsTo' ? 'toId' : 'retId';
+      const affected = Object.keys(d.pax).filter(pid=>d.pax[pid][field]===id);
+      clQueueList(t, key); if(affected.length) clSetPax(t, affected, { [field]: '' });
+      document.getElementById('cl-setup-host').innerHTML = clSetupHTML(t); clRefreshTable(t);
+    }
+  });
+  root.addEventListener('change', e=>{
+    const el = e.target; if(!can) return;
+    if(el.matches('[data-cl-sel]')){ el.checked ? clSel.add(el.dataset.clSel) : clSel.delete(el.dataset.clSel); clRefreshTable(t); return; }
+    if(el.matches('[data-cl-selall]')){ clPaxList(t).forEach(c=>{ el.checked ? clSel.add(c.id) : clSel.delete(c.id); }); clRefreshTable(t); return; }
+    if(el.matches('[data-cl-bulk]')){
+      const ids = clPaxList(t).filter(c=>clSel.has(c.id)).map(c=>c.id);
+      if(!el.value){ return; }
+      if(!ids.length){ showToast('Tick the passengers on the left first'); el.value=''; return; }
+      clSetPax(t, ids, { [el.dataset.clBulk]: el.value }); showToast('Assigned to ' + ids.length + ' passenger' + (ids.length>1?'s':'')); clRefreshTable(t); return;
+    }
+    if(el.matches('[data-cl-done]')){ clSetPax(t, [el.dataset.pid], { [el.dataset.clDone]: el.checked }); clRefreshTable(t); return; }
+    if(el.matches('[data-cl-colall]')){ clSetPax(t, clPaxList(t).map(c=>c.id), { [el.dataset.clColall]: el.checked }); clRefreshTable(t); return; }
+    if(el.matches('select[data-cl-field]')){ clSetPax(t, [el.dataset.pid], { [el.dataset.clField]: el.value }); clRefreshTable(t); return; }
+    if(el.matches('[data-cl-list]')){ clRefreshTable(t); }   // refresh labels once the field is left
+  });
+  root.addEventListener('input', e=>{
+    const el = e.target; if(!can) return;
+    if(el.matches('input[data-cl-field]')){ clSetPax(t, [el.dataset.pid], { [el.dataset.clField]: el.value }); return; }
+    if(el.matches('[data-cl-list]')){
+      const d = clDoc(t), key = el.dataset.clList, item = d[key].find(x=>x.id===el.dataset.lid);
+      if(item){ item[el.dataset.lf] = el.value; clQueueList(t, key); }
+    }
+  });
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && clFull){ clFull = false; render(); } });
+
 function opsPanelHTML(t){
   if(!isSubmittedTrip(t)){
     return `<div class="panel ops-panel"><div class="panel-head"><h3>Operations</h3></div><div class="ops-body"><p class="hint" style="margin:0;">${isCancelledTrip(t) ? 'This trip is cancelled.' : 'Operations starts once the trip is submitted. Click <b>Submit</b> when all the information is filled in.'}</p></div></div>`;
@@ -2385,7 +2629,7 @@ function opsPanelHTML(t){
     <div class="ops-body">
       <div class="ops-flow">${OPS_FLOW.map(step).join('')}<span class="ops-sep"></span>${side('Onhold','')}${side('Rejected','rej')}</div>
       <p class="hint" style="margin:10px 0 0;">${can ? 'Click a stage to move the trip to it. On-hold and Rejected can be set at any stage.' : 'Only approvers and admins can route Operations.'}</p>
-    </div></div>`;
+    </div>${clBlockHTML(t)}</div>`;
 }
 async function setOpsStatus(tripId, opsStatus){
   try{
@@ -3140,6 +3384,8 @@ function bindEvents(){
   app.querySelectorAll('[data-ops]').forEach(el=>{
     el.addEventListener('click', ()=>{ if(el.dataset.ops!==tripOpsStatus(trips.find(t=>t.id===view.tripId)||{})) setOpsStatus(view.tripId, el.dataset.ops); });
   });
+
+  bindChecklist();
 
   bindPassengerRowHandlers(app);
 

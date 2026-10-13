@@ -23,6 +23,7 @@ function mapTrip(row, passengerCount) {
     lastEditedAt: row.last_edited_at || null,
     publicToken: row.public_token,
     opsStatus: row.ops_status || 'Pending Ops',
+    opsChecklist: row.ops_checklist || {},
     ...(passengerCount !== undefined ? { passengerCount: Number(passengerCount) } : {}),
   };
 }
@@ -195,6 +196,56 @@ router.post('/:id/ops-status', requireRole('approver', 'admin'), asyncHandler(as
   );
   res.json(mapTrip(rows[0]));
   logActivity({ actor: req.user, action: 'trip.ops_status_changed', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { from: trip.ops_status, to: opsStatus } });
+}));
+
+
+// Operations checklist (accommodation / flights / add-ons per passenger).
+// Stored as one JSON document on the trip:
+//   { hotels:[{id,name}], flightsTo:[{id,airline,ref,departure,arrival}],
+//     flightsReturn:[...same], pax:{ <passengerId>: { hotelId, roomType, ... } } }
+// The request is a PATCH: `lists` replaces whichever of the three shared lists
+// are sent, `pax` is merged per passenger and per field — so two people
+// editing different passengers at the same time don't overwrite each other.
+// Approvers and admins only (the Operations team), submitted trips only.
+const clStr = z.string().max(300);
+const clFlight = z.object({ id: z.string().max(40), airline: clStr.optional(), ref: clStr.optional(), departure: clStr.optional(), arrival: clStr.optional() });
+const clPax = z.object({
+  hotelId: clStr, roomType: clStr, roomNumber: clStr,
+  toId: clStr, toLuggage: clStr, retId: clStr, retLuggage: clStr,
+  addons: z.string().max(2000),
+  hotelDone: z.boolean(), toDone: z.boolean(), retDone: z.boolean(), addonsDone: z.boolean(),
+}).partial();
+const checklistSchema = z.object({
+  lists: z.object({
+    hotels: z.array(z.object({ id: z.string().max(40), name: clStr.optional() })).max(60),
+    flightsTo: z.array(clFlight).max(60),
+    flightsReturn: z.array(clFlight).max(60),
+  }).partial().optional(),
+  pax: z.record(z.string().max(60), clPax).optional(),
+});
+router.patch('/:id/ops-checklist', requireRole('approver', 'admin'), asyncHandler(async (req, res) => {
+  const patch = checklistSchema.parse(req.body);
+  const out = await withTransaction(async (client) => {
+    const cur = await client.query('SELECT * FROM trips WHERE id = $1 FOR UPDATE', [req.params.id]);
+    const trip = cur.rows[0];
+    if (!trip) return { status: 404, error: 'Trip not found' };
+    if (['Draft', 'Cancelled', 'Declined'].includes(trip.status)) {
+      return { status: 400, error: 'The Operations checklist is available once the trip has been submitted' };
+    }
+    const doc = trip.ops_checklist && typeof trip.ops_checklist === 'object' ? trip.ops_checklist : {};
+    const next = { hotels: doc.hotels || [], flightsTo: doc.flightsTo || [], flightsReturn: doc.flightsReturn || [], pax: doc.pax || {} };
+    Object.assign(next, patch.lists || {});
+    for (const [pid, fields] of Object.entries(patch.pax || {})) {
+      next.pax[pid] = { ...(next.pax[pid] || {}), ...fields };
+    }
+    await client.query(
+      'UPDATE trips SET ops_checklist = $1, last_edited_by = $2, last_edited_at = now() WHERE id = $3',
+      [JSON.stringify(next), req.user.id, req.params.id]
+    );
+    return { status: 200, checklist: next, trip };
+  });
+  if (out.error) return res.status(out.status).json({ error: out.error });
+  res.json({ opsChecklist: out.checklist });
 }));
 
 // ---------------------------------------------------------------
