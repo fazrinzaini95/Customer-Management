@@ -1093,7 +1093,7 @@ function headerHTML(){
         <span class="badge" style="background:rgba(15,44,76,0.10);color:var(--navy);">${roleLabel(currentUser.role)}</span>
         ${DEMO_MODE ? `<span class="badge" style="background:rgba(244,185,60,0.25);color:#9C7A16;">🧪 Demo</span>` : ''}
       </div>
-      ${isApproverOrAdmin() ? `<button class="btn ${pendingCount>0?'btn-primary':'btn-ghost'}" data-action="open-approvals" title="Trips submitted and waiting for Operations to start">Actions needed${pendingCount>0 ? ` <span class="badge" style="background:#fff;color:var(--navy);margin-left:4px;">${pendingCount}</span>` : ''}</button>` : ''}
+      ${isApproverOrAdmin() ? `<button class="btn ${pendingCount>0?'btn-primary':'btn-ghost'}" data-action="open-approvals" title="Trips that are Pending Payment, Pending Ops, Ongoing or On-hold">Actions needed${pendingCount>0 ? ` <span class="badge" style="background:#fff;color:var(--navy);margin-left:4px;">${pendingCount}</span>` : ''}</button>` : ''}
       ${isAdmin() ? `<button class="btn btn-ghost" data-action="open-manage-users">Manage users</button><button class="btn btn-ghost" data-action="open-settings">Settings</button><button class="btn btn-ghost" data-action="open-activity-log">Activity log</button>` : ''}
       <button class="btn btn-ghost" data-action="open-upload">Bulk upload</button>
       <button class="btn btn-primary" data-action="open-new-trip">+ New trip</button>
@@ -1290,8 +1290,8 @@ function dashboardHTML(){
     ${kpi('Trips this month', m.thisMonth.length, `${approvedMonth} paid · ${m.thisMonth.length-approvedMonth} not yet paid`, '', 'Trips starting this month that have not ended yet (cancelled excluded)')}
     ${kpi('Upcoming trips', m.upcoming.length, `${approvedUp} paid · ${m.upcoming.length-approvedUp} draft / pending payment`, '', 'Trips not yet completed whose end date has not passed (cancelled excluded)')}
     ${canApprove
-      ? `<button class="stat-card is-link ${m.awaiting.length?'is-alert':''}" data-dash-approvals title="Open the trips waiting for Operations to start"><div class="label">Pending Ops</div><div class="value">${m.awaiting.length}</div><div class="sub">${m.awaiting.length?'Click to review':'Nothing waiting'}</div></button>`
-      : kpi('Pending Ops', m.awaiting.length, m.awaiting.length?'With the approvers':'Nothing waiting', m.awaiting.length?'is-alert':'')}
+      ? `<button class="stat-card is-link ${m.awaiting.length?'is-alert':''}" data-dash-approvals title="Open the trips that need action"><div class="label">Actions needed</div><div class="value">${m.awaiting.length}</div><div class="sub">${m.awaiting.length?'Click to review':'Nothing waiting'}</div></button>`
+      : kpi('Actions needed', m.awaiting.length, m.awaiting.length?'With the approvers':'Nothing waiting', m.awaiting.length?'is-alert':'')}
   </div>`;
 
   const t = m.totals;
@@ -1359,7 +1359,7 @@ function dashboardHTML(){
   <div class="panel">
     <div class="panel-head"><h3>Needs attention</h3></div>
     <div class="dash-body"><ul class="dash-attn">
-      ${attn(m.awaiting.length, 'Trips waiting for Operations to start', 'Operations is still Pending Ops')}
+      ${attn(m.awaiting.length, 'Trips need action', 'Pending Payment, Pending Ops, Ongoing or On-hold')}
       ${attn(m.ticketPax, 'Flight tickets to purchase', `${m.ticketPax} passenger(s) on ${m.ticketTrips.size} trip(s) in Operations with the ticket still Pending`)}
       ${attn(m.due30.length, 'Departing within 30 days with a balance due', 'Collect the remaining payment before departure')}
       ${attn(m.emptyTrips.length, 'Upcoming trips with no passengers', 'Add passengers or share the registration link')}
@@ -1485,7 +1485,7 @@ function bindDashboardEvents(app){
   app.querySelectorAll('[data-dash-periodview]').forEach(el=>el.addEventListener('click', ()=>{ dashPeriodView = el.dataset.dashPeriodview; render(); }));
   const appr = app.querySelector('[data-dash-approvals]');
   if(appr) appr.addEventListener('click', ()=>{
-    view = { mode:'list', tripId:null, search:'', statusFilter:'All', opsFilter:'Pending Ops', typeFilter:'All', layout:view.layout };
+    view = { mode:'list', tripId:null, search:'', statusFilter:'All', opsFilter:'Action', typeFilter:'All', layout:view.layout };
     render();
   });
   app.querySelectorAll('[data-dash-open-trip]').forEach(el=>el.addEventListener('click', ()=>{
@@ -1678,7 +1678,7 @@ function listHTML(){
   let list = trips.filter(t=>{
     const matchSearch = !view.search || (t.name+t.destination+tripCode(t)).toLowerCase().includes(view.search.toLowerCase());
     const matchStatus = view.statusFilter==='All' || tripMainStatus(t)===view.statusFilter;
-    const matchOps = !view.opsFilter || view.opsFilter==='All' || (isSubmittedTrip(t) && tripOpsStatus(t)===view.opsFilter);
+    const matchOps = !view.opsFilter || view.opsFilter==='All' || (view.opsFilter==='Action' ? needsOpsAction(t) : (isSubmittedTrip(t) && tripOpsStatus(t)===view.opsFilter));
     const matchType = view.typeFilter==='All' || t.type===view.typeFilter;
     return matchSearch && matchStatus && matchOps && matchType;
   }).sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
@@ -1690,7 +1690,7 @@ function listHTML(){
       ${['All',...MAIN_STATUSES].map(s=>`<button class="chip ${view.statusFilter===s?'active':''}" data-filter-status="${s}">${s}</button>`).join('')}
     </div>
     <div class="chip-row" id="ops-chips">
-      ${['All',...OPS_STATUSES].map(s=>`<button class="chip ${(view.opsFilter||'All')===s?'active':''}" data-filter-ops="${s}" title="Operations status">${s==='All'?'All Ops':opsLabel(s)}</button>`).join('')}
+      ${['All','Action',...OPS_STATUSES].map(s=>`<button class="chip ${(view.opsFilter||'All')===s?'active':''}" data-filter-ops="${s}" title="${s==='Action'?'Pending Payment, Pending Ops, Ongoing or On-hold':'Operations status'}">${s==='All'?'All Ops':s==='Action'?'Actions needed':opsLabel(s)}</button>`).join('')}
     </div>
     <div class="chip-row" id="type-chips">
       ${['All','open','private'].map(s=>`<button class="chip ${view.typeFilter===s?'active':''}" data-filter-type="${s}">${s==='All'?'All types':s.charAt(0).toUpperCase()+s.slice(1)+' trip'}</button>`).join('')}
@@ -2367,7 +2367,7 @@ function tripMainStatus(t){
 function tripOpsStatus(t){ return OPS_STATUSES.includes(t.opsStatus) ? t.opsStatus : 'Pending Ops'; }
 function opsClosed(t){ return isSubmittedTrip(t) && ['Completed','Rejected'].includes(tripOpsStatus(t)); }
 function ticketStageTrip(t){ return isSubmittedTrip(t) && ['Ongoing','Ready','Completed'].includes(tripOpsStatus(t)); }
-function needsOpsAction(t){ return isSubmittedTrip(t) && tripOpsStatus(t)==='Pending Ops'; }
+function needsOpsAction(t){ return isSubmittedTrip(t) && !isCancelledTrip(t) && (tripMainStatus(t)==='Pending Payment' || ['Pending Ops','Ongoing','Onhold'].includes(tripOpsStatus(t))); }
 function stampHTML(t, attrs){ const m = tripMainStatus(t); return `<div class="stamp ${slugS(m)}" ${attrs||''}>${m}</div>`; }
 function opsPillHTML(t, bare){
   if(!isSubmittedTrip(t)) return '';
@@ -3029,7 +3029,7 @@ function bindEvents(){
 
   const openApprovals = app.querySelector('[data-action="open-approvals"]');
   if(openApprovals) openApprovals.addEventListener('click', ()=>{
-    view = { mode:'list', tripId:null, search:'', statusFilter:'All', opsFilter:'Pending Ops', typeFilter:'All', layout:view.layout };
+    view = { mode:'list', tripId:null, search:'', statusFilter:'All', opsFilter:'Action', typeFilter:'All', layout:view.layout };
     passengerFilterKeyword='';
     render();
   });
