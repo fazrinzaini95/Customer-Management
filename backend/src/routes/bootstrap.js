@@ -46,6 +46,7 @@ router.get('/', asyncHandler(async (req, res) => {
       createdAt: r.created_at, createdByName: r.creator_name || null,
       lastEditedByName: r.editor_name || null, lastEditedAt: r.last_edited_at || null,
       passengerCount: Number(r.passenger_count), publicToken: r.public_token,
+      payStatus: r.pay_status || 'Draft', opsStatus: r.ops_status || 'Pending Ops',
     })),
     passengers: passengersRes.rows.map((r) => ({
       id: r.id, tripId: r.trip_id, name: r.name, dob: r.dob, phone: r.phone,

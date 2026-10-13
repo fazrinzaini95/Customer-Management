@@ -22,6 +22,8 @@ function mapTrip(row, passengerCount) {
     lastEditedByName: row.editor_name || null,
     lastEditedAt: row.last_edited_at || null,
     publicToken: row.public_token,
+    payStatus: row.pay_status || 'Draft',
+    opsStatus: row.ops_status || 'Pending Ops',
     ...(passengerCount !== undefined ? { passengerCount: Number(passengerCount) } : {}),
   };
 }
@@ -65,12 +67,19 @@ router.get('/:id', asyncHandler(async (req, res) => {
   res.json(mapTrip(rows[0]));
 }));
 
+// Payment and Ops statuses are separate from the approval status (Draft/Pending/Approved/...)
+// and can be set freely by any logged-in role when creating or editing a trip.
+const PAY_STATUSES = ['Draft', 'Pending Payment', 'Paid', 'Cancelled'];
+const OPS_STATUSES = ['Pending Ops', 'Ongoing', 'Onhold', 'Ready', 'Rejected', 'Completed'];
+
 const tripSchema = z.object({
   name: z.string().min(1),
   type: z.enum(['open', 'private']).default('open'),
   destination: z.string().optional().or(z.literal('')),
   startDate: z.string().optional().or(z.literal('')),
   endDate: z.string().optional().or(z.literal('')),
+  payStatus: z.enum(PAY_STATUSES).optional(),
+  opsStatus: z.enum(OPS_STATUSES).optional(),
 });
 
 // Any logged-in role can create a trip — it starts as Draft either way,
@@ -81,9 +90,9 @@ router.post('/', asyncHandler(async (req, res) => {
   const d = tripSchema.parse(req.body);
   const history = JSON.stringify([{ status: 'Draft', date: new Date().toISOString() }]);
   const { rows } = await query(
-    `INSERT INTO trips (name, type, destination, start_date, end_date, status, history, created_by, last_edited_by, last_edited_at)
-     VALUES ($1,$2,$3,$4,$5,'Draft',$6,$7,$7,now()) RETURNING *`,
-    [d.name, d.type, d.destination || null, d.startDate || null, d.endDate || null, history, req.user.id]
+    `INSERT INTO trips (name, type, destination, start_date, end_date, status, history, created_by, last_edited_by, last_edited_at, pay_status, ops_status)
+     VALUES ($1,$2,$3,$4,$5,'Draft',$6,$7,$7,now(),$8,$9) RETURNING *`,
+    [d.name, d.type, d.destination || null, d.startDate || null, d.endDate || null, history, req.user.id, d.payStatus || 'Draft', d.opsStatus || 'Pending Ops']
   );
   res.status(201).json({ ...mapTrip(rows[0]), createdByName: req.user.name, lastEditedByName: req.user.name });
   logActivity({ actor: req.user, action: 'trip.created', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { type: rows[0].type, destination: rows[0].destination } });
@@ -97,7 +106,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
   const fields = [];
   const values = [];
   let i = 1;
-  const colMap = { name: 'name', type: 'type', destination: 'destination', startDate: 'start_date', endDate: 'end_date' };
+  const colMap = { name: 'name', type: 'type', destination: 'destination', startDate: 'start_date', endDate: 'end_date', payStatus: 'pay_status', opsStatus: 'ops_status' };
   for (const [key, col] of Object.entries(colMap)) {
     if (d[key] !== undefined) { fields.push(`${col} = $${i++}`); values.push(d[key] || null); }
   }

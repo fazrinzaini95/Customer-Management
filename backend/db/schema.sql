@@ -108,6 +108,15 @@ ALTER TABLE trips ADD COLUMN IF NOT EXISTS last_edited_at TIMESTAMPTZ;
 -- own distinct token too, not one shared value.
 ALTER TABLE trips ADD COLUMN IF NOT EXISTS public_token TEXT UNIQUE DEFAULT encode(gen_random_bytes(16), 'hex');
 
+-- Two further trip-level statuses, tracked alongside the approval status:
+--   pay_status — Draft / Pending Payment / Paid / Cancelled
+--   ops_status — Pending Ops / Ongoing / Onhold / Ready / Rejected / Completed
+-- Safe to re-run.
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS pay_status TEXT NOT NULL DEFAULT 'Draft'
+  CHECK (pay_status IN ('Draft','Pending Payment','Paid','Cancelled'));
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS ops_status TEXT NOT NULL DEFAULT 'Pending Ops'
+  CHECK (ops_status IN ('Pending Ops','Ongoing','Onhold','Ready','Rejected','Completed'));
+
 -- ---------------------------------------------------------------
 -- Passengers
 -- ---------------------------------------------------------------
