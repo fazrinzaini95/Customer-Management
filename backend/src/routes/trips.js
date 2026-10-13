@@ -129,23 +129,36 @@ router.delete('/:id', requireRole('admin'), asyncHandler(async (req, res) => {
   logActivity({ actor: req.user, action: 'trip.deleted', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { destination: rows[0].destination } });
 }));
 
-const statusSchema = z.object({ status: z.enum(['Draft', 'Pending', 'Approved', 'Declined', 'Cancelled', 'Completed']) });
+const statusSchema = z.object({
+  status: z.enum(['Draft', 'Pending', 'Approved', 'Declined', 'Cancelled', 'Completed']),
+  // override: manual routing from the Edit Trip form instead of the workflow buttons.
+  override: z.boolean().optional(),
+});
 
 // A status change also counts as an edit — stamps last_edited_by/at too.
 router.post('/:id/status', asyncHandler(async (req, res) => {
-  const { status: newStatus } = statusSchema.parse(req.body);
+  const { status: newStatus, override } = statusSchema.parse(req.body);
 
   const current = await query('SELECT * FROM trips WHERE id = $1', [req.params.id]);
   const trip = current.rows[0];
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
-  const allowed = TRANSITIONS[trip.status] || [];
-  const move = allowed.find((a) => a.to === newStatus);
-  if (!move) {
-    return res.status(400).json({ error: `Can't move a trip from ${trip.status} to ${newStatus}` });
-  }
-  if (!move.anyRole && !['approver', 'admin'].includes(req.user.role)) {
-    return res.status(403).json({ error: 'Only an approver or admin can do that' });
+  if (override) {
+    // Manual routing from Edit Trip: approver/admin may set any status;
+    // a regular user may only set Draft or Pending.
+    if (newStatus === trip.status) return res.status(400).json({ error: `Trip is already ${trip.status}` });
+    if (!['approver', 'admin'].includes(req.user.role) && !['Draft', 'Pending'].includes(newStatus)) {
+      return res.status(403).json({ error: 'You can only set Draft or Pending' });
+    }
+  } else {
+    const allowed = TRANSITIONS[trip.status] || [];
+    const move = allowed.find((a) => a.to === newStatus);
+    if (!move) {
+      return res.status(400).json({ error: `Can't move a trip from ${trip.status} to ${newStatus}` });
+    }
+    if (!move.anyRole && !['approver', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only an approver or admin can do that' });
+    }
   }
 
   const history = [...(trip.history || []), { status: newStatus, date: new Date().toISOString() }];
