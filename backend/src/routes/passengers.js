@@ -20,6 +20,7 @@ function mapPassenger(row) {
     amount: Number(row.amount),
     depositAmount: Number(row.deposit_amount),
     balancePaid: Number(row.balance_paid),
+    payments: Array.isArray(row.payments) ? row.payments : [],
     paymentStatus: row.payment_status,
     ticketPurchaser: row.ticket_purchaser,
     ticketStatus: row.ticket_status,
@@ -130,6 +131,41 @@ router.put('/passengers/:id/payment-status', asyncHandler(async (req, res) => {
   );
   res.json(mapPassenger(rows[0]));
   logActivity({ actor: req.user, action: 'passenger.payment_status_changed', entityType: 'passenger', entityId: rows[0].id, entityLabel: rows[0].name, details: { from: before.rows[0].payment_status, to: paymentStatus } });
+}));
+
+// Payment history (instalments). `balance_paid` — the "Payment" figure every
+// total, balance and status in the app reads — is always the sum of these
+// entries, so nothing else needs to know the history exists. The payment
+// status is re-derived here with the same rule as the frontend
+// (Cancelled stays Cancelled).
+const paymentsSchema = z.object({
+  payments: z.array(z.object({
+    id: z.string().max(60),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    amount: z.number().positive().max(100000000),
+    note: z.string().max(300).optional().or(z.literal('')),
+  })).max(200),
+});
+router.put('/passengers/:id/payments', asyncHandler(async (req, res) => {
+  const { payments } = paymentsSchema.parse(req.body);
+  const clean = payments
+    .map((e) => ({ id: e.id, date: e.date, amount: Math.round(e.amount * 100) / 100, note: e.note || '' }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const total = Math.round(clean.reduce((n, e) => n + e.amount, 0) * 100) / 100;
+  const cur = await query('SELECT amount, deposit_amount, payment_status FROM passengers WHERE id = $1', [req.params.id]);
+  if (!cur.rows[0]) return res.status(404).json({ error: 'Passenger not found' });
+  const a = Number(cur.rows[0].amount), dep = Number(cur.rows[0].deposit_amount);
+  let status = cur.rows[0].payment_status;
+  if (status !== 'Cancelled') {
+    status = (a > 0 && dep + total >= a) ? 'Paid' : (dep > 0 && total === 0) ? 'Deposit' : 'Pending';
+  }
+  const { rows } = await query(
+    `WITH updated AS (UPDATE passengers SET payments = $1, balance_paid = $2, payment_status = $3 WHERE id = $4 RETURNING *)
+     SELECT updated.*, pic.name AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
+    [JSON.stringify(clean), total, status, req.params.id]
+  );
+  res.json(mapPassenger(rows[0]));
+  logActivity({ actor: req.user, action: 'passenger.payments_updated', entityType: 'passenger', entityId: rows[0].id, entityLabel: rows[0].name, details: { entries: clean.length, total } });
 }));
 
 // Ticket status has the same lightweight-dropdown pattern as payment status.

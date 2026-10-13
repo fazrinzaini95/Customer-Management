@@ -428,6 +428,18 @@
   .cl-lrow.cl-flight input[data-lf="airline"],.cl-lrow.cl-flight input[data-lf="ref"]{flex:1 1 120px;}
   .cl-lrow label{display:flex;flex-direction:column;font-size:11px;color:var(--ink-soft);flex:1 1 150px;}
   .cl-x{border:0;background:none;color:var(--coral);cursor:pointer;font-size:15px;padding:4px 6px;}
+  .pay-link{background:none;border:0;padding:2px 0;font:inherit;font-size:12px;color:var(--navy);text-decoration:underline;cursor:pointer;white-space:nowrap;}
+  .pay-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;}
+  .pay-sum div{background:#F4F6F9;border-radius:10px;padding:8px 10px;}
+  .pay-sum span{display:block;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;}
+  .pay-sum b{font-size:15px;color:var(--navy);}
+  .pay-bar{height:8px;background:rgba(15,44,76,0.1);border-radius:99px;overflow:hidden;margin-bottom:14px;}
+  .pay-bar #pay-bar-fill{height:100%;width:0;background:var(--green);transition:width .2s;}
+  .pay-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .pay-table th{text-align:left;font-size:11px;color:var(--ink-soft);text-transform:uppercase;padding:4px 6px;}
+  .pay-table td{padding:4px 6px;vertical-align:middle;}
+  .pay-table input{font:inherit;font-size:13px;padding:6px 8px;border:1.5px solid var(--line);border-radius:8px;width:100%;box-sizing:border-box;}
+  .pay-table .pay-dep td{color:var(--ink-soft);background:#F4F6F9;}
   .ops-sep{width:1px;height:22px;background:var(--line);margin:0 6px;}
   .bal-cell{white-space:nowrap;font-variant-numeric:tabular-nums;}
   .bal-cell small{display:block;color:var(--ink-soft);font-size:11px;}
@@ -774,6 +786,17 @@ async function demoFetchInner(path, options = {}){
     const c = state.passengers.find(x=>x.id===m[1]); if(!c) fail(404,'Passenger not found');
     Object.assign(c, body);
     logDemoActivity(state, u, 'passenger.updated', 'passenger', c.id, c.name, { updatedFields:Object.keys(body) });
+    persistDemo();
+    return c;
+  }
+  if((m=path.match(/^\/passengers\/([^/]+)\/payments$/)) && method==='PUT'){
+    const u = requireAuthed();
+    const c = state.passengers.find(x=>x.id===m[1]); if(!c) fail(404,'Passenger not found');
+    const list = (body.payments||[]).map(e=>({ id:e.id, date:e.date, amount:Math.round(Number(e.amount)*100)/100, note:e.note||'' })).sort((a,b)=>a.date.localeCompare(b.date));
+    const total = Math.round(list.reduce((n,e)=>n+e.amount,0)*100)/100;
+    c.payments = list; c.balancePaid = total;
+    if(c.paymentStatus!=='Cancelled') c.paymentStatus = payStatusFrom(c.amount, c.depositAmount, total);
+    logDemoActivity(state, u, 'passenger.payments_updated', 'passenger', c.id, c.name, { entries:list.length, total });
     persistDemo();
     return c;
   }
@@ -1907,7 +1930,7 @@ function passengerRowsHTML(t){
       </td>
       <td>${fmtMoney(c.amount)}</td>
       <td>${(Number(c.depositAmount)||0)>0 ? fmtMoney(c.depositAmount) : '—'}</td>
-      <td>${fmtMoney(c.balancePaid)}</td>
+      <td>${payCellHTML(c)}</td>
       <td>${fmtMoney(paxBalance(c))}</td>
       <td><span class="badge ${paxStatus(c)}" title="Set automatically from Deposit paid, Payment and Balance">${paxStatus(c)}</span></td>
       <td><span class="cust-sub">${c.picName ? esc(c.picName) : '—'}</span></td>
@@ -2008,7 +2031,7 @@ function detailHTML(){
    Modals
    ========================================================= */
 function modalsHTML(){
-  return tripModal() + customerModal() + uploadModal();
+  return tripModal() + customerModal() + paymentsModal() + uploadModal();
 }
 
 function settingsModalHTML(){
@@ -2072,6 +2095,7 @@ const ACTIVITY_LABELS = {
   'passenger.created': 'added passenger',
   'passenger.updated': 'edited passenger',
   'passenger.payment_status_changed': 'updated payment status for',
+  'passenger.payments_updated': 'updated the payment history of',
   'passenger.ticket_status_changed': 'updated ticket status for',
   'passenger.deleted': 'removed passenger',
   'user.created': 'created account for',
@@ -2720,6 +2744,93 @@ function recalcBalanceField(){
   if(st) st.value = st.dataset.cancelled ? 'Cancelled' : payStatusFrom(amount, deposit, payment);
 }
 
+// ---------------------------------------------------------------
+// Payment history (instalments). The passenger's "Payment" figure
+// (balancePaid) is always the sum of the entries, so every total, balance
+// and status elsewhere keeps working untouched. Passengers whose Payment
+// pre-dates the history get an "Earlier payment" line for the difference.
+// ---------------------------------------------------------------
+let payEditId = null, payDraft = [];
+function payLedger(c){
+  const list = (Array.isArray(c.payments) ? c.payments : []).map(e=>({ id:e.id, date:e.date, amount:Number(e.amount)||0, note:e.note||'' }));
+  const sum = list.reduce((n,e)=>n+e.amount,0), diff = Math.round(((Number(c.balancePaid)||0) - sum)*100)/100;
+  if(diff > 0.004) list.unshift({ id:'legacy', date:(c.addedAt||'').slice(0,10) || todayYmd(), amount:diff, note:'Earlier payment' });
+  return list.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+}
+function payCellHTML(c){
+  const led = payLedger(c), last = led.length ? led[led.length-1].date : '';
+  return `<div>${fmtMoney(c.balancePaid)}</div><button type="button" class="pay-link" data-pay-cust="${esc(c.id)}" title="Payment history / instalments">🧾 ${led.length ? led.length + (led.length===1?' payment':' payments') : '+ Add payment'}</button>${last ? `<div class="cust-sub">last ${fmtDate(last)}</div>` : ''}`;
+}
+function payRowHTML(e, i){
+  return `<tr data-pay-row="${i}"><td><input type="date" class="pay-date" value="${esc(e.date)}"></td><td><input type="number" class="pay-amt" min="0" step="0.01" value="${e.amount||''}" placeholder="0.00" oninput="payRecalc()"></td><td><input class="pay-note" value="${esc(e.note||'')}" placeholder="e.g. 2nd instalment, bank transfer"></td><td><button type="button" class="cl-x" data-pay-del="${i}" title="Remove">✕</button></td></tr>`;
+}
+function paymentsModal(){
+  const c = payEditId ? customers.find(x=>x.id===payEditId) : null;
+  const dep = c ? (Number(c.depositAmount)||0) : 0;
+  return `<div class="overlay" id="overlay-payments"><div class="modal" style="max-width:640px;">
+    <div class="modal-head"><h3>Payments${c ? ' — ' + esc(c.name) : ''}</h3><button class="modal-close" data-close="overlay-payments">✕</button></div>
+    <div class="modal-body">
+      ${c ? `<div class="pay-sum">
+        <div><span>Package</span><b>${fmtMoney(c.amount)}</b></div>
+        <div><span>Deposit</span><b>${fmtMoney(dep)}</b></div>
+        <div><span>Payments</span><b id="pay-total">RM 0.00</b></div>
+        <div><span>Balance</span><b id="pay-balance">RM 0.00</b></div>
+      </div>
+      <div class="pay-bar"><div id="pay-bar-fill"></div></div>
+      <table class="pay-table"><thead><tr><th>Date</th><th>Amount (RM)</th><th>Note</th><th></th></tr></thead>
+        <tbody>${dep>0 ? `<tr class="pay-dep"><td>—</td><td>${fmtMoney(dep)}</td><td colspan="2">Deposit paid <span class="hint" style="margin:0;">(edit it in Edit passenger)</span></td></tr>` : ''}</tbody>
+        <tbody id="pay-rows">${payDraft.map(payRowHTML).join('')}</tbody></table>
+      <div style="margin-top:10px;"><button type="button" class="btn btn-ghost btn-sm" data-pay-add>+ Add payment</button></div>
+      <p class="hint" id="pay-warn" style="color:var(--coral);display:none;margin-top:8px;">These payments add up to more than the package amount.</p>` : ''}
+    </div>
+    <div class="modal-foot"><span></span><div style="display:flex;gap:10px;">
+      <button class="btn btn-ghost" data-close="overlay-payments">Cancel</button>
+      <button class="btn btn-primary" data-pay-save>Save payments</button></div></div>
+  </div></div>`;
+}
+function payReadDraft(){
+  return [...document.querySelectorAll('#pay-rows tr')].map(tr=>({
+    id: tr.dataset.payId || ('pay_'+Math.random().toString(36).slice(2,9)),
+    date: tr.querySelector('.pay-date').value,
+    amount: Number(tr.querySelector('.pay-amt').value)||0,
+    note: tr.querySelector('.pay-note').value.trim()
+  }));
+}
+function payRecalc(){
+  const c = customers.find(x=>x.id===payEditId); if(!c) return;
+  const sum = payReadDraft().reduce((n,e)=>n+e.amount,0), dep = Number(c.depositAmount)||0, amt = Number(c.amount)||0;
+  const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('pay-total', fmtMoney(sum)); set('pay-balance', fmtMoney(Math.max(0, amt-dep-sum)));
+  const fill = document.getElementById('pay-bar-fill'); if(fill) fill.style.width = (amt>0 ? Math.min(100,(dep+sum)/amt*100) : 0) + '%';
+  const w = document.getElementById('pay-warn'); if(w) w.style.display = (amt>0 && dep+sum>amt+0.004) ? 'block' : 'none';
+}
+function openPayments(id){
+  const c = customers.find(x=>x.id===id); if(!c) return;
+  payEditId = id; payDraft = payLedger(c);
+  render(); openOverlay('overlay-payments'); payRecalc();
+}
+function payRefreshRows(){
+  document.getElementById('pay-rows').innerHTML = payDraft.map(payRowHTML).join('');
+  document.querySelectorAll('#pay-rows tr').forEach((tr,i)=>{ if(payDraft[i].id) tr.dataset.payId = payDraft[i].id; });
+  payRecalc();
+}
+async function paySave(){
+  const c = customers.find(x=>x.id===payEditId); if(!c) return;
+  const rows = payReadDraft().filter(e=>e.amount>0 || e.note);
+  if(rows.some(e=>!(e.amount>0))){ showToast('Each payment needs an amount'); return; }
+  if(rows.some(e=>!e.date)){ showToast('Each payment needs a date'); return; }
+  try{
+    const updated = await apiFetch(`/passengers/${payEditId}/payments`, { method:'PUT', body: JSON.stringify({ payments: rows.map(e=>({ id:e.id==='legacy'?'pay_'+Math.random().toString(36).slice(2,9):e.id, date:e.date, amount:e.amount, note:e.note })) }) });
+    const idx = customers.findIndex(x=>x.id===payEditId);
+    if(idx>-1) customers[idx] = updated;
+    showToast('Payments saved');
+  }catch(e){ showToast(e.message || 'Could not save the payments'); return; }
+  closeOverlay('overlay-payments'); render();
+}
+function bindPaymentEvents(root){
+  root.querySelectorAll('[data-pay-cust]').forEach(el=>el.addEventListener('click', ()=>openPayments(el.dataset.payCust)));
+}
+
 function customerModal(){
   const editing = editingCustomerId ? customers.find(c=>c.id===editingCustomerId) : null;
   const v = editing || {name:'',dob:'',phone:'',idNumber:'',medicalCondition:'',passportNumber:'',passportExpiry:'',amount:0,depositAmount:0,balancePaid:0,paymentStatus:'Pending',ticketPurchaser:'',ticketStatus:'Pending',airline:'',bookingReference:'',notes:''};
@@ -2747,7 +2858,7 @@ function customerModal(){
           <div class="field"><label>Deposit paid (RM)</label><input type="number" id="cu-deposit" min="0" step="0.01" value="${v.depositAmount||0}" oninput="recalcBalanceField()"></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Payment (RM)</label><input type="number" id="cu-payment" min="0" step="0.01" value="${v.balancePaid||0}" oninput="recalcBalanceField()"></div>
+          <div class="field"><label>Payment (RM)</label><input type="number" id="cu-payment" disabled value="${v.balancePaid||0}" style="opacity:0.65;"><div class="hint">Total of the payment history — add instalments with the 🧾 link in the passenger list${editing?'':' (after saving)'}.</div></div>
           <div class="field"><label>Balance (RM)</label><input type="number" id="cu-balance" disabled value="${balanceAmount.toFixed(2)}" style="opacity:0.65;"></div>
         </div>
         <div class="field">
@@ -3375,6 +3486,16 @@ function bindEvents(){
 
   const saveCustBtn = app.querySelector('[data-action="save-customer"]');
   if(saveCustBtn) saveCustBtn.addEventListener('click', handleSaveCustomer);
+  const payModal = document.getElementById('overlay-payments');
+  if(payModal){
+    payModal.addEventListener('click', e=>{
+      if(e.target.closest('[data-pay-add]')){ payDraft = payReadDraft(); payDraft.push({ id:'', date:todayYmd(), amount:0, note:'' }); payRefreshRows(); const ins=document.querySelectorAll('#pay-rows .pay-amt'); if(ins.length) ins[ins.length-1].focus(); return; }
+      const del = e.target.closest('[data-pay-del]');
+      if(del){ payDraft = payReadDraft(); payDraft.splice(Number(del.dataset.payDel),1); payRefreshRows(); return; }
+      if(e.target.closest('[data-pay-save]')) paySave();
+    });
+    document.querySelectorAll('#pay-rows tr').forEach((tr,i)=>{ if(payDraft[i] && payDraft[i].id) tr.dataset.payId = payDraft[i].id; });
+  }
   const delCustModalBtn = app.querySelector('[data-action="delete-customer-modal"]');
   if(delCustModalBtn) delCustModalBtn.addEventListener('click', ()=>handleDeleteCustomer(editingCustomerId, true));
 
@@ -3504,6 +3625,7 @@ function bindPassengerRowHandlers(container){
       render();
     });
   });
+  bindPaymentEvents(container);
   container.querySelectorAll('[data-edit-cust]').forEach(el=>{
     el.addEventListener('click', ()=>{ editingCustomerId = el.dataset.editCust; render(); openOverlay('overlay-customer'); });
   });
@@ -3605,10 +3727,10 @@ async function handleSaveCustomer(){
     passportExpiry: document.getElementById('cu-passport-expiry').value,
     amount: Number(document.getElementById('cu-amount').value)||0,
     depositAmount: Number(document.getElementById('cu-deposit').value)||0,
-    balancePaid: Number(document.getElementById('cu-payment').value)||0,
     paymentStatus: document.getElementById('cu-status').dataset.cancelled ? 'Cancelled' : payStatusFrom(Number(document.getElementById('cu-amount').value), Number(document.getElementById('cu-deposit').value), Number(document.getElementById('cu-payment').value)),
     notes: document.getElementById('cu-notes').value.trim()
   };
+  if(!editingCustomerId) payload.balancePaid = 0;   // payments are added through the payment history
   // Ticket fields only render in the modal once the trip is Approved+ —
   // guard each lookup so this doesn't break when they're absent.
   const ticketPurchaserEl = document.getElementById('cu-ticket-purchaser');
