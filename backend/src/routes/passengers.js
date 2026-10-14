@@ -144,18 +144,28 @@ const paymentsSchema = z.object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     amount: z.number().positive().max(100000000),
     note: z.string().max(300).optional().or(z.literal('')),
+    // payment = money received (counts towards Payment); refund = money returned and
+    // retained = kept by Excapism (e.g. a cancellation fee) — both only for cancelled passengers.
+    kind: z.enum(['payment', 'refund', 'retained']).default('payment'),
   })).max(200),
 });
 router.put('/passengers/:id/payments', asyncHandler(async (req, res) => {
   const { payments } = paymentsSchema.parse(req.body);
   const clean = payments
-    .map((e) => ({ id: e.id, date: e.date, amount: Math.round(e.amount * 100) / 100, note: e.note || '' }))
+    .map((e) => ({ id: e.id, date: e.date, amount: Math.round(e.amount * 100) / 100, note: e.note || '', kind: e.kind }))
     .sort((a, b) => a.date.localeCompare(b.date));
-  const total = Math.round(clean.reduce((n, e) => n + e.amount, 0) * 100) / 100;
-  const cur = await query('SELECT amount, deposit_amount, payment_status FROM passengers WHERE id = $1', [req.params.id]);
+  // Only received payments make up the passenger's "Payment" figure.
+  const total = Math.round(clean.filter((e) => e.kind === 'payment').reduce((n, e) => n + e.amount, 0) * 100) / 100;
+  const cur = await query(
+    `SELECT p.amount, p.deposit_amount, p.payment_status, t.status AS trip_status
+     FROM passengers p JOIN trips t ON t.id = p.trip_id WHERE p.id = $1`, [req.params.id]);
   if (!cur.rows[0]) return res.status(404).json({ error: 'Passenger not found' });
   const a = Number(cur.rows[0].amount), dep = Number(cur.rows[0].deposit_amount);
   let status = cur.rows[0].payment_status;
+  const tripCancelled = ['Cancelled', 'Declined'].includes(cur.rows[0].trip_status);
+  if (status !== 'Cancelled' && !tripCancelled && clean.some((e) => e.kind !== 'payment')) {
+    return res.status(400).json({ error: 'Refunds and retained amounts can only be recorded for a cancelled passenger or a cancelled trip' });
+  }
   if (status !== 'Cancelled') {
     status = (a > 0 && dep + total >= a) ? 'Paid' : (dep > 0 && total === 0) ? 'Deposit' : 'Pending';
   }
@@ -189,6 +199,14 @@ router.put('/passengers/:id/ticket-status', asyncHandler(async (req, res) => {
 // unlike trips, which stay admin-only. requireAuth (applied to the whole
 // router above) is the only gate needed here.
 router.delete('/passengers/:id', asyncHandler(async (req, res) => {
+  // A passenger with any money recorded can't be deleted — cancel them instead so
+  // the payment history (and any refund) stays on record.
+  const chk = await query('SELECT deposit_amount, balance_paid, payments FROM passengers WHERE id = $1', [req.params.id]);
+  if (!chk.rows[0]) return res.status(404).json({ error: 'Passenger not found' });
+  const r0 = chk.rows[0];
+  if (Number(r0.deposit_amount) > 0 || Number(r0.balance_paid) > 0 || (Array.isArray(r0.payments) && r0.payments.length)) {
+    return res.status(409).json({ error: 'This passenger has payments recorded. Cancel the passenger instead (the payment history stays on record).' });
+  }
   const { rows } = await query('DELETE FROM passengers WHERE id = $1 RETURNING *', [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: 'Passenger not found' });
   res.status(204).send();

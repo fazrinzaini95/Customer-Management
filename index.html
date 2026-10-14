@@ -428,6 +428,7 @@
   .cl-lrow.cl-flight input[data-lf="airline"],.cl-lrow.cl-flight input[data-lf="ref"]{flex:1 1 120px;}
   .cl-lrow label{display:flex;flex-direction:column;font-size:11px;color:var(--ink-soft);flex:1 1 150px;}
   .cl-x{border:0;background:none;color:var(--coral);cursor:pointer;font-size:15px;padding:4px 6px;}
+  .refund-due{margin-top:4px;font-size:11.5px;font-weight:700;color:var(--coral);white-space:nowrap;}
   .pay-link{background:none;border:0;padding:2px 0;font:inherit;font-size:12px;color:var(--navy);text-decoration:underline;cursor:pointer;white-space:nowrap;}
   .pay-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;}
   .pay-sum div{background:#F4F6F9;border-radius:10px;padding:8px 10px;}
@@ -792,8 +793,9 @@ async function demoFetchInner(path, options = {}){
   if((m=path.match(/^\/passengers\/([^/]+)\/payments$/)) && method==='PUT'){
     const u = requireAuthed();
     const c = state.passengers.find(x=>x.id===m[1]); if(!c) fail(404,'Passenger not found');
-    const list = (body.payments||[]).map(e=>({ id:e.id, date:e.date, amount:Math.round(Number(e.amount)*100)/100, note:e.note||'' })).sort((a,b)=>a.date.localeCompare(b.date));
-    const total = Math.round(list.reduce((n,e)=>n+e.amount,0)*100)/100;
+    const list = (body.payments||[]).map(e=>({ id:e.id, date:e.date, amount:Math.round(Number(e.amount)*100)/100, note:e.note||'', kind:e.kind||'payment' })).sort((a,b)=>a.date.localeCompare(b.date));
+    { const tr = state.trips.find(x=>x.id===c.tripId)||{}; if(c.paymentStatus!=='Cancelled' && !['Cancelled','Declined'].includes(tr.status) && list.some(e=>e.kind!=='payment')) fail(400,'Refunds and retained amounts can only be recorded for a cancelled passenger or a cancelled trip'); }
+    const total = Math.round(list.filter(e=>e.kind==='payment').reduce((n,e)=>n+e.amount,0)*100)/100;
     c.payments = list; c.balancePaid = total;
     if(c.paymentStatus!=='Cancelled') c.paymentStatus = payStatusFrom(c.amount, c.depositAmount, total);
     logDemoActivity(state, u, 'passenger.payments_updated', 'passenger', c.id, c.name, { entries:list.length, total });
@@ -821,6 +823,7 @@ async function demoFetchInner(path, options = {}){
   if((m=path.match(/^\/passengers\/([^/]+)$/)) && method==='DELETE'){
     const u = requireAuthed();
     const idx = state.passengers.findIndex(x=>x.id===m[1]); if(idx<0) fail(404,'Passenger not found');
+    { const pc = state.passengers[idx]; if((Number(pc.depositAmount)||0)>0 || (Number(pc.balancePaid)||0)>0 || (pc.payments||[]).length) fail(409,'This passenger has payments recorded. Cancel the passenger instead (the payment history stays on record).'); }
     const [removed] = state.passengers.splice(idx,1);
     logDemoActivity(state, u, 'passenger.deleted', 'passenger', removed.id, removed.name, { tripId:removed.tripId });
     persistDemo();
@@ -1238,7 +1241,7 @@ function tripMoney(t){
   const cs = custByTrip(t.id);
   let amount = 0, collected = 0, balance = 0;
   cs.forEach(c=>{ if(!paxCounted(c)) return; amount += Number(c.amount)||0; collected += paidOf(c); balance += paxBalance(c); });
-  return { pax: cs.length, amount, collected, balance };
+  return { pax: cs.filter(paxCounted).length, amount, collected, balance };
 }
 function fmtRM(n){ return 'RM ' + (Number(n)||0).toLocaleString('en-MY',{minimumFractionDigits:0,maximumFractionDigits:2}); }
 function fmtCompact(n){
@@ -1310,11 +1313,20 @@ function dashModel(){
   countedList.filter(ticketStageTrip).forEach(t=>custByTrip(t.id).forEach(c=>{
     if(c.ticketPurchaser && c.ticketStatus==='Pending' && c.paymentStatus!=='Cancelled'){ ticketPax++; ticketTrips.add(t.id); }
   }));
+  // Money held for cancelled passengers / cancelled trips (settled by recording a refund or a kept amount).
+  const refundRows = []; const rt = { paidIn:0, refunded:0, kept:0, held:0 };
+  list.forEach(t=>custByTrip(t.id).forEach(c=>{
+    if(!payIsCancelled(c)) return;
+    const fl = payFlows(c); if(fl.paidIn<=0) return;
+    rt.paidIn+=fl.paidIn; rt.refunded+=fl.refunded; rt.kept+=fl.kept; rt.held+=fl.held;
+    if(fl.held>0) refundRows.push({ c, t, ...fl });
+  }));
+  refundRows.sort((a,b)=>b.held-a.held);
   const due30 = upcoming.filter(t=>tripStartYmd(t)>=today && tripStartYmd(t)<=in30 && money(t).balance>0);
   const emptyTrips = upcoming.filter(t=>money(t).pax===0);
 
   return { f, today, in30, years, list, countedList, totals, activeCount, thisMonth, upcoming, awaiting,
-           yearly, buckets, statusRows, opsRows, typeRows, payRows, destinations, ticketPax, ticketTrips, due30, emptyTrips, money };
+           yearly, buckets, statusRows, opsRows, typeRows, payRows, destinations, ticketPax, ticketTrips, due30, emptyTrips, money, refundRows, refundTotals: rt };
 }
 
 function dashboardHTML(){
@@ -1377,6 +1389,24 @@ function dashboardHTML(){
     ${kpi('Total payment', fmtRM(t.collected), `${pctText(t.collected, t.amount)} of amount collected`, '', 'Paid = full amount; Deposit = deposit + payment')}
     ${kpi('Outstanding balance', fmtRM(t.balance), `${m.countedList.filter(x=>m.money(x).balance>0).length} trip(s) still owing`)}
   </div>`;
+
+  const rtot = m.refundTotals;
+  const row3 = `
+  <div class="dash-kpis">
+    ${m.refundRows.length
+      ? `<button class="stat-card is-link is-alert" onclick="var e=document.getElementById('dash-refunds');if(e)e.scrollIntoView({behavior:'smooth'})" title="Jump to the list of passengers with money still held"><div class="label">Refund due</div><div class="value">${fmtRM(rtot.held)}</div><div class="sub">${m.refundRows.length} passenger${m.refundRows.length===1?'':'s'} · click to see who</div></button>`
+      : kpi('Refund due', fmtRM(0), 'Nothing to settle', '', 'Money still held for cancelled passengers / trips that has not been refunded or marked as kept')}
+    ${kpi('Refunded', fmtRM(rtot.refunded), 'Returned to cancelled passengers', '', 'Refund lines recorded in payment histories')}
+    ${kpi('Kept', fmtRM(rtot.kept), 'Cancellation fees / non-refundable', '', 'Amounts marked Kept in payment histories')}
+  </div>`;
+  const refundPanel = m.refundRows.length ? `
+  <div class="panel" id="dash-refunds">
+    <div class="panel-head"><h3>Refunds to settle</h3><span class="dash-note" style="margin:0;">Money held for cancelled passengers / trips · click a row to open the trip</span></div>
+    <div style="overflow-x:auto;"><table class="dash-table">
+      <thead><tr><th>Passenger</th><th>Trip</th><th class="num">Paid in</th><th class="num">Refunded</th><th class="num">Kept</th><th class="num">Still held</th></tr></thead>
+      <tbody>${m.refundRows.map(r=>`<tr data-dash-open-trip="${esc(r.t.id)}"><td><b>${esc(r.c.name)}</b>${r.c.paymentStatus==='Cancelled'?'':'<div class="cust-sub">trip cancelled</div>'}</td><td><span style="font-family:var(--font-mono);font-size:12px;color:var(--navy);font-weight:600;">${esc(tripCode(r.t))}</span><div class="cust-sub">${esc(r.t.name)}</div></td><td class="num">${fmtRM(r.paidIn)}</td><td class="num">${fmtRM(r.refunded)}</td><td class="num">${fmtRM(r.kept)}</td><td class="num"><b style="color:var(--coral);">${fmtRM(r.held)}</b></td></tr>`).join('')}</tbody>
+    </table></div>
+  </div>` : '';
 
   // ---- Period chart / table ----
   const md = DASH_METRICS[dashMetric];
@@ -1479,10 +1509,12 @@ function dashboardHTML(){
   ${filters}
   ${row1}
   ${row2}
+  ${row3}
+  ${refundPanel}
   <div class="dash-grid2">${periodPanel}${yearlyPanel}</div>
   <div class="dash-grid2">${upcomingPanel}${attentionPanel}</div>
   <div class="dash-grid2">${breakdownPanel}${destPanel}</div>
-  <p class="dash-note">Year follows the trip code (the year of the start date). Passengers and money leave out Declined/Cancelled trips unless you filter to them, and use the same rules as each trip page: Paid = full amount, Deposit = deposit + payment. Balance = amount − payment.</p>`;
+  <p class="dash-note">Year follows the trip code (the year of the start date). Passengers and money leave out Declined/Cancelled trips and cancelled passengers (unless you filter to them); money still held for them shows under Refund due, and use the same rules as each trip page: Paid = full amount, Deposit = deposit + payment. Balance = amount − payment.</p>`;
 }
 
 function periodTableHTML(buckets, firstCol){
@@ -1818,7 +1850,7 @@ function listHTML(){
         <td><span class="cust-sub">${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}</span></td>
         <td>${stampHTML(t, 'style="display:inline-block;"')}</td>
         <td>${opsPillHTML(t, true) || '<span class="cust-sub">—</span>'}</td>
-        <td>${cs.length}</td>
+        <td>${tm.pax}</td>
         <td>${paid}</td>
         <td class="bal-cell"><b>${fmtRM(tm.balance)}</b><small>of ${fmtRM(tm.amount)}</small></td>
       </tr>`;
@@ -1853,7 +1885,7 @@ function listHTML(){
       </div>
       ${isSubmittedTrip(t) ? `<div class="pill-row">${opsPillHTML(t)}</div>` : ''}
       <div class="stub-meta">
-        <span><b>${cs.length}</b> pax</span>
+        <span><b>${tm.pax}</b> pax</span>
         <span><b>${paid}</b> paid</span>
         <span class="stub-bal" title="Balance still to collect (of ${esc(fmtRM(tm.amount))})"><b class="${tm.balance>0?'owing':''}">${fmtRM(tm.balance)}</b> balance</span>
       </div>
@@ -1932,7 +1964,7 @@ function passengerRowsHTML(t){
       <td>${(Number(c.depositAmount)||0)>0 ? fmtMoney(c.depositAmount) : '—'}</td>
       <td>${payCellHTML(c)}</td>
       <td>${fmtMoney(paxBalance(c))}</td>
-      <td><span class="badge ${paxStatus(c)}" title="Set automatically from Deposit paid, Payment and Balance">${paxStatus(c)}</span></td>
+      <td><span class="badge ${paxStatus(c)}" title="Set automatically from Deposit paid, Payment and Balance">${paxStatus(c)}</span>${refundDue(c)>0 ? `<div class="refund-due" title="Money still held for this cancelled passenger — record a refund or kept amount in 🧾">Refund due ${fmtMoney(refundDue(c))}</div>` : ''}</td>
       <td><span class="cust-sub">${c.picName ? esc(c.picName) : '—'}</span></td>
       ${showTicketCols ? `
       <td>${c.ticketPurchaser ? esc(c.ticketPurchaser) : '<span class="cust-sub">Not set</span>'}</td>
@@ -1996,11 +2028,12 @@ function detailHTML(){
   </div>
 
   <div class="stats-row">
-    <div class="stat-card"><div class="label">Passengers</div><div class="value">${cs.length}</div></div>
+    <div class="stat-card"><div class="label">Passengers</div><div class="value">${tm.pax}</div>${cs.length>tm.pax?`<div class="sub">+ ${cs.length-tm.pax} cancelled</div>`:''}</div>
     <div class="stat-card"><div class="label">Paid</div><div class="value">${paidCount}</div></div>
     <div class="stat-card"><div class="label">Expected total</div><div class="value">${fmtMoney(total)}</div></div>
     <div class="stat-card"><div class="label">Collected</div><div class="value">${fmtMoney(collected)}</div></div>
     <div class="stat-card"><div class="label">Balance</div><div class="value">${fmtMoney(tm.balance)}</div></div>
+    ${tripRefundDue(t)>0 ? `<div class="stat-card is-alert" title="Money held for cancelled passengers that hasn't been refunded or marked as kept"><div class="label">Refund due</div><div class="value">${fmtMoney(tripRefundDue(t))}</div></div>` : ''}
   </div>
 
   ${opsPanelHTML(t)}
@@ -2751,58 +2784,79 @@ function recalcBalanceField(){
 // pre-dates the history get an "Earlier payment" line for the difference.
 // ---------------------------------------------------------------
 let payEditId = null, payDraft = [];
+const PAY_KINDS = { payment:'Payment', refund:'Refund', retained:'Kept' };
+function payIsCancelled(c){ return !!c && (c.paymentStatus==='Cancelled' || isCancelledTrip(trips.find(t=>t.id===c.tripId) || {})); }
 function payLedger(c){
-  const list = (Array.isArray(c.payments) ? c.payments : []).map(e=>({ id:e.id, date:e.date, amount:Number(e.amount)||0, note:e.note||'' }));
-  const sum = list.reduce((n,e)=>n+e.amount,0), diff = Math.round(((Number(c.balancePaid)||0) - sum)*100)/100;
-  if(diff > 0.004) list.unshift({ id:'legacy', date:(c.addedAt||'').slice(0,10) || todayYmd(), amount:diff, note:'Earlier payment' });
+  const list = (Array.isArray(c.payments) ? c.payments : []).map(e=>({ id:e.id, date:e.date, amount:Number(e.amount)||0, note:e.note||'', kind:e.kind||'payment' }));
+  const sum = list.filter(e=>e.kind==='payment').reduce((n,e)=>n+e.amount,0), diff = Math.round(((Number(c.balancePaid)||0) - sum)*100)/100;
+  if(diff > 0.004) list.unshift({ id:'legacy', date:(c.addedAt||'').slice(0,10) || todayYmd(), amount:diff, note:'Earlier payment', kind:'payment' });
   return list.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
 }
+// Cancelled passengers: money in, money returned, money kept, and what is still held (refund due).
+function payFlows(c){
+  const led = payLedger(c), by = k => led.filter(e=>e.kind===k).reduce((n,e)=>n+e.amount,0);
+  const paidIn = (Number(c.depositAmount)||0) + by('payment'), refunded = by('refund'), kept = by('retained');
+  return { paidIn, refunded, kept, held: Math.round(Math.max(0, paidIn - refunded - kept)*100)/100 };
+}
+function refundDue(c){ return payIsCancelled(c) ? payFlows(c).held : 0; }
+function tripRefundDue(t){ return custByTrip(t.id).reduce((n,c)=>n+refundDue(c),0); }
 function payCellHTML(c){
-  const led = payLedger(c), last = led.length ? led[led.length-1].date : '';
-  return `<div>${fmtMoney(c.balancePaid)}</div><button type="button" class="pay-link" data-pay-cust="${esc(c.id)}" title="Payment history / instalments">🧾 ${led.length ? led.length + (led.length===1?' payment':' payments') : '+ Add payment'}</button>${last ? `<div class="cust-sub">last ${fmtDate(last)}</div>` : ''}`;
+  const led = payLedger(c), pays = led.filter(e=>e.kind==='payment'), last = pays.length ? pays[pays.length-1].date : '';
+  return `<div>${fmtMoney(c.balancePaid)}</div><button type="button" class="pay-link" data-pay-cust="${esc(c.id)}" title="Payment history / instalments${payIsCancelled(c)?' / refunds':''}">🧾 ${led.length ? led.length + (payIsCancelled(c) ? (led.length===1?' entry':' entries') : (led.length===1?' payment':' payments')) : '+ Add payment'}</button>${last ? `<div class="cust-sub">last ${fmtDate(last)}</div>` : ''}`;
 }
 function payRowHTML(e, i){
-  return `<tr data-pay-row="${i}"><td><input type="date" class="pay-date" value="${esc(e.date)}"></td><td><input type="number" class="pay-amt" min="0" step="0.01" value="${e.amount||''}" placeholder="0.00" oninput="payRecalc()"></td><td><input class="pay-note" value="${esc(e.note||'')}" placeholder="e.g. 2nd instalment, bank transfer"></td><td><button type="button" class="cl-x" data-pay-del="${i}" title="Remove">✕</button></td></tr>`;
+  const canc = payIsCancelled(customers.find(x=>x.id===payEditId));
+  const kindSel = canc ? `<td><select class="pay-kind" onchange="payRecalc()">${Object.entries(PAY_KINDS).map(([k,l])=>`<option value="${k}" ${e.kind===k?'selected':''}>${l}</option>`).join('')}</select></td>` : '';
+  return `<tr data-pay-row="${i}"><td><input type="date" class="pay-date" value="${esc(e.date)}"></td>${kindSel}<td><input type="number" class="pay-amt" min="0" step="0.01" value="${e.amount||''}" placeholder="0.00" oninput="payRecalc()"></td><td><input class="pay-note" value="${esc(e.note||'')}" placeholder="${canc?'e.g. refund via transfer, cancellation fee':'e.g. 2nd instalment, bank transfer'}"></td><td><button type="button" class="cl-x" data-pay-del="${i}" title="Remove">✕</button></td></tr>`;
 }
 function paymentsModal(){
   const c = payEditId ? customers.find(x=>x.id===payEditId) : null;
-  const dep = c ? (Number(c.depositAmount)||0) : 0;
-  return `<div class="overlay" id="overlay-payments"><div class="modal" style="max-width:640px;">
-    <div class="modal-head"><h3>Payments${c ? ' — ' + esc(c.name) : ''}</h3><button class="modal-close" data-close="overlay-payments">✕</button></div>
+  const dep = c ? (Number(c.depositAmount)||0) : 0, canc = payIsCancelled(c);
+  const summary = !c ? '' : canc
+    ? `<div class="pay-sum"><div><span>Paid in</span><b id="pay-in">RM 0.00</b></div><div><span>Refunded</span><b id="pay-refunded">RM 0.00</b></div><div><span>Kept</span><b id="pay-kept">RM 0.00</b></div><div><span>Still held</span><b id="pay-held">RM 0.00</b></div></div>
+       <p class="hint" style="margin:0 0 10px;">Cancelled passenger / trip. Record each <b>Refund</b> (money returned) or <b>Kept</b> amount (e.g. a cancellation fee) as you decide — anything left is shown as <b>Still held</b> until it's settled.</p>`
+    : `<div class="pay-sum"><div><span>Package</span><b>${fmtMoney(c.amount)}</b></div><div><span>Deposit</span><b>${fmtMoney(dep)}</b></div><div><span>Payments</span><b id="pay-total">RM 0.00</b></div><div><span>Balance</span><b id="pay-balance">RM 0.00</b></div></div><div class="pay-bar"><div id="pay-bar-fill"></div></div>`;
+  return `<div class="overlay" id="overlay-payments"><div class="modal" style="max-width:680px;">
+    <div class="modal-head"><h3>Payments${c ? ' — ' + esc(c.name) : ''}${canc ? ` <span class="badge Cancelled" style="vertical-align:middle;">${c.paymentStatus==='Cancelled' ? 'Cancelled' : 'Cancelled trip'}</span>` : ''}</h3><button class="modal-close" data-close="overlay-payments">✕</button></div>
     <div class="modal-body">
-      ${c ? `<div class="pay-sum">
-        <div><span>Package</span><b>${fmtMoney(c.amount)}</b></div>
-        <div><span>Deposit</span><b>${fmtMoney(dep)}</b></div>
-        <div><span>Payments</span><b id="pay-total">RM 0.00</b></div>
-        <div><span>Balance</span><b id="pay-balance">RM 0.00</b></div>
-      </div>
-      <div class="pay-bar"><div id="pay-bar-fill"></div></div>
-      <table class="pay-table"><thead><tr><th>Date</th><th>Amount (RM)</th><th>Note</th><th></th></tr></thead>
-        <tbody>${dep>0 ? `<tr class="pay-dep"><td>—</td><td>${fmtMoney(dep)}</td><td colspan="2">Deposit paid <span class="hint" style="margin:0;">(edit it in Edit passenger)</span></td></tr>` : ''}</tbody>
+      ${summary}
+      ${c ? `<table class="pay-table"><thead><tr><th>Date</th>${canc?'<th>Type</th>':''}<th>Amount (RM)</th><th>Note</th><th></th></tr></thead>
+        <tbody>${dep>0 ? `<tr class="pay-dep"><td>—</td>${canc?'<td>Deposit</td>':''}<td>${fmtMoney(dep)}</td><td colspan="2">Deposit paid <span class="hint" style="margin:0;">(edit it in Edit passenger)</span></td></tr>` : ''}</tbody>
         <tbody id="pay-rows">${payDraft.map(payRowHTML).join('')}</tbody></table>
-      <div style="margin-top:10px;"><button type="button" class="btn btn-ghost btn-sm" data-pay-add>+ Add payment</button></div>
-      <p class="hint" id="pay-warn" style="color:var(--coral);display:none;margin-top:8px;">These payments add up to more than the package amount.</p>` : ''}
+      <div style="margin-top:10px;"><button type="button" class="btn btn-ghost btn-sm" data-pay-add>+ Add ${canc?'entry':'payment'}</button></div>
+      <p class="hint" id="pay-warn" style="color:var(--coral);display:none;margin-top:8px;"></p>` : ''}
     </div>
     <div class="modal-foot"><span></span><div style="display:flex;gap:10px;">
       <button class="btn btn-ghost" data-close="overlay-payments">Cancel</button>
-      <button class="btn btn-primary" data-pay-save>Save payments</button></div></div>
+      <button class="btn btn-primary" data-pay-save>Save</button></div></div>
   </div></div>`;
 }
 function payReadDraft(){
   return [...document.querySelectorAll('#pay-rows tr')].map(tr=>({
     id: tr.dataset.payId || ('pay_'+Math.random().toString(36).slice(2,9)),
     date: tr.querySelector('.pay-date').value,
+    kind: tr.querySelector('.pay-kind') ? tr.querySelector('.pay-kind').value : 'payment',
     amount: Number(tr.querySelector('.pay-amt').value)||0,
     note: tr.querySelector('.pay-note').value.trim()
   }));
 }
 function payRecalc(){
   const c = customers.find(x=>x.id===payEditId); if(!c) return;
-  const sum = payReadDraft().reduce((n,e)=>n+e.amount,0), dep = Number(c.depositAmount)||0, amt = Number(c.amount)||0;
+  const rows = payReadDraft(), by = k => rows.filter(e=>e.kind===k).reduce((n,e)=>n+e.amount,0);
+  const dep = Number(c.depositAmount)||0, amt = Number(c.amount)||0;
   const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
-  set('pay-total', fmtMoney(sum)); set('pay-balance', fmtMoney(Math.max(0, amt-dep-sum)));
-  const fill = document.getElementById('pay-bar-fill'); if(fill) fill.style.width = (amt>0 ? Math.min(100,(dep+sum)/amt*100) : 0) + '%';
-  const w = document.getElementById('pay-warn'); if(w) w.style.display = (amt>0 && dep+sum>amt+0.004) ? 'block' : 'none';
+  const warn = document.getElementById('pay-warn'); let msg = '';
+  if(payIsCancelled(c)){
+    const paidIn = dep + by('payment'), ref = by('refund'), kept = by('retained'), held = paidIn - ref - kept;
+    set('pay-in', fmtMoney(paidIn)); set('pay-refunded', fmtMoney(ref)); set('pay-kept', fmtMoney(kept)); set('pay-held', fmtMoney(Math.max(0,held)));
+    if(held < -0.004) msg = 'Refunded + kept is more than was paid in.';
+  } else {
+    const sum = by('payment');
+    set('pay-total', fmtMoney(sum)); set('pay-balance', fmtMoney(Math.max(0, amt-dep-sum)));
+    const fill = document.getElementById('pay-bar-fill'); if(fill) fill.style.width = (amt>0 ? Math.min(100,(dep+sum)/amt*100) : 0) + '%';
+    if(amt>0 && dep+sum>amt+0.004) msg = 'These payments add up to more than the package amount.';
+  }
+  if(warn){ warn.textContent = msg; warn.style.display = msg ? 'block' : 'none'; }
 }
 function openPayments(id){
   const c = customers.find(x=>x.id===id); if(!c) return;
@@ -2817,15 +2871,33 @@ function payRefreshRows(){
 async function paySave(){
   const c = customers.find(x=>x.id===payEditId); if(!c) return;
   const rows = payReadDraft().filter(e=>e.amount>0 || e.note);
-  if(rows.some(e=>!(e.amount>0))){ showToast('Each payment needs an amount'); return; }
-  if(rows.some(e=>!e.date)){ showToast('Each payment needs a date'); return; }
+  if(rows.some(e=>!(e.amount>0))){ showToast('Each entry needs an amount'); return; }
+  if(rows.some(e=>!e.date)){ showToast('Each entry needs a date'); return; }
   try{
-    const updated = await apiFetch(`/passengers/${payEditId}/payments`, { method:'PUT', body: JSON.stringify({ payments: rows.map(e=>({ id:e.id==='legacy'?'pay_'+Math.random().toString(36).slice(2,9):e.id, date:e.date, amount:e.amount, note:e.note })) }) });
+    const updated = await apiFetch(`/passengers/${payEditId}/payments`, { method:'PUT', body: JSON.stringify({ payments: rows.map(e=>({ id:e.id==='legacy'?'pay_'+Math.random().toString(36).slice(2,9):e.id, date:e.date, amount:e.amount, note:e.note, kind:e.kind })) }) });
     const idx = customers.findIndex(x=>x.id===payEditId);
     if(idx>-1) customers[idx] = updated;
-    showToast('Payments saved');
-  }catch(e){ showToast(e.message || 'Could not save the payments'); return; }
+    showToast('Saved');
+  }catch(e){ showToast(e.message || 'Could not save'); return; }
   closeOverlay('overlay-payments'); render();
+}
+// Cancel / reinstate a passenger (keeps their payment history; refunds are recorded separately).
+async function toggleCancelCustomer(id){
+  const c = customers.find(x=>x.id===id); if(!c) return;
+  const cancelling = !payIsCancelled(c);
+  const hasMoney = (Number(c.depositAmount)||0) + (Number(c.balancePaid)||0) > 0;
+  const hasRefunds = payLedger(c).some(e=>e.kind!=='payment');
+  const msg = cancelling
+    ? (hasMoney ? 'Cancel this passenger? They will be left out of the trip totals, and the money they paid will show as "Still held" until you record a refund or kept amount in their payments.' : 'Cancel this passenger? They will be left out of the trip totals.')
+    : (hasRefunds ? 'Reinstate this passenger? Refund / kept entries are already recorded for them — they stay in their payment history. Continue?' : 'Reinstate this passenger?');
+  if(!confirm(msg)) return;
+  try{
+    const status = cancelling ? 'Cancelled' : payStatusFrom(c.amount, c.depositAmount, c.balancePaid);
+    const updated = await apiFetch(`/passengers/${id}/payment-status`, { method:'PUT', body: JSON.stringify({ paymentStatus: status }) });
+    const idx = customers.findIndex(x=>x.id===id); if(idx>-1) customers[idx] = { ...customers[idx], ...updated };
+    showToast(cancelling ? (hasMoney ? 'Passenger cancelled — record any refund in their payments (🧾)' : 'Passenger cancelled') : 'Passenger reinstated');
+  }catch(e){ showToast(e.message || 'Could not update the passenger'); return; }
+  closeOverlay('overlay-customer'); render();
 }
 function bindPaymentEvents(root){
   root.querySelectorAll('[data-pay-cust]').forEach(el=>el.addEventListener('click', ()=>openPayments(el.dataset.payCust)));
@@ -2890,7 +2962,7 @@ function customerModal(){
         <div class="field" style="margin-top:14px;"><label>Notes</label><textarea id="cu-notes" rows="2">${esc(v.notes)}</textarea></div>
       </div>
       <div class="modal-foot">
-        <div>${editing ? `<button class="btn btn-sm btn-danger" data-action="delete-customer-modal">Remove passenger</button>` : '<span></span>'}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">${editing ? `<button class="btn btn-sm btn-ghost" data-action="toggle-cancel-customer">${v.paymentStatus==='Cancelled' ? 'Reinstate passenger' : 'Cancel passenger'}</button><button class="btn btn-sm btn-danger" data-action="delete-customer-modal">Remove passenger</button>` : '<span></span>'}</div>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-ghost" data-close="overlay-customer">Cancel</button>
           <button class="btn btn-primary" data-action="save-customer">${editing ? 'Save changes' : 'Add passenger'}</button>
@@ -3021,6 +3093,9 @@ function exportTripToExcel(tripId){
     'Deposit Paid (RM)': Number(c.depositAmount)||0,
     'Payment (RM)': Number(c.balancePaid)||0,
     'Balance (RM)': paxBalance(c),
+    'Refunded (RM)': payFlows(c).refunded,
+    'Kept (RM)': payFlows(c).kept,
+    'Refund Due (RM)': refundDue(c),
     'Ticket Purchased By': c.ticketPurchaser || '',
     'Ticket Status': c.ticketStatus || 'Pending',
     'Airline': c.airline || '',
@@ -3496,6 +3571,8 @@ function bindEvents(){
     });
     document.querySelectorAll('#pay-rows tr').forEach((tr,i)=>{ if(payDraft[i] && payDraft[i].id) tr.dataset.payId = payDraft[i].id; });
   }
+  const togCancelBtn = app.querySelector('[data-action="toggle-cancel-customer"]');
+  if(togCancelBtn) togCancelBtn.addEventListener('click', ()=>toggleCancelCustomer(editingCustomerId));
   const delCustModalBtn = app.querySelector('[data-action="delete-customer-modal"]');
   if(delCustModalBtn) delCustModalBtn.addEventListener('click', ()=>handleDeleteCustomer(editingCustomerId, true));
 
@@ -3767,6 +3844,11 @@ async function handleSaveCustomer(){
 
 async function handleDeleteCustomer(id, fromModal){
   if(!id) return;
+  const pc = customers.find(x=>x.id===id);
+  if(pc && ((Number(pc.depositAmount)||0) > 0 || (Number(pc.balancePaid)||0) > 0 || (pc.payments||[]).length)){
+    alert('This passenger has payments recorded, so they can\'t be removed.\n\nUse "Cancel passenger" instead — their payment history stays on record and any refund can be tracked.');
+    return;
+  }
   if(!confirm('Remove this passenger from the trip?')) return;
   try{
     const c = customers.find(x=>x.id===id);
