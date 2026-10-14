@@ -389,53 +389,102 @@
   .ops-arrow{color:var(--ink-soft);}
   .ops-step.auto{cursor:default;}
   .ops-hold-note{margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(107,74,154,0.08);border-left:4px solid #6B4A9A;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;font-size:13.5px;}
-  .cl-filter{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:10px;font-size:12px;color:var(--ink-soft);}
-  .cl-filter label{display:flex;flex-direction:column;gap:2px;}
-  .cl-filter .cl-in{width:auto;}
-  .cl-bulk label{display:flex;flex-direction:column;gap:2px;font-size:11.5px;color:var(--ink-soft);}
-  .cl-sortable{cursor:pointer;user-select:none;}
-  .cl-sortable:hover{color:var(--navy);}
-  .cl-table tr.cl-grp td{background:#EAF0F6;font-size:13px;color:var(--navy);position:sticky;}
-  .cl-gcount{font-weight:500;color:var(--ink-soft);margin-left:8px;font-size:12px;}
-  .cl-table td.cl-opt input{opacity:.45;}
-  .cl-table thead small{font-weight:500;text-transform:none;}
-  .cl-wrap{border-top:1px solid var(--line);padding:12px 20px 14px;}
+  /* ---------- Operations checklist ---------- */
+  .cl-wrap{border-top:1px solid var(--line);padding:14px 20px 18px;}
   .cl-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;}
-  .cl-toggle{background:none;border:0;font:inherit;font-weight:700;color:var(--navy);cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:8px;font-size:15px;}
+  .cl-toggle{background:none;border:0;font:inherit;font-weight:700;color:var(--navy);cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:10px;font-size:15px;}
   .cl-caret{display:inline-block;width:14px;}
-  .cl-prog{font-weight:600;font-size:12.5px;color:var(--ink-soft);background:rgba(15,44,76,0.07);border-radius:999px;padding:3px 10px;}
+  .cl-prog{font-weight:600;font-size:12.5px;color:var(--ink-soft);}
+  .cl-meter{display:inline-block;width:90px;height:6px;border-radius:99px;background:rgba(15,44,76,0.10);overflow:hidden;}
+  .cl-meter i{display:block;height:100%;background:var(--green);border-radius:99px;transition:width .25s;}
   .cl-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-  .cl-tools .seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;}
-  .cl-tools .seg button{border:0;background:#fff;padding:6px 12px;font:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
-  .cl-tools .seg button.on{background:var(--navy);color:#fff;}
   .btn-sm{padding:6px 12px;font-size:13px;}
   .cl-wrap.full{position:fixed;inset:0;z-index:950;background:#fff;overflow:auto;padding:16px 22px;border:0;display:flex;flex-direction:column;}
   .cl-wrap.full .cl-scroll{max-height:none;flex:1;}
-  .cl-scroll{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px;margin-top:10px;}
-  .cl-table{border-collapse:separate;border-spacing:0;width:100%;font-size:13px;}
-  .cl-table th,.cl-table td{padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left;vertical-align:middle;background:#fff;}
-  .cl-table thead th{position:sticky;top:0;z-index:2;background:#F4F6F9;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;}
-  .cl-table thead tr.cl-group th{text-align:center;color:var(--navy);border-left:1px solid var(--line);top:0;}
-  .cl-table thead tr:nth-child(2) th{top:31px;}
-  .cl-table .cl-sel{position:sticky;left:0;z-index:1;width:34px;text-align:center;}
-  .cl-table .cl-name{position:sticky;left:34px;z-index:1;font-weight:600;border-right:1px solid var(--line);}
-  .cl-table thead .cl-sel,.cl-table thead .cl-name{z-index:3;}
-  .cl-table .cl-tick{text-align:center;}
-  .cl-table .cl-tick input,.cl-table .cl-sel input{width:18px;height:18px;cursor:pointer;accent-color:var(--green);}
-  .cl-table thead .cl-tick label{display:block;line-height:1.5;}
-  .cl-table .cl-n{color:var(--ink-soft);font-weight:600;}
-  .cl-table tr.cl-complete td{background:rgba(46,139,87,0.08);}
-  .cl-table .cl-ro{color:var(--ink);}
-  .cl-dash{color:var(--ink-soft);opacity:.5;}
-  .cl-in{font:inherit;font-size:13px;padding:5px 8px;border:1.5px solid var(--line);border-radius:8px;background:#fff;width:100%;box-sizing:border-box;}
-  .cl-in:disabled{background:#F4F6F9;}
-  .cl-bulk{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:10px;padding:8px 12px;background:#F4F6F9;border-radius:10px;font-size:13px;}
-  .cl-bulk select{font:inherit;font-size:13px;padding:4px 6px;border-radius:8px;border:1.5px solid var(--line);max-width:210px;}
-  .cl-setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:10px;}
-  .cl-card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;}
+  /* filter bar */
+  .cl-filter{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;font-size:13px;color:var(--ink-soft);}
+  .cl-filter .cl-search{width:230px;max-width:100%;}
+  .cl-seg{display:inline-flex;background:#EEF1F5;border-radius:10px;padding:3px;}
+  .cl-seg button{border:0;background:none;padding:5px 12px;border-radius:8px;font:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
+  .cl-seg button.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(15,44,76,.15);}
+  .cl-grpby{display:inline-flex;align-items:center;gap:6px;}
+  .cl-grpby select{width:auto;}
+  .cl-badge{display:inline-block;min-width:17px;padding:0 5px;border-radius:99px;background:var(--navy);color:#fff;font-size:11px;line-height:17px;text-align:center;}
+  .cl-link{border:0;background:none;color:var(--coral);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:4px 2px;}
+  .cl-more{display:none;gap:12px;flex-wrap:wrap;margin-top:10px;padding:10px 12px;background:#F6F8FB;border-radius:10px;font-size:12px;color:var(--ink-soft);}
+  .cl-more.open{display:flex;}
+  .cl-more label{display:flex;flex-direction:column;gap:3px;min-width:170px;flex:1 1 170px;}
+  .cl-tip{margin:10px 0 0;font-size:12.5px;color:var(--ink-soft);}
+  /* table */
+  .cl-scroll{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:12px;margin-top:12px;background:#fff;}
+  .cl-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;min-width:1000px;}
+  .cl-table th,.cl-table td{padding:4px 8px;border-bottom:1px solid rgba(15,44,76,0.07);text-align:left;vertical-align:middle;background:#fff;}
+  .cl-table tbody tr:last-child td{border-bottom:0;}
+  .cl-table thead th{position:sticky;top:0;z-index:2;background:#F8FAFC;font-size:12.5px;font-weight:600;color:var(--ink-soft);border-bottom:1px solid var(--line);vertical-align:middle;}
+  .cl-table thead th{text-transform:none;letter-spacing:0;}
+  .cl-sec-h{white-space:nowrap;}
+  select.cl-in.is-empty{color:#9AA7B4;}
+  .cl-sec-t{color:var(--navy);font-weight:700;}
+  .cl-hint-s{margin-left:6px;font-weight:500;font-size:11.5px;color:var(--ink-soft);}
+  .cl-allchk{float:right;margin-left:8px;}
+  .cl-sortable{cursor:pointer;user-select:none;}
+  .cl-sortable:hover{color:var(--navy);}
+  .cl-arrow{font-size:9px;margin-left:4px;color:var(--navy);}
+  .cl-table .cl-sel{position:sticky;left:0;z-index:1;width:40px;text-align:center;vertical-align:middle;}
+  .cl-table thead .cl-sel{z-index:3;}
+  .cl-table .cl-name{min-width:120px;white-space:nowrap;}
+  .cl-nm{font-weight:600;color:var(--ink);}
+  .cl-n{font-size:11px;font-weight:600;color:var(--ink-soft);margin-left:4px;white-space:nowrap;}
+  .cl-n.ok{color:var(--green);}
+  .cl-table tbody tr:hover td{background:#FAFBFD;}
+  .cl-table tbody tr.cl-picked td{background:rgba(244,185,60,0.10);}
+  .cl-table tr.cl-complete td:first-child{box-shadow:inset 3px 0 0 var(--green);}
+  .cl-table tr.cl-grp td{background:#F1F5F9;font-size:13px;color:var(--navy);padding:8px 12px;vertical-align:middle;}
+  .cl-gcount{font-weight:500;color:var(--ink-soft);margin-left:10px;font-size:12px;}
+  /* a section cell: fields on the left, one tick on the right */
+  .cl-cell{display:flex;gap:6px;align-items:center;}
+  .cl-fields{flex:1;min-width:0;display:flex;flex-direction:row;gap:4px;align-items:center;}
+  .cl-fields .cl-in{flex:1 1 0;min-width:0;}
+  .cl-fields select.cl-in{flex:1.6 1 0;}
+  .cl-fields .w-type{flex:.9 1 0;}.cl-fields .w-room{flex:.7 1 0;}
+  .cl-pair{display:flex;gap:5px;}
+  .cl-pair .cl-in{min-width:0;}
+  .cl-pair .cl-in:first-child{flex:1.3;}
+  .cl-pair .cl-in:last-child{flex:1;}
+  .cl-sub{font-size:11.5px;color:var(--ink-soft);padding:0 2px;}
+  .cl-sec{min-width:150px;}
+  .cl-sec.is-done .cl-in{color:var(--ink-soft);}
+  .cl-table td.cl-opt .cl-chk{opacity:.4;}
+  /* inputs: quiet until you hover / focus */
+  .cl-in{font:inherit;font-size:12.5px;padding:3px 7px;border:1px solid transparent;border-radius:6px;background:#F3F5F9;width:100%;box-sizing:border-box;color:var(--ink);text-overflow:ellipsis;}
+  .cl-in::placeholder{color:#9AA7B4;}
+  .cl-in:hover{border-color:var(--line);}
+  .cl-in:focus{outline:0;background:#fff;border-color:var(--navy);box-shadow:0 0 0 3px rgba(15,44,76,0.10);}
+  .cl-in:disabled{background:transparent;color:var(--ink);-webkit-appearance:none;appearance:none;}
+  select.cl-in{cursor:pointer;}
+  /* round tick */
+  .cl-chk{-webkit-appearance:none;appearance:none;width:20px;height:20px;margin:0;border:2px solid #C3CCD6;border-radius:50%;background:#fff;cursor:pointer;flex:none;display:inline-block;vertical-align:middle;transition:background .15s,border-color .15s;}
+  .cl-chk:hover{border-color:var(--green);}
+  .cl-chk:checked{background:var(--green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-6.5' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/70% no-repeat;border-color:var(--green);}
+  .cl-chk.sm{width:18px;height:18px;border-width:1.5px;margin:0;}
+  .cl-chk:disabled{cursor:default;}
+  .cl-box{width:17px;height:17px;accent-color:var(--navy);cursor:pointer;margin:0;}
+  .cl-empty{margin-top:12px;padding:26px 12px;text-align:center;color:var(--ink-soft);border:1px dashed var(--line);border-radius:12px;font-size:13.5px;}
+  /* floating assign bar */
+  .cl-bulkbar{display:none;position:sticky;bottom:14px;z-index:5;margin-top:14px;background:var(--navy);color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 10px 30px rgba(8,26,46,.35);}
+  .cl-bulkbar.show{display:block;}
+  .cl-bk-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:14px;}
+  .cl-bk-clear{border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:8px;padding:4px 10px;font:inherit;font-size:12.5px;cursor:pointer;}
+  .cl-bk-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;}
+  .cl-bk-lab{font-size:12px;opacity:.7;width:48px;}
+  .cl-bulkbar select,.cl-bulkbar input{font:inherit;font-size:13px;padding:6px 9px;border-radius:8px;border:0;background:#fff;color:var(--ink);min-width:0;flex:1 1 130px;max-width:220px;}
+  .cl-bk-apply{border:0;background:var(--gold);color:var(--navy-deep);font:inherit;font-weight:700;font-size:13px;padding:7px 18px;border-radius:8px;cursor:pointer;}
+  /* hotels & flights setup */
+  .cl-setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px;}
+  .cl-card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#FAFBFD;}
   .cl-card h4{margin:0 0 8px;font-size:13px;color:var(--navy);}
   .cl-lrow{display:flex;gap:6px;align-items:flex-end;margin-bottom:8px;}
-  .cl-lrow input{font:inherit;font-size:13px;padding:5px 8px;border:1.5px solid var(--line);border-radius:8px;min-width:0;flex:1;box-sizing:border-box;}
+  .cl-lrow input{font:inherit;font-size:13px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;min-width:0;flex:1;box-sizing:border-box;background:#fff;}
   .cl-lrow.cl-flight{flex-wrap:wrap;border-bottom:1px dashed var(--line);padding-bottom:8px;}
   .cl-lrow.cl-flight input[data-lf="airline"],.cl-lrow.cl-flight input[data-lf="ref"]{flex:1 1 120px;}
   .cl-lrow label{display:flex;flex-direction:column;font-size:11px;color:var(--ink-soft);flex:1 1 150px;}
@@ -2514,7 +2563,7 @@ function opsPillHTML(t, bare){
 // assigned to passengers; room details, luggage and notes are per passenger.
 // Stored on the trip as `opsChecklist` and saved through a debounced PATCH.
 // ---------------------------------------------------------------
-let clOpen=false, clDetail=false, clFull=false, clSetup=false;
+let clOpen=false, clFull=false, clSetup=false, clMore=false;
 const clSel = new Set();
 let clFilter = { q:'', hotel:'', to:'', ret:'', prog:'' }, clSort = { key:'', dir:1 }, clGroup = '', clTripId = null;
 const clLastOps = {};
@@ -2572,6 +2621,7 @@ function clQueueList(t, key){
   clQueue(t.id, { lists: { [key]: d[key].map(x=>({ ...x })) } });
 }
 function clHotelLabel(h){ return h.name || '(unnamed hotel)'; }
+function clFlightShort(f){ return [f.airline || '(airline)', f.ref].filter(Boolean).join(' · '); }
 function clFlightLabel(f){ return [f.airline || '(airline)', f.ref].filter(Boolean).join(' · ') + (f.departure ? ' · ' + clFmtDT(f.departure) : ''); }
 
 function clSetupHTML(t){
@@ -2651,98 +2701,103 @@ function clSelectedVisible(t){ return clVisible(t).rows.filter(c=>clSel.has(c.id
 
 function clTableHTML(t){
   const { rows, groups, I } = clVisible(t), d = I.d, all = clPaxList(t), can = isApproverOrAdmin(), dis = can ? '' : 'disabled';
-  if(!all.length) return '<p class="hint" style="margin:8px 0;">No passengers yet — add passengers first, then they appear here.</p>';
-  if(!rows.length) return '<p class="hint" style="margin:10px 0;">No passengers match the filters.</p>';
-  const opts = (arr, sel, lab) => '<option value="">—</option>' + arr.map(x=>`<option value="${esc(x.id)}" ${x.id===sel?'selected':''}>${esc(lab(x))}</option>`).join('');
+  if(!all.length) return '<div class="cl-empty">No passengers yet — add passengers first, then they appear here.</div>';
+  if(!rows.length) return '<div class="cl-empty">No passengers match the filters.<br><button type="button" class="btn btn-ghost btn-sm" data-cl-reset style="margin-top:8px;">Clear filters</button></div>';
+  const opts = (arr, sel, lab) => '<option value="">Not assigned</option>' + arr.map(x=>`<option value="${esc(x.id)}" ${x.id===sel?'selected':''}>${esc(lab(x))}</option>`).join('');
   const allDone = k => rows.every(c=>(d.pax[c.id]||{})[k]);
-  const sortTh = (key, label, cls) => `<th class="cl-sortable ${cls||''}" data-cl-sort="${key}" title="Click to sort">${label}${clSort.key===key ? (clSort.dir>0?' ▲':' ▼') : ''}</th>`;
-  const tickHead = (k,label) => `<th class="cl-tick"><label title="Tick / untick everyone shown">${label}<br><input type="checkbox" data-cl-colall="${k}" ${allDone(k)?'checked':''} ${dis}></label></th>`;
-  const tick = (k,c,r) => { const optional = k==='addonsDone' && !String(r.addons||'').trim();
-    return `<td class="cl-tick ${optional?'cl-opt':''}" ${optional?'title="Optional — only needed when there is a note"':''}><input type="checkbox" data-cl-done="${k}" data-pid="${esc(c.id)}" ${r[k]?'checked':''} ${dis} aria-label="${k} ${esc(c.name)}"></td>`; };
-  const txt = (f,c,r,ph,w) => `<td><input class="cl-in" style="min-width:${w||90}px" data-cl-field="${f}" data-pid="${esc(c.id)}" value="${esc(r[f]||'')}" placeholder="${ph||''}" ${dis}></td>`;
-  const sel = (f,c,r,arr,lab) => `<td><select class="cl-in" style="min-width:150px" data-cl-field="${f}" data-pid="${esc(c.id)}" ${dis}>${opts(arr,r[f],lab)}</select></td>`;
-  const ro = v => `<td class="cl-ro">${v ? esc(v) : '<span class="cl-dash">—</span>'}</td>`;
+  const sortTh = (key, label, cls) => `<th class="cl-sortable ${cls||''}" data-cl-sort="${key}" title="Click to sort">${label}<span class="cl-arrow">${clSort.key===key ? (clSort.dir>0?'▲':'▼') : ''}</span></th>`;
+  const secHead = (k, label, sortKey, hint) => `<th class="cl-sec-h"><span class="cl-sec-t ${sortKey?'cl-sortable':''}" ${sortKey?`data-cl-sort="${sortKey}" title="Click to sort"`:''}>${label}<span class="cl-arrow">${sortKey && clSort.key===sortKey ? (clSort.dir>0?'▲':'▼') : ''}</span></span>${hint?`<span class="cl-hint-s">${hint}</span>`:''}<label class="cl-allchk" title="Mark everyone shown as done"><input type="checkbox" class="cl-chk sm" data-cl-colall="${k}" ${allDone(k)?'checked':''} ${dis} aria-label="Mark all ${label} done"></label></th>`;
+  const chk = (k,c,r) => `<input type="checkbox" class="cl-chk" data-cl-done="${k}" data-pid="${esc(c.id)}" ${r[k]?'checked':''} ${dis} title="${r[k]?'Done':'Mark as done'}" aria-label="${k} ${esc(c.name)}">`;
+  const optTd = (k,c,r,inner) => { const optional = k==='addonsDone' && !String(r.addons||'').trim();
+    return `<td class="cl-sec ${r[k]?'is-done':''} ${optional?'cl-opt':''}"><div class="cl-cell"><div class="cl-fields">${inner}</div>${chk(k,c,r)}</div></td>`; };
+  const inp = (f,c,r,ph,extra) => { const m = /class-x="([^"]+)"/.exec(extra||''); extra = (extra||'').replace(/class-x="[^"]+"/,''); return `<input class="cl-in ${m?m[1]:''}" ${extra||''} data-cl-field="${f}" data-pid="${esc(c.id)}" value="${esc(r[f]||'')}" placeholder="${ph||''}" aria-label="${ph||f}" ${dis}>`; };
+  const sel = (f,c,r,arr,lab,item) => `<select class="cl-in ${r[f]?'':'is-empty'}" ${item&&(item.departure||item.arrival)?`title="${esc(clFlightLabel(item))}${item.arrival?' → '+esc(clFmtDT(item.arrival)):''}"`:''} data-cl-field="${f}" data-pid="${esc(c.id)}" ${dis}>${opts(arr,r[f],lab)}</select>`;
   const selCount = rows.filter(c=>clSel.has(c.id)).length;
-  const selAll = `<th class="cl-sel"><input type="checkbox" data-cl-selall ${selCount===rows.length?'checked':''} ${can?'':'disabled'} aria-label="Select all shown"></th>`;
-  const cols = clDetail ? 22 : 7;
-  let head;
-  if(!clDetail){
-    head = `<tr>${selAll}${sortTh('name','Passenger','cl-name')}${tickHead('hotelDone','🏨 Accommodation')}${tickHead('toDone','✈ Flight to')}${tickHead('retDone','✈ Flight return')}${tickHead('addonsDone','＋ Add-ons<br><small>(optional)</small>')}${sortTh('prog','Done')}</tr>`;
-  } else {
-    head = `<tr class="cl-group"><th class="cl-sel"></th><th class="cl-name"></th><th colspan="4">Accommodation</th><th colspan="7">Flight to</th><th colspan="7">Flight return</th><th colspan="2">Add-ons</th></tr>
-      <tr>${selAll}${sortTh('name','Passenger','cl-name')}
-      ${sortTh('hotel','Hotel')}<th>Room type</th>${sortTh('room','Room no.')}${tickHead('hotelDone','Done')}
-      ${sortTh('to','Flight')}<th>Airline</th><th>Ref</th><th>Departure</th><th>Arrival</th><th>Luggage</th>${tickHead('toDone','Done')}
-      ${sortTh('ret','Flight')}<th>Airline</th><th>Ref</th><th>Departure</th><th>Arrival</th><th>Luggage</th>${tickHead('retDone','Done')}
-      <th>Note</th>${tickHead('addonsDone','Done')}</tr>`;
-  }
+  const selAll = `<th class="cl-sel"><input type="checkbox" class="cl-box" data-cl-selall ${selCount===rows.length?'checked':''} ${can?'':'disabled'} aria-label="Select all shown" title="Select everyone shown"></th>`;
+  const head = `<tr>${selAll}${sortTh('name','Passenger','cl-name')}${secHead('hotelDone','Stay','hotel')}${secHead('toDone','Flight to','to')}${secHead('retDone','Flight return','ret')}${secHead('addonsDone','Add-ons','', 'optional')}</tr>`;
+  const flightSub = f => { if(!f || !(f.departure || f.arrival)) return '';
+    const dep = clFmtDT(f.departure), same = f.departure && f.arrival && String(f.departure).slice(0,10)===String(f.arrival).slice(0,10);
+    const arr = f.arrival ? (same ? new Date(f.arrival).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false}) : clFmtDT(f.arrival)) : '';
+    return `<div class="cl-sub">${dep || '?'}${arr ? ' → ' + arr : ''}</div>`; };
   const rowHTML = c => { const r = d.pax[c.id] || {}, keys = clReqKeys(r), n = keys.filter(k=>r[k]).length, comp = n===keys.length;
-    const selTd = `<td class="cl-sel"><input type="checkbox" data-cl-sel="${esc(c.id)}" ${clSel.has(c.id)?'checked':''} ${can?'':'disabled'}></td>`;
-    if(!clDetail) return `<tr class="${comp?'cl-complete':''}">${selTd}<td class="cl-name">${esc(c.name)}</td>${tick('hotelDone',c,r)}${tick('toDone',c,r)}${tick('retDone',c,r)}${tick('addonsDone',c,r)}<td class="cl-n">${n}/${keys.length}</td></tr>`;
-    const to = I.fTo(r.toId) || {}, rt = I.fRet(r.retId) || {};
-    return `<tr class="${comp?'cl-complete':''}">${selTd}<td class="cl-name">${esc(c.name)}</td>
-      ${sel('hotelId',c,r,d.hotels,clHotelLabel)}<td><input class="cl-in" style="min-width:110px" list="cl-roomtypes" data-cl-field="roomType" data-pid="${esc(c.id)}" value="${esc(r.roomType||'')}" ${dis}></td>${txt('roomNumber',c,r,'',70)}${tick('hotelDone',c,r)}
-      ${sel('toId',c,r,d.flightsTo,clFlightLabel)}${ro(to.airline)}${ro(to.ref)}${ro(clFmtDT(to.departure))}${ro(clFmtDT(to.arrival))}${txt('toLuggage',c,r,'e.g. 20kg',80)}${tick('toDone',c,r)}
-      ${sel('retId',c,r,d.flightsReturn,clFlightLabel)}${ro(rt.airline)}${ro(rt.ref)}${ro(clFmtDT(rt.departure))}${ro(clFmtDT(rt.arrival))}${txt('retLuggage',c,r,'e.g. 20kg',80)}${tick('retDone',c,r)}
-      ${txt('addons',c,r,'Free text note (optional)',220)}${tick('addonsDone',c,r)}</tr>`; };
+    const to = I.fTo(r.toId), rt = I.fRet(r.retId);
+    const selTd = `<td class="cl-sel"><input type="checkbox" class="cl-box" data-cl-sel="${esc(c.id)}" ${clSel.has(c.id)?'checked':''} ${can?'':'disabled'} aria-label="Select ${esc(c.name)}"></td>`;
+    return `<tr class="${comp?'cl-complete':''} ${clSel.has(c.id)?'cl-picked':''}">${selTd}
+      <td class="cl-name"><span class="cl-nm">${esc(c.name)}</span> <span class="cl-n ${comp?'ok':''}">${comp?'✓ ':''}${n}/${keys.length}</span></td>
+      ${optTd('hotelDone',c,r, sel('hotelId',c,r,d.hotels,clHotelLabel) + inp('roomType',c,r,'Type','list="cl-roomtypes" class-x="w-type"') + inp('roomNumber',c,r,'Room','class-x="w-room"'))}
+      ${optTd('toDone',c,r, sel('toId',c,r,d.flightsTo,clFlightShort,to) + inp('toLuggage',c,r,'Luggage'))}
+      ${optTd('retDone',c,r, sel('retId',c,r,d.flightsReturn,clFlightShort,rt) + inp('retLuggage',c,r,'Luggage'))}
+      ${optTd('addonsDone',c,r, inp('addons',c,r,'Note (optional)'))}</tr>`; };
   let body;
   if(groups){
     body = groups.map(g=>{
       const ids = g.list.map(c=>c.id), allSel = ids.every(id=>clSel.has(id));
       const doneN = g.list.filter(c=>clPaxComplete(d.pax[c.id])).length;
-      return `<tr class="cl-grp"><td class="cl-sel"><input type="checkbox" data-cl-selgrp="${esc(ids.join(','))}" ${allSel?'checked':''} ${can?'':'disabled'} title="Select this group"></td><td colspan="${cols-1}"><b>${esc(g.name)}</b> <span class="cl-gcount">${g.list.length} pax · ${doneN} complete</span></td></tr>` + g.list.map(rowHTML).join('');
+      return `<tr class="cl-grp"><td class="cl-sel"><input type="checkbox" class="cl-box" data-cl-selgrp="${esc(ids.join(','))}" ${allSel?'checked':''} ${can?'':'disabled'} title="Select this group"></td><td colspan="5"><b>${esc(g.name)}</b><span class="cl-gcount">${g.list.length} pax · ${doneN} complete</span></td></tr>` + g.list.map(rowHTML).join('');
     }).join('');
   } else body = rows.map(rowHTML).join('');
-  return `<div class="cl-scroll"><table class="cl-table ${clDetail?'detail':''}"><thead>${head}</thead><tbody>${body}</tbody></table></div>
+  return `<div class="cl-scroll"><table class="cl-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>
     <datalist id="cl-roomtypes"><option>Single</option><option>Twin</option><option>Double</option><option>Triple</option><option>Family</option></datalist>`;
 }
 
-// Filter / group bar and the "assign to selected" bar. Kept apart from the table so typing here isn't interrupted.
+// Search / quick filter / group bar. Kept apart from the table so typing here isn't interrupted.
+function clFilterActive(){ return !!(clFilter.q || clFilter.hotel || clFilter.to || clFilter.ret || clFilter.prog || clSort.key || clGroup); }
 function clControlsHTML(t){
-  const d = clDoc(t), can = isApproverOrAdmin();
-  const selOpt = (arr, cur, lab, noneLabel) => `<option value="">All</option><option value="_none" ${cur==='_none'?'selected':''}>${noneLabel}</option>` + arr.map(x=>`<option value="${esc(x.id)}" ${cur===x.id?'selected':''}>${esc(lab(x))}</option>`).join('');
-  const filter = `<div class="cl-filter">
-      <input type="search" class="cl-in" id="cl-q" placeholder="Search name, room or hotel…" value="${esc(clFilter.q)}" style="max-width:220px;">
-      <label>Hotel <select class="cl-in" data-cl-filter="hotel">${selOpt(d.hotels, clFilter.hotel, clHotelLabel, 'Not assigned')}</select></label>
-      <label>Flight to <select class="cl-in" data-cl-filter="to">${selOpt(d.flightsTo, clFilter.to, clFlightLabel, 'Not assigned')}</select></label>
-      <label>Return <select class="cl-in" data-cl-filter="ret">${selOpt(d.flightsReturn, clFilter.ret, clFlightLabel, 'Not assigned')}</select></label>
-      <label>Show <select class="cl-in" data-cl-filter="prog"><option value="">Everyone</option><option value="todo" ${clFilter.prog==='todo'?'selected':''}>Incomplete only</option><option value="done" ${clFilter.prog==='done'?'selected':''}>Complete only</option></select></label>
-      <label>Group by <select class="cl-in" id="cl-group"><option value="">None</option>${[['hotel','Hotel'],['room','Room number'],['to','Flight to'],['ret','Flight return'],['prog','Completion']].map(([v,l])=>`<option value="${v}" ${clGroup===v?'selected':''}>${l}</option>`).join('')}</select></label>
-      <button type="button" class="btn btn-ghost btn-sm" data-cl-reset>Reset</button>
-    </div>`;
-  if(!can) return filter;
-  const lst = (arr, lab) => arr.map(x=>`<option value="${esc(x.id)}">${esc(lab(x))}</option>`).join('');
-  const bulk = `<div class="cl-bulk">
-      <span><b id="cl-selcount">0</b> selected</span>
-      <label>Hotel <select data-cl-bulk="hotelId"><option value="">assign…</option>${lst(d.hotels, clHotelLabel)}</select></label>
-      <label>Flight to <select data-cl-bulk="toId"><option value="">assign…</option>${lst(d.flightsTo, clFlightLabel)}</select></label>
-      <label>Return <select data-cl-bulk="retId"><option value="">assign…</option>${lst(d.flightsReturn, clFlightLabel)}</select></label>
+  const d = clDoc(t);
+  const selOpt = (arr, cur, lab) => `<option value="">All</option><option value="_none" ${cur==='_none'?'selected':''}>Not assigned</option>` + arr.map(x=>`<option value="${esc(x.id)}" ${cur===x.id?'selected':''}>${esc(lab(x))}</option>`).join('');
+  const extra = [clFilter.hotel, clFilter.to, clFilter.ret].filter(Boolean).length;
+  const seg = [['','Everyone'],['todo','To do'],['done','Done']].map(([v,l])=>`<button type="button" class="${clFilter.prog===v?'on':''}" data-cl-prog="${v}">${l}</button>`).join('');
+  return `<div class="cl-filter">
+      <input type="search" class="cl-in cl-search" id="cl-q" placeholder="🔍  Search name, room or hotel" value="${esc(clFilter.q)}">
+      <span class="cl-seg">${seg}</span>
+      <label class="cl-grpby">Group by <select class="cl-in" id="cl-group"><option value="">None</option>${[['hotel','Hotel'],['room','Room number'],['to','Flight to'],['ret','Flight return'],['prog','Completion']].map(([v,l])=>`<option value="${v}" ${clGroup===v?'selected':''}>${l}</option>`).join('')}</select></label>
+      <button type="button" class="btn btn-ghost btn-sm" data-cl-more aria-expanded="${clMore||extra>0}">Filters${extra?` <span class="cl-badge">${extra}</span>`:''} ${clMore||extra>0?'▴':'▾'}</button>
+      <button type="button" class="cl-link" id="cl-reset-link" data-cl-reset ${clFilterActive()?'':'hidden'}>Reset</button>
     </div>
-    <div class="cl-bulk">
-      <span>Set for selected:</span>
-      <label>Room type <input class="cl-in" list="cl-roomtypes" id="cl-b-roomType" style="width:110px;"></label>
-      <label>Room no. <input class="cl-in" id="cl-b-roomNumber" style="width:80px;"></label>
-      <label>Luggage (to) <input class="cl-in" id="cl-b-toLuggage" style="width:90px;" placeholder="e.g. 20kg"></label>
-      <label>Luggage (return) <input class="cl-in" id="cl-b-retLuggage" style="width:90px;" placeholder="e.g. 20kg"></label>
-      <button type="button" class="btn btn-primary btn-sm" data-cl-bulk-apply>Apply to selected</button>
-      <span class="hint" style="margin:0;">Tick passengers below (or a whole group), fill in what you want to set, then Apply. Blank boxes are left unchanged.</span>
-    </div>`;
-  return filter + bulk;
+    <div class="cl-more ${clMore||extra>0?'open':''}">
+      <label>Hotel <select class="cl-in" data-cl-filter="hotel">${selOpt(d.hotels, clFilter.hotel, clHotelLabel)}</select></label>
+      <label>Flight to <select class="cl-in" data-cl-filter="to">${selOpt(d.flightsTo, clFilter.to, clFlightLabel)}</select></label>
+      <label>Return <select class="cl-in" data-cl-filter="ret">${selOpt(d.flightsReturn, clFilter.ret, clFlightLabel)}</select></label>
+    </div>
+    ${isApproverOrAdmin() ? '<p class="cl-tip">Tip: tick passengers on the left to give them a hotel, flights, room or luggage in one go.</p>' : ''}`;
+}
+// Floating "assign to selected" bar — always in the page, but only shown while someone is ticked.
+function clBulkHTML(t){
+  if(!isApproverOrAdmin()) return '';
+  const d = clDoc(t);
+  const lst = (arr, lab) => arr.map(x=>`<option value="${esc(x.id)}">${esc(lab(x))}</option>`).join('');
+  return `<div class="cl-bulkbar" id="cl-bulkbar" role="region" aria-label="Assign to selected passengers">
+    <div class="cl-bk-top"><span class="cl-bk-count"><b id="cl-selcount">0</b> selected</span><button type="button" class="cl-bk-clear" data-cl-clearsel>Clear</button></div>
+    <div class="cl-bk-row">
+      <span class="cl-bk-lab">Assign</span>
+      <select data-cl-bulk="hotelId"><option value="">Hotel…</option>${lst(d.hotels, clHotelLabel)}</select>
+      <select data-cl-bulk="toId"><option value="">Flight to…</option>${lst(d.flightsTo, clFlightLabel)}</select>
+      <select data-cl-bulk="retId"><option value="">Return flight…</option>${lst(d.flightsReturn, clFlightLabel)}</select>
+    </div>
+    <div class="cl-bk-row">
+      <span class="cl-bk-lab">Set</span>
+      <input list="cl-roomtypes" id="cl-b-roomType" placeholder="Room type">
+      <input id="cl-b-roomNumber" placeholder="Room no.">
+      <input id="cl-b-toLuggage" placeholder="Luggage (to)">
+      <input id="cl-b-retLuggage" placeholder="Luggage (return)">
+      <button type="button" class="cl-bk-apply" data-cl-bulk-apply>Apply</button>
+    </div>
+  </div>`;
 }
 
 function clBlockHTML(t){
-  if(clTripId !== t.id){ clTripId = t.id; clFilter = { q:'', hotel:'', to:'', ret:'', prog:'' }; clSort = { key:'', dir:1 }; clGroup = ''; clSel.clear(); }
+  if(clTripId !== t.id){ clTripId = t.id; clFilter = { q:'', hotel:'', to:'', ret:'', prog:'' }; clSort = { key:'', dir:1 }; clGroup = ''; clMore = false; clSel.clear(); }
   clLastOps[t.id] = tripOpsStatus(t);
   const pr = clProgress(t);
-  const prog = pr.total ? `${pr.done} / ${pr.total} required ticks` : 'no passengers yet';
+  const prog = pr.total ? `${pr.done} of ${pr.total} done` : 'no passengers yet';
+  const pct = pr.total ? Math.round(pr.done / pr.total * 100) : 0;
   const tools = clOpen ? `<div class="cl-tools">
-      <span class="seg"><button type="button" class="${!clDetail?'on':''}" data-cl-mode="simple">Simple</button><button type="button" class="${clDetail?'on':''}" data-cl-mode="detail">Detailed</button></span>
       <button type="button" class="btn btn-ghost btn-sm" data-cl-setup>${clSetup?'Hide':'Edit'} hotels &amp; flights</button>
       <button type="button" class="btn btn-ghost btn-sm" data-cl-full>${clFull?'✕ Exit full screen':'⤢ Full screen'}</button>
     </div>` : '';
-  const head = `<div class="cl-head"><button type="button" class="cl-toggle" data-cl-toggle aria-expanded="${clOpen}"><span class="cl-caret">${clOpen?'▾':'▸'}</span> Operations checklist <span class="cl-prog" id="cl-prog">${prog}</span></button>${tools}</div>`;
+  const head = `<div class="cl-head"><button type="button" class="cl-toggle" data-cl-toggle aria-expanded="${clOpen}"><span class="cl-caret">${clOpen?'▾':'▸'}</span> Operations checklist <span class="cl-prog" id="cl-prog">${prog}</span><span class="cl-meter" aria-hidden="true"><i id="cl-meter-i" style="width:${pct}%"></i></span></button>${tools}</div>`;
   if(!clOpen) return `<div class="cl-wrap" id="ops-cl">${head}</div>`;
-  return `<div class="cl-wrap ${clFull?'full':''}" id="ops-cl">${head}<div id="cl-setup-host">${clSetup?clSetupHTML(t):''}</div><div id="cl-ctl-host">${clControlsHTML(t)}</div><div id="cl-table-host">${clTableHTML(t)}</div></div>`;
+  return `<div class="cl-wrap ${clFull?'full':''}" id="ops-cl">${head}<div id="cl-setup-host">${clSetup?clSetupHTML(t):''}</div><div id="cl-ctl-host">${clControlsHTML(t)}</div><div id="cl-table-host">${clTableHTML(t)}</div>${clBulkHTML(t)}</div>`;
 }
 function clRefreshTable(t){
   const host = document.getElementById('cl-table-host'); if(!host) return;
@@ -2753,10 +2808,18 @@ function clRefreshTable(t){
 }
 function clRefreshMeta(t){
   const pr = clProgress(t), el = document.getElementById('cl-prog');
-  if(el) el.textContent = pr.total ? `${pr.done} / ${pr.total} required ticks` : 'no passengers yet';
-  const sc = document.getElementById('cl-selcount'); if(sc) sc.textContent = clSelectedVisible(t).length;
+  if(el) el.textContent = pr.total ? `${pr.done} of ${pr.total} done` : 'no passengers yet';
+  const m = document.getElementById('cl-meter-i'); if(m) m.style.width = (pr.total ? Math.round(pr.done / pr.total * 100) : 0) + '%';
+  const n = clSelectedVisible(t).length;
+  const sc = document.getElementById('cl-selcount'); if(sc) sc.textContent = n;
+  const bar = document.getElementById('cl-bulkbar'); if(bar) bar.classList.toggle('show', n > 0);
 }
-function clRefreshControls(t){ const h = document.getElementById('cl-ctl-host'); if(h){ h.innerHTML = clControlsHTML(t); clRefreshMeta(t); } }
+function clRefreshControls(t, withBulk){
+  const h = document.getElementById('cl-ctl-host'); if(!h) return;
+  h.innerHTML = clControlsHTML(t);
+  if(withBulk){ const b = document.getElementById('cl-bulkbar'); if(b) b.outerHTML = clBulkHTML(t); }   // hotel / flight lists changed
+  clRefreshMeta(t);
+}
 // Operations status is worked out from the checklist, so refresh the flow bar — and the whole page
 // (header pill, ticket columns…) if the status actually changed.
 let clRenderTimer = null;
@@ -2769,6 +2832,17 @@ function clDeferRender(tries){
     if((typing || document.querySelector(':active')) && (tries||0) < 40){ clDeferRender((tries||0)+1); return; }
     const y = window.scrollY; render(); window.scrollTo(0, y);
   }, 250);
+}
+// After editing a hotel / flight name the table needs refreshing — but that happens on blur, i.e. while the
+// user may be mid-click on a checkbox. Wait until the click has finished so it isn't swallowed.
+let clRefTimer = null;
+function clDeferRefresh(t, tries){
+  clearTimeout(clRefTimer);
+  clRefTimer = setTimeout(()=>{
+    if(document.querySelector(':active') && (tries||0) < 20){ clDeferRefresh(t, (tries||0)+1); return; }
+    if(!document.getElementById('cl-table-host')) return;
+    clRefreshControls(t, true); clRefreshTable(t);
+  }, 120);
 }
 function clAfterChange(t, allowFullRender){
   const host = document.getElementById('ops-flow-host'); if(host) host.innerHTML = opsFlowHTML(t);
@@ -2785,15 +2859,17 @@ function bindChecklist(){
     const q = s => e.target.closest(s);
     if(q('[data-cl-toggle]')){ clOpen = !clOpen; if(!clOpen) clFull = false; render(); return; }
     let b;
-    if((b = q('[data-cl-mode]'))){ clDetail = b.dataset.clMode==='detail'; render(); return; }
     if(q('[data-cl-setup]')){ clSetup = !clSetup; render(); return; }
-    if(q('[data-cl-full]')){ clFull = !clFull; if(clFull) clDetail = true; render(); return; }
+    if(q('[data-cl-full]')){ clFull = !clFull; render(); return; }
     if((b = q('[data-cl-sort]'))){
       const k = b.dataset.clSort;
       if(clSort.key!==k) clSort = { key:k, dir:1 }; else if(clSort.dir===1) clSort.dir = -1; else clSort = { key:'', dir:1 };
       clRefreshTable(t); return;
     }
     if(q('[data-cl-reset]')){ clFilter = { q:'', hotel:'', to:'', ret:'', prog:'' }; clSort = { key:'', dir:1 }; clGroup = ''; clRefreshControls(t); clRefreshTable(t); return; }
+    if(q('[data-cl-more]')){ clMore = !clMore; clRefreshControls(t); return; }
+    if((b = q('[data-cl-prog]'))){ clFilter.prog = b.dataset.clProg; clRefreshControls(t); clRefreshTable(t); return; }
+    if(q('[data-cl-clearsel]')){ clSel.clear(); clRefreshTable(t); return; }
     if(!can) return;
     if(q('[data-cl-bulk-apply]')){
       const ids = clSelectedVisible(t);
@@ -2812,7 +2888,7 @@ function bindChecklist(){
       clQueueList(t, key);
       document.getElementById('cl-setup-host').innerHTML = clSetupHTML(t);
       const last = document.querySelectorAll(`#cl-setup-host [data-cl-list="${key}"]`); const target = key==='hotels' ? last[last.length-1] : last[last.length-4]; if(target) target.focus();
-      clRefreshControls(t); clRefreshTable(t); return;
+      clRefreshControls(t, true); clRefreshTable(t); return;
     }
     if((b = q('[data-cl-del]'))){
       const key = b.dataset.clDel, id = b.dataset.lid, d = clDoc(t);
@@ -2821,13 +2897,13 @@ function bindChecklist(){
       const field = key==='hotels' ? 'hotelId' : key==='flightsTo' ? 'toId' : 'retId';
       const affected = Object.keys(d.pax).filter(pid=>d.pax[pid][field]===id);
       clQueueList(t, key); if(affected.length) clSetPax(t, affected, { [field]: '' });
-      document.getElementById('cl-setup-host').innerHTML = clSetupHTML(t); clRefreshControls(t); clRefreshTable(t); clAfterChange(t);
+      document.getElementById('cl-setup-host').innerHTML = clSetupHTML(t); clRefreshControls(t, true); clRefreshTable(t); clAfterChange(t);
     }
   });
   root.addEventListener('change', e=>{
     const el = e.target;
-    if(el.matches('[data-cl-filter]')){ clFilter[el.dataset.clFilter] = el.value; clRefreshTable(t); return; }
-    if(el.id==='cl-group'){ clGroup = el.value; clRefreshTable(t); return; }
+    if(el.matches('[data-cl-filter]')){ clFilter[el.dataset.clFilter] = el.value; clRefreshTable(t); clRefreshControls(t); return; }
+    if(el.id==='cl-group'){ clGroup = el.value; clRefreshTable(t); clRefreshControls(t); return; }
     if(!can) return;
     if(el.matches('[data-cl-sel]')){ el.checked ? clSel.add(el.dataset.clSel) : clSel.delete(el.dataset.clSel); clRefreshTable(t); return; }
     if(el.matches('[data-cl-selgrp]')){ el.dataset.clSelgrp.split(',').forEach(id=>{ el.checked ? clSel.add(id) : clSel.delete(id); }); clRefreshTable(t); return; }
@@ -2843,11 +2919,11 @@ function bindChecklist(){
     if(el.matches('[data-cl-colall]')){ clSetPax(t, clVisible(t).rows.map(c=>c.id), { [el.dataset.clColall]: el.checked }); clRefreshTable(t); clAfterChange(t); return; }
     if(el.matches('select[data-cl-field]')){ clSetPax(t, [el.dataset.pid], { [el.dataset.clField]: el.value }); clRefreshTable(t); clAfterChange(t); return; }
     if(el.matches('input[data-cl-field]')){ clRefreshMeta(t); clAfterChange(t); return; }      // left the box: the status may have changed
-    if(el.matches('[data-cl-list]')){ clRefreshControls(t); clRefreshTable(t); }
+    if(el.matches('[data-cl-list]')){ clDeferRefresh(t); }
   });
   root.addEventListener('input', e=>{
     const el = e.target;
-    if(el.id==='cl-q'){ clFilter.q = el.value; clRefreshTable(t); return; }
+    if(el.id==='cl-q'){ clFilter.q = el.value; const rl = document.getElementById('cl-reset-link'); if(rl) rl.hidden = !clFilterActive(); clRefreshTable(t); return; }
     if(!can) return;
     if(el.matches('input[data-cl-field]')){
       clSetPax(t, [el.dataset.pid], { [el.dataset.clField]: el.value });
