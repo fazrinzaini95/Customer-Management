@@ -47,6 +47,7 @@ router.get('/', asyncHandler(async (req, res) => {
       lastEditedByName: r.editor_name || null, lastEditedAt: r.last_edited_at || null,
       passengerCount: Number(r.passenger_count), publicToken: r.public_token,
       opsStatus: r.ops_status || 'Pending Ops',
+      opsReason: r.ops_reason || null, opsReasonBy: r.ops_reason_by || null, opsReasonAt: r.ops_reason_at || null,
       opsChecklist: r.ops_checklist || {},
     })),
     passengers: passengersRes.rows.map((r) => ({

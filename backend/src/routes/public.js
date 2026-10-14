@@ -11,14 +11,17 @@ const { asyncHandler } = require('../middleware/errorHandler');
 
 function safeTripView(trip) {
   const closedStatuses = ['Declined', 'Cancelled', 'Completed'];
-  const closedOps = ['Completed', 'Rejected'];   // Operations finished or rejected: no more sign-ups
+  const closedOps = ['Rejected'];   // Operations rejected: no more sign-ups
+  // Operations is "Completed" once the trip has ended (DATE columns come back as 'YYYY-MM-DD' strings).
+  const today = new Date().toISOString().slice(0, 10);
+  const ended = !!trip.end_date && String(trip.end_date).slice(0, 10) < today;
   return {
     name: trip.name,
     type: trip.type,
     destination: trip.destination,
     startDate: trip.start_date,
     endDate: trip.end_date,
-    acceptingRegistrations: !closedStatuses.includes(trip.status) && !closedOps.includes(trip.ops_status),
+    acceptingRegistrations: !closedStatuses.includes(trip.status) && !closedOps.includes(trip.ops_status) && !ended,
   };
 }
 

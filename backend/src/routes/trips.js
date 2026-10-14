@@ -23,6 +23,9 @@ function mapTrip(row, passengerCount) {
     lastEditedAt: row.last_edited_at || null,
     publicToken: row.public_token,
     opsStatus: row.ops_status || 'Pending Ops',
+    opsReason: row.ops_reason || null,
+    opsReasonBy: row.ops_reason_by || null,
+    opsReasonAt: row.ops_reason_at || null,
     opsChecklist: row.ops_checklist || {},
     ...(passengerCount !== undefined ? { passengerCount: Number(passengerCount) } : {}),
   };
@@ -174,28 +177,40 @@ router.post('/:id/status', asyncHandler(async (req, res) => {
 
 // Operations sub-status — approvers and admins only, and only once the trip has
 // been submitted (Draft and Cancelled trips have no active Operations stage).
-const opsSchema = z.object({ opsStatus: z.enum(OPS_STATUSES) });
+// Operations now moves automatically (Pending Ops -> Ongoing -> Ready -> Completed is
+// worked out from the checklist and the trip's end date). The only manual action left is
+// putting a trip On-hold or Rejecting it — both need a reason — and resuming it again
+// ('Pending Ops' here means "back to automatic").
+const opsSchema = z.object({
+  opsStatus: z.enum(['Onhold', 'Rejected', 'Pending Ops']),
+  reason: z.string().max(500).optional().or(z.literal('')),
+});
 router.post('/:id/ops-status', requireRole('approver', 'admin'), asyncHandler(async (req, res) => {
-  const { opsStatus } = opsSchema.parse(req.body);
+  const { opsStatus, reason } = opsSchema.parse(req.body);
+  const manual = opsStatus === 'Onhold' || opsStatus === 'Rejected';
+  if (manual && (!reason || reason.trim().length < 3)) {
+    return res.status(400).json({ error: 'Please give a reason' });
+  }
   const current = await query('SELECT * FROM trips WHERE id = $1', [req.params.id]);
   const trip = current.rows[0];
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
   if (['Draft', 'Cancelled', 'Declined'].includes(trip.status)) {
-    return res.status(400).json({ error: 'Operations can only be routed once the trip has been submitted' });
+    return res.status(400).json({ error: 'Operations can only be changed once the trip has been submitted' });
   }
   const { rows } = await query(
     `WITH updated AS (
-       UPDATE trips SET ops_status = $1, last_edited_by = $2, last_edited_at = now()
-       WHERE id = $3 RETURNING *
+       UPDATE trips SET ops_status = $1, ops_reason = $2, ops_reason_by = $3, ops_reason_at = ${manual ? 'now()' : 'NULL'},
+         last_edited_by = $4, last_edited_at = now()
+       WHERE id = $5 RETURNING *
      )
      SELECT updated.*, u.name AS creator_name, le.name AS editor_name
      FROM updated
      LEFT JOIN users u ON u.id = updated.created_by
      LEFT JOIN users le ON le.id = updated.last_edited_by`,
-    [opsStatus, req.user.id, req.params.id]
+    [opsStatus, manual ? reason.trim() : null, manual ? req.user.name : null, req.user.id, req.params.id]
   );
   res.json(mapTrip(rows[0]));
-  logActivity({ actor: req.user, action: 'trip.ops_status_changed', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { from: trip.ops_status, to: opsStatus } });
+  logActivity({ actor: req.user, action: 'trip.ops_status_changed', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { from: trip.ops_status, to: opsStatus, ...(manual ? { reason: reason.trim() } : {}) } });
 }));
 
 
