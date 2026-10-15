@@ -289,10 +289,17 @@ const importRowSchema = z.object({
   passportExpiry: z.string().optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
   timestamp: z.string().optional().or(z.literal('')),
+  amount: z.number().nonnegative().max(100000000).optional(),
+  deposit: z.number().nonnegative().max(100000000).optional(),
   route: z.string().max(200).optional().or(z.literal('')),
   ticketPurchaser: z.enum(['Self Purchase', 'Excapism']).optional().or(z.literal('')),
 });
 const importSchema = z.object({ rows: z.array(importRowSchema).min(1) });
+
+// Same person already in the trip? Same name, unless both sides have an IC/passport and they differ.
+const normName = (v) => String(v || '').toLowerCase().replace(/\s+/g, ' ').trim();
+const normId = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const isSamePerson = (a, b) => a.name === b.name && !(a.id && b.id && a.id !== b.id);
 
 router.post('/bulk-import', asyncHandler(async (req, res) => {
   const { rows } = importSchema.parse(req.body);
@@ -309,6 +316,7 @@ router.post('/bulk-import', asyncHandler(async (req, res) => {
 
   const result = await withTransaction(async (client) => {
     let importedCount = 0;
+    let skippedCount = 0;
     let createdTripCount = 0;
     const tripIds = [];
 
@@ -331,22 +339,38 @@ router.post('/bulk-import', asyncHandler(async (req, res) => {
       }
       tripIds.push(tripId);
 
+      // People already in this trip (not cancelled) — and, as rows are saved, the ones from this file —
+      // so a re-uploaded file or a repeated row is skipped instead of duplicated.
+      const known = (await client.query(
+        "SELECT name, id_number, passport_number FROM passengers WHERE trip_id = $1 AND payment_status <> 'Cancelled'", [tripId]
+      )).rows.map((x) => ({ name: normName(x.name), id: normId(x.id_number || x.passport_number) }));
+
       for (const r of g.rows) {
+        const who = { name: normName(r.name), id: normId(r.idNumber || r.passportNumber) };
+        if (known.some((k) => isSamePerson(k, who))) { skippedCount += 1; continue; }
+        known.push(who);
+        // Same payment-status rule as PUT /passengers/:id/payments. A deposit larger than the package is ignored.
+        const amount = Math.round((r.amount || 0) * 100) / 100;
+        let deposit = Math.round((r.deposit || 0) * 100) / 100;
+        if (amount > 0 && deposit > amount) deposit = 0;
+        const payStatus = (amount > 0 && deposit >= amount) ? 'Paid' : deposit > 0 ? 'Deposit' : 'Pending';
         await client.query(
           `INSERT INTO passengers
-             (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry, pic_id, notes, submitted_at, ticket_purchaser)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+             (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry, pic_id, notes, submitted_at, ticket_purchaser,
+              amount, deposit_amount, payment_status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
           [
             tripId, r.name, r.dob || null, r.phone || null, r.idNumber || null,
             r.medicalCondition || null, r.passportNumber || null, r.passportExpiry || null,
             req.user.id, r.notes || null, r.timestamp || null, r.ticketPurchaser || null,
+            amount, deposit, payStatus,
           ]
         );
         importedCount += 1;
       }
     }
 
-    return { importedCount, createdTripCount, tripIds: [...new Set(tripIds)] };
+    return { importedCount, skippedCount, createdTripCount, tripIds: [...new Set(tripIds)] };
   });
 
   // Remember any route that came with the file (after the transaction — the pool has a single connection).

@@ -896,3 +896,19 @@ New third tab, **Calendar**, a monthly calendar of trips by date (frontend only,
 - Routes typed in the sheet are added to Admin > Operations lists. New trips are named "Country – Route".
 - Older files still work: "Bali, Indonesia" becomes country Indonesia + route Bali.
 - Backend: `/trips/bulk-import` accepts `route` and `ticketPurchaser`. No new SQL.
+
+## #50 — Package amount & deposit in bulk upload, and bulk "Set prices"
+- Template: new columns **Package Amount (RM)** and **Deposit Paid (RM)** (numbers only; "RM 2,400" also accepted). Payment status is set automatically (no deposit = Pending, some = Deposit, deposit ≥ package = Paid). The deposit goes into the passenger's normal Deposit field.
+- Upload preview: per-trip Package / Deposit / Balance totals, a per-passenger table with the resulting status, and ⚠ warnings (figure not a number, deposit more than the package). Flagged figures import as RM 0; **Fix & re-upload** returns to the file picker.
+- New trip button **💲 Set prices** (passenger list): pick passengers, enter package amount and/or deposit (empty box = unchanged), optional "only passengers with no package amount yet". Status is recalculated, Cancelled stays Cancelled.
+- Backend: `/trips/bulk-import` accepts `amount` / `deposit`; new `PUT /trips/:tripId/pricing`. No new SQL.
+
+## #51 — Fix: bulk upload importing every passenger twice
+- Cause: the Import button stayed clickable while the import was running, so a double-click (or a second click on a slow connection) sent the same file twice and the server saved both.
+- Fix: the button is disabled and shows "Importing…" until the import finishes; a second click is ignored.
+
+## #52 — Bulk upload skips duplicates
+- A passenger is treated as already in the trip when the name matches (ignoring capitals and extra spaces) and the IC/Passport does not contradict it (both filled in and different = two different people). Cancelled passengers don't count, so they can re-book.
+- Applies to people already in the trip and to repeated rows inside the same file.
+- Upload preview greys out skipped rows ("Skip – already in this trip"), totals and the Import button count only passengers who will really be added; after import the message says how many were skipped.
+- The server enforces the same rule, so re-uploading a file can never double up. No new SQL.

@@ -178,6 +178,36 @@ router.put('/passengers/:id/payments', asyncHandler(async (req, res) => {
   logActivity({ actor: req.user, action: 'passenger.payments_updated', entityType: 'passenger', entityId: rows[0].id, entityLabel: rows[0].name, details: { entries: clean.length, total } });
 }));
 
+// Set the package amount and/or deposit for several passengers at once. A field left out is not
+// changed. Payment status is re-derived with the same rule as the payments route above
+// (Cancelled stays Cancelled; money already received counts towards Paid).
+const pricingSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(500),
+  amount: z.number().nonnegative().max(100000000).optional(),
+  depositAmount: z.number().nonnegative().max(100000000).optional(),
+}).refine((d) => d.amount !== undefined || d.depositAmount !== undefined, { message: 'Enter a package amount or a deposit' })
+  .refine((d) => !(d.amount > 0 && d.depositAmount > d.amount), { message: 'Deposit cannot be more than the package amount' });
+router.put('/trips/:tripId/pricing', asyncHandler(async (req, res) => {
+  const d = pricingSchema.parse(req.body);
+  const { rows } = await query(
+    `WITH n AS (
+       SELECT id, COALESCE($2::numeric, amount) AS a, COALESCE($3::numeric, deposit_amount) AS dep, balance_paid AS bp, payment_status AS ps
+       FROM passengers WHERE trip_id = $1 AND id = ANY($4::uuid[])
+     ), updated AS (
+       UPDATE passengers p SET amount = n.a, deposit_amount = n.dep,
+         payment_status = (CASE WHEN n.ps = 'Cancelled' THEN 'Cancelled'
+                                WHEN n.a > 0 AND n.dep + n.bp >= n.a THEN 'Paid'
+                                WHEN n.dep > 0 AND n.bp = 0 THEN 'Deposit'
+                                ELSE 'Pending' END)::payment_status
+       FROM n WHERE p.id = n.id RETURNING p.*
+     )
+     SELECT updated.*, pic.name AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
+    [req.params.tripId, d.amount ?? null, d.depositAmount ?? null, d.ids]
+  );
+  res.json(rows.map(mapPassenger));
+  logActivity({ actor: req.user, action: 'passenger.pricing_bulk_set', entityType: 'trip', entityId: req.params.tripId, entityLabel: `${rows.length} passenger(s)`, details: { amount: d.amount, depositAmount: d.depositAmount, count: rows.length } });
+}));
+
 // Ticket status has the same lightweight-dropdown pattern as payment status.
 const ticketStatusOnlySchema = z.object({ ticketStatus: z.enum(['Pending', 'Purchased']) });
 router.put('/passengers/:id/ticket-status', asyncHandler(async (req, res) => {

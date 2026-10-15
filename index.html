@@ -264,6 +264,13 @@
   .preview-group{border:1px solid var(--line);border-radius:9px;margin-bottom:10px;overflow:hidden;}
   .preview-group-head{background:var(--paper-dim);padding:8px 12px;font-size:12.5px;font-weight:600;color:var(--navy-deep);display:flex;justify-content:space-between;}
   .preview-group-head span.tag{font-family:var(--font-mono);font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:5px;background:#fff;color:var(--ink-soft);margin-left:6px;}
+  .preview-sums{padding:7px 12px;font-size:12px;color:var(--ink-soft);}
+  .preview-sums b{color:var(--navy-deep);}
+  .preview-det{padding:0 12px 10px;} .preview-det summary{cursor:pointer;font-size:12px;color:var(--ink-soft);padding:2px 0 6px;}
+  .pv-dup td{opacity:.55;} .pv-dupt{font-style:italic;} .pv-notice.pv-info{background:#eff6ff;border-color:#bfdbfe;color:#1e40af;}
+  .pv-warn{color:#b45309;font-weight:600;} .preview-table-wrap td .pv-warn{white-space:normal;display:inline-block;min-width:170px;} .pv-bad td{background:#fff7ed;}
+  .pv-notice{margin-top:6px;padding:9px 12px;border-radius:9px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:12.5px;}
+  .preview-table-wrap td.num,.preview-table-wrap th.num{text-align:right;}
   .preview-table-wrap{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:9px;}
   .preview-table-wrap table{font-size:12px;}
   .preview-table-wrap th,.preview-table-wrap td{padding:7px 10px;white-space:nowrap;}
@@ -884,7 +891,7 @@ async function demoFetchInner(path, options = {}){
       if(!groups.has(key)) groups.set(key,{type,location,route,rows:[]});
       groups.get(key).rows.push(r);
     });
-    let importedCount=0, createdTripCount=0; const tripIds=[];
+    let importedCount=0, skippedCount=0, createdTripCount=0; const tripIds=[];
     for(const g of groups.values()){
       let t = state.trips.find(x=>normType(x.type)===g.type && String(x.destination||'').trim().toLowerCase()===g.location.toLowerCase() && (!g.route || String(x.route||'').trim().toLowerCase()===g.route.toLowerCase()));
       if(!t){
@@ -895,17 +902,21 @@ async function demoFetchInner(path, options = {}){
       }
       tripIds.push(t.id);
       if(t.route && t.destination) demoEnsureList(state, { kind:'route', country:t.destination, name:t.route });
+      const known = state.passengers.filter(x=>x.tripId===t.id && x.paymentStatus!=='Cancelled').map(x=>({ name:pvNormName(x.name), id:pvNormId(x.idNumber||x.passportNumber) }));
       g.rows.forEach(r=>{
+        const who = { name:pvNormName(r.name), id:pvNormId(r.idNumber||r.passportNumber) };
+        if(known.some(k=>pvSame(k,who))){ skippedCount += 1; return; }
+        known.push(who);
         state.passengers.push({ id:demoId('cust'), tripId:t.id, name:r.name, dob:r.dob||null, phone:r.phone||null,
           idNumber:r.idNumber||null, medicalCondition:r.medicalCondition||null, passportNumber:r.passportNumber||null, passportExpiry:r.passportExpiry||null,
-          amount:0, depositAmount:0, balancePaid:0, paymentStatus:'Pending', ticketPurchaser:r.ticketPurchaser||null, ticketStatus:'Pending', notes:r.notes||null, submittedAt:r.timestamp||null,
+          amount:Number(r.amount)||0, depositAmount:Number(r.deposit)||0, balancePaid:0, paymentStatus:((Number(r.amount)||0)>0 && (Number(r.deposit)||0)>=(Number(r.amount)||0)) ? 'Paid' : (Number(r.deposit)||0)>0 ? 'Deposit' : 'Pending', ticketPurchaser:r.ticketPurchaser||null, ticketStatus:'Pending', notes:r.notes||null, submittedAt:r.timestamp||null,
           addedAt:new Date().toISOString() });
         importedCount += 1;
       });
     }
-    logDemoActivity(state, u, 'trip.bulk_import', 'bulk_import', null, `Bulk import (${importedCount} passenger${importedCount===1?'':'s'})`, { importedCount, createdTripCount });
+    logDemoActivity(state, u, 'trip.bulk_import', 'bulk_import', null, `Bulk import (${importedCount} passenger${importedCount===1?'':'s'})`, { importedCount, skippedCount, createdTripCount });
     persistDemo();
-    return { importedCount, createdTripCount, tripIds:[...new Set(tripIds)] };
+    return { importedCount, skippedCount, createdTripCount, tripIds:[...new Set(tripIds)] };
   }
 
   // ---- Passengers ----
@@ -924,6 +935,21 @@ async function demoFetchInner(path, options = {}){
     logDemoActivity(state, u, 'passenger.updated', 'passenger', c.id, c.name, { updatedFields:Object.keys(body) });
     persistDemo();
     return c;
+  }
+  if((m=path.match(/^\/trips\/([^/]+)\/pricing$/)) && method==='PUT'){
+    const u = requireAuthed();
+    const ids = body.ids||[]; const out=[];
+    if(body.amount===undefined && body.depositAmount===undefined) fail(400,'Enter a package amount or a deposit');
+    if(body.amount>0 && body.depositAmount>body.amount) fail(400,'Deposit cannot be more than the package amount');
+    state.passengers.filter(c=>c.tripId===m[1] && ids.includes(c.id)).forEach(c=>{
+      if(body.amount!==undefined) c.amount = Number(body.amount);
+      if(body.depositAmount!==undefined) c.depositAmount = Number(body.depositAmount);
+      if(c.paymentStatus!=='Cancelled') c.paymentStatus = payStatusFrom(c.amount, c.depositAmount, Number(c.balancePaid)||0);
+      out.push(c);
+    });
+    logDemoActivity(state, u, 'passenger.pricing_bulk_set', 'trip', m[1], out.length+' passenger(s)', { count:out.length });
+    persistDemo();
+    return out;
   }
   if((m=path.match(/^\/passengers\/([^/]+)\/payments$/)) && method==='PUT'){
     const u = requireAuthed();
@@ -1095,7 +1121,7 @@ let numberSettings = { prefix:'EXC', includeYear:true, padding:3, runningNumber:
 let activityLog = []; // fetched fresh each time the Activity log panel opens
 let loaded = false;
 
-const TEMPLATE_BASE64 = "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";
+const TEMPLATE_BASE64 = "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";
 
 const TRIP_STATUSES = ['Draft','Pending','Approved','Declined','Cancelled','Completed'];
 const PAY_STATUSES = ['Pending','Deposit','Paid','Cancelled'];
@@ -1379,6 +1405,7 @@ function tripMoney(t){
   cs.forEach(c=>{ if(!paxCounted(c)) return; amount += Number(c.amount)||0; collected += paidOf(c); balance += paxBalance(c); });
   return { pax: cs.filter(paxCounted).length, amount, collected, balance };
 }
+function fmtNum(n){ return (Number(n)||0).toLocaleString('en-MY',{minimumFractionDigits:0,maximumFractionDigits:2}); }
 function fmtRM(n){ return 'RM ' + (Number(n)||0).toLocaleString('en-MY',{minimumFractionDigits:0,maximumFractionDigits:2}); }
 function fmtCompact(n){
   const v = Number(n)||0;
@@ -2184,6 +2211,7 @@ function detailHTML(){
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-sm btn-ghost" data-action="export-trip" ${cs.length ? '' : 'disabled'}>⬇ Export to Excel</button>
         <button class="btn btn-sm btn-ghost" data-action="share-registration-link" data-trip-token="${esc(t.publicToken||'')}">🔗 Share registration link</button>
+        <button class="btn btn-sm btn-ghost" data-action="open-pricing" ${cs.length ? '' : 'disabled'}>💲 Set prices</button>
         <button class="btn btn-sm btn-ghost" data-action="open-upload-for-trip">Bulk upload here</button>
         <button class="btn btn-sm btn-primary" data-action="open-add-customer">+ Add passenger</button>
       </div>
@@ -2204,7 +2232,7 @@ function detailHTML(){
    Modals
    ========================================================= */
 function modalsHTML(){
-  return tripModal() + customerModal() + paymentsModal() + opsReasonModal() + uploadModal();
+  return tripModal() + customerModal() + paymentsModal() + opsReasonModal() + uploadModal() + pricingModal();
 }
 
 /* =========================================================
@@ -2387,6 +2415,7 @@ const ACTIVITY_LABELS = {
   'passenger.updated': 'edited passenger',
   'passenger.payment_status_changed': 'updated payment status for',
   'passenger.payments_updated': 'updated the payment history of',
+  'passenger.pricing_bulk_set': 'set package prices for',
   'passenger.ticket_status_changed': 'updated ticket status for',
   'passenger.deleted': 'removed passenger',
   'user.created': 'created account for',
@@ -2404,7 +2433,7 @@ function activityDetailText(entry){
     return d.updatedFields && d.updatedFields.length ? `Changed: ${d.updatedFields.join(', ')}` : '';
   }
   if(entry.action==='trip.bulk_import'){
-    return `${d.importedCount||0} passenger(s), ${d.createdTripCount||0} new trip(s)`;
+    return `${d.importedCount||0} passenger(s), ${d.createdTripCount||0} new trip(s)` + (d.skippedCount ? `, ${d.skippedCount} skipped` : '');
   }
   if(entry.action==='trip_sequence.updated'){
     return `Next number: ${d.nextNumber}`;
@@ -3488,6 +3517,36 @@ function customerModal(){
   </div>`;
 }
 
+/* ---- Set package price / deposit for several passengers at once ---- */
+let pricingCtx = { tripId:null, sel:new Set(), onlyEmpty:false };
+function pricingModal(){
+  const tid = pricingCtx.tripId;
+  const list = tid ? customers.filter(c=>c.tripId===tid && c.paymentStatus!=='Cancelled') : [];
+  const t = trips.find(x=>x.id===tid);
+  return `
+  <div class="overlay" id="overlay-pricing">
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-head"><h3>Set package price${t?` — ${esc(t.name)}`:''}</h3><button class="modal-close" data-close="overlay-pricing">✕</button></div>
+      <div class="modal-body">
+        <p class="preview-note" style="margin-bottom:12px;">Choose passengers, then enter the amount and/or deposit. A box left empty is not changed. Payment status updates automatically.</p>
+        <div class="form-grid">
+          <div class="field"><label>Package amount (RM)</label><input type="number" min="0" step="0.01" id="pr-amount" placeholder="e.g. 2400"></div>
+          <div class="field"><label>Deposit paid (RM)</label><input type="number" min="0" step="0.01" id="pr-deposit" placeholder="e.g. 500"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 6px;font-size:12.5px;">
+          <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" id="pr-empty" ${pricingCtx.onlyEmpty?'checked':''}> Only passengers with no package amount yet</label>
+          <span><a href="#" data-pr-all="1">All</a> · <a href="#" data-pr-all="0">None</a></span>
+        </div>
+        <div class="preview-table-wrap" style="max-height:260px;"><table>
+          <thead><tr><th></th><th>Name</th><th class="num">Package</th><th class="num">Deposit</th><th>Status</th></tr></thead>
+          <tbody>${list.map(c=>`<tr data-pr-row="${c.id}" style="${pricingCtx.onlyEmpty && Number(c.amount)>0 ? 'opacity:.4;' : ''}"><td><input type="checkbox" data-pr-pick="${c.id}" ${pricingCtx.sel.has(c.id)?'checked':''}></td><td>${esc(c.name)}</td><td class="num">${Number(c.amount)?fmtNum(c.amount):'—'}</td><td class="num">${Number(c.depositAmount)?fmtNum(c.depositAmount):'—'}</td><td>${esc(c.paymentStatus)}</td></tr>`).join('')}</tbody>
+        </table></div>
+      </div>
+      <div class="modal-foot"><span id="pr-count" style="font-size:12.5px;color:var(--ink-soft);">${pricingCtx.sel.size} selected</span>
+        <div style="display:flex;gap:10px;"><button class="btn btn-ghost" data-close="overlay-pricing">Cancel</button><button class="btn btn-primary" data-action="apply-pricing">Apply</button></div></div>
+    </div>
+  </div>`;
+}
 function uploadModal(){
   const tripOptions = trips.map(t=>`<option value="${t.id}">${tripCode(t)} — ${esc(t.name)}</option>`).join('');
 
@@ -3500,9 +3559,18 @@ function uploadModal(){
           <div class="preview-group">
             <div class="preview-group-head">
               <span>${esc(g.location)}${g.route?' · '+esc(g.route):''} <span class="tag">${g.type}</span> ${g.existingTripId ? '<span class="tag">existing trip</span>' : '<span class="tag">new trip</span>'}</span>
-              <span>${g.rows.length} pax</span>
+              <span>${g.rows.length-g.dups} to import${g.dups?` · ${g.dups} skipped`:''}</span>
             </div>
-          </div>`).join('')}`;
+            <div class="preview-sums">Package <b>${fmtRM(g.sumAmount)}</b> · Deposit <b>${fmtRM(g.sumDeposit)}</b> · Balance <b>${fmtRM(Math.max(0,g.sumAmount-g.sumDeposit))}</b>${g.issues?` · <span class="pv-warn">⚠ ${g.issues} to check</span>`:''}</div>
+            <details class="preview-det" ${(g.issues||g.dups)?'open':''}><summary>${g.issues?'Passengers':'Show passengers'}</summary>
+              <div class="preview-table-wrap"><table>
+                <thead><tr><th>Name</th><th>IC/Passport</th><th class="num">Package</th><th class="num">Deposit</th><th>Status</th></tr></thead>
+                <tbody>${g.rows.map(r=>`<tr class="${r.dup?'pv-dup':r.payIssue?'pv-bad':''}"><td>${r.dup?'':r.payIssue?'⚠ ':''}${esc(r.name)}</td><td>${esc(r.idNumber||r.passportNumber||'')}</td><td class="num">${r.amount?fmtNum(r.amount):'—'}</td><td class="num">${r.deposit?fmtNum(r.deposit):'—'}</td><td>${r.dup?`<span class="pv-dupt">Skip – ${esc(r.dup.toLowerCase())}</span>`:r.payIssue?`<span class="pv-warn">${esc(r.payIssue)}</span>`:payStatusFor(r.amount,r.deposit)}</td></tr>`).join('')}</tbody>
+              </table></div>
+            </details>
+          </div>`).join('')}
+        ${uploadCtx.groups.some(g=>g.dups) ? `<div class="pv-notice pv-info">${uploadCtx.groups.reduce((n,g)=>n+g.dups,0)} passenger(s) are already in the trip (or repeated in the file) and will be skipped, so nobody is added twice.</div>` : ''}
+        ${uploadCtx.groups.some(g=>g.issues) ? `<div class="pv-notice">⚠ ${uploadCtx.groups.reduce((n,g)=>n+g.issues,0)} row(s) need attention. They will be imported with the problem figure left at RM 0 unless you fix the sheet and re-upload.</div>` : ''}`;
     } else {
       previewBlock = `
         <p class="preview-note"><b>${uploadCtx.parsedRows.length}</b> row(s) detected — preview:</p>
@@ -3537,7 +3605,7 @@ function uploadModal(){
               `<p><strong>Click to browse</strong> or drag a file here<br>.xlsx, .xls or .csv</p>`}
           </div>
           <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none;">
-          <p class="hint">Recognised columns: Timestamp, Full Name (as per IC), Date of Birth, Contact Number, Trip Type, Location, Medical Condition/history, Passport Number, Passport Expiry. If Trip Type + Location are present, passengers are grouped into trips automatically.</p>
+          <p class="hint">Recognised columns: Full Name, Date of Birth, IC/Passport, Contact Number, Passport Number, Passport Expiry, Trip Type, Country, Route, Package Amount, Deposit Paid, Ticket Purchaser, Medical Condition, Notes. If Trip Type + Country are present, passengers are grouped into trips automatically.</p>
         </div>
 
         ${needsTargetPicker ? `
@@ -3576,8 +3644,9 @@ function uploadModal(){
         <div></div>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-ghost" data-close="overlay-upload">Cancel</button>
-          <button class="btn btn-primary" data-action="confirm-upload" ${uploadCtx.parsedRows.length ? '' : 'disabled'}>
-            Import ${uploadCtx.parsedRows.length || ''} passenger${uploadCtx.parsedRows.length===1?'':'s'}
+          ${uploadCtx.groups.some(g=>g.issues) ? '<button class="btn btn-ghost" data-action="reupload">Fix &amp; re-upload</button>' : ''}
+          <button class="btn btn-primary" data-action="confirm-upload" ${uploadImportCount() ? '' : 'disabled'}>
+            Import ${uploadImportCount() || ''} passenger${uploadImportCount()===1?'':'s'}
           </button>
         </div>
       </div>
@@ -3674,6 +3743,8 @@ const HEADER_MAP = {
   tripType: ['trip type','type'],
   location: ['country','location','destination'],
   route: ['route','location / route','route / location','itinerary'],
+  amount: ['package amount','package amount (rm)','package price','package','amount','price'],
+  deposit: ['deposit paid','deposit paid (rm)','deposit','deposit (rm)'],
   ticketPurchaser: ['ticket purchaser','ticket purchased by','ticket by','ticket'],
   medicalCondition: ['medical condition/ history if applicable','medical condition/history if applicable','medical condition','medical history','medical condition/ history'],
   passportNumber: ['passport number','passport no','passport num'],
@@ -3695,6 +3766,20 @@ function normalizeLocation(v){
   if(firstHit && parts.length>1) return { country:firstHit, route:parts.slice(1).join(' – ') };
   return { country:raw, route:'' };
 }
+// Money cells: "RM 2,400", 2400, "2400.50". Returns {n, bad}; blank is fine (n=0, bad=false).
+function parseMoney(v){
+  if(v==null || String(v).trim()==='') return { n:0, bad:false };
+  if(typeof v==='number') return isFinite(v)&&v>=0 ? { n:Math.round(v*100)/100, bad:false } : { n:0, bad:true };
+  const t = String(v).replace(/rm/ig,'').replace(/[,\s]/g,'');
+  if(!/^\d+(\.\d+)?$/.test(t)) return { n:0, bad:true };
+  return { n:Math.round(parseFloat(t)*100)/100, bad:false };
+}
+// Same rule the server uses for a passenger's payment status.
+// Same person? Same name, unless both have an IC/passport and they differ (matches the server rule).
+function pvNormName(v){ return String(v||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+function pvNormId(v){ return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+function pvSame(a,b){ return a.name===b.name && !(a.id && b.id && a.id!==b.id); }
+function payStatusFor(amount, deposit){ return (amount>0 && deposit>=amount) ? 'Paid' : deposit>0 ? 'Deposit' : 'Pending'; }
 function normTicketPurchaser(v){ const t = String(v||'').toLowerCase(); return /self/.test(t) ? 'Self Purchase' : /excapism|agent|company/.test(t) ? 'Excapism' : ''; }
 function normalizeHeader(h){ return String(h||'').trim().toLowerCase(); }
 function mapHeaders(headerRow){
@@ -3744,7 +3829,13 @@ function parseWorkbookFile(file){
           if(/^\s*[↑*#]/.test(String(name))) continue;            // note lines such as "↑ Sample row shown for format only"
           const loc = normalizeLocation(map.location!==undefined ? String(r[map.location]||'').trim() : '');
           const routeCell = map.route!==undefined ? String(r[map.route]||'').trim() : '';
+          const am = parseMoney(map.amount!==undefined ? r[map.amount] : ''), dp = parseMoney(map.deposit!==undefined ? r[map.deposit] : '');
+          let amount = am.n, deposit = dp.n, payIssue = '';
+          if(am.bad){ payIssue = 'Package amount is not a number'; amount = 0; }
+          if(dp.bad){ payIssue = payIssue ? payIssue+'; deposit is not a number' : 'Deposit is not a number'; deposit = 0; }
+          if(!payIssue && amount>0 && deposit>amount){ payIssue = 'Deposit is more than the package amount'; deposit = 0; }
           out.push({
+            amount, deposit, payIssue,
             timestamp: map.timestamp!==undefined ? excelDateToStr(r[map.timestamp]) : '',
             name: String(name).trim(),
             dob: map.dob!==undefined ? excelDateToStr(r[map.dob]) : '',
@@ -3782,6 +3873,18 @@ function buildGroups(rows){
     const existing = trips.find(x => normType(x.type)+'|'+String(x.destination||'').trim().toLowerCase() === g.type+'|'+g.location.toLowerCase()
       && (!g.route || String(x.route||'').trim().toLowerCase() === g.route.toLowerCase()));
     g.existingTripId = existing ? existing.id : null;
+    const known = g.existingTripId ? customers.filter(c=>c.tripId===g.existingTripId && c.paymentStatus!=='Cancelled').map(c=>({ name:pvNormName(c.name), id:pvNormId(c.idNumber||c.passportNumber) })) : [];
+    g.rows.forEach(r=>{
+      const who = { name:pvNormName(r.name), id:pvNormId(r.idNumber||r.passportNumber) };
+      const hit = known.find(k=>pvSame(k,who));
+      r.dup = hit ? (hit.fromFile ? 'Repeated in this file' : 'Already in this trip') : '';
+      if(!hit) known.push({ ...who, fromFile:true });
+    });
+    const fresh = g.rows.filter(r=>!r.dup);
+    g.dups = g.rows.length - fresh.length;
+    g.sumAmount = fresh.reduce((n,r)=>n+(r.amount||0),0);
+    g.sumDeposit = fresh.reduce((n,r)=>n+(r.deposit||0),0);
+    g.issues = fresh.filter(r=>r.payIssue).length;
   });
   return groups;
 }
@@ -4164,6 +4267,34 @@ function bindEvents(){
     });
     fileInput.addEventListener('change', ()=>{ if(fileInput.files.length) handleFile(fileInput.files[0]); });
   }
+  const openPricing = app.querySelector('[data-action="open-pricing"]');
+  if(openPricing) openPricing.addEventListener('click', ()=>{
+    pricingCtx = { tripId:view.tripId, sel:new Set(customers.filter(c=>c.tripId===view.tripId && c.paymentStatus!=='Cancelled').map(c=>c.id)), onlyEmpty:false };
+    render(); openOverlay('overlay-pricing');
+  });
+  const prUpdateCount = ()=>{ const el=document.getElementById('pr-count'); if(el) el.textContent = pricingCtx.sel.size+' selected'; };
+  app.querySelectorAll('[data-pr-pick]').forEach(el=>el.addEventListener('change', ()=>{ el.checked ? pricingCtx.sel.add(el.dataset.prPick) : pricingCtx.sel.delete(el.dataset.prPick); prUpdateCount(); }));
+  app.querySelectorAll('[data-pr-all]').forEach(el=>el.addEventListener('click', e=>{
+    e.preventDefault(); const on = el.dataset.prAll==='1';
+    app.querySelectorAll('[data-pr-pick]').forEach(cb=>{ cb.checked = on; on ? pricingCtx.sel.add(cb.dataset.prPick) : pricingCtx.sel.delete(cb.dataset.prPick); });
+    if(on && pricingCtx.onlyEmpty) pricingCtx.sel.forEach(id=>{ const c=customers.find(x=>x.id===id); if(c && Number(c.amount)>0){ pricingCtx.sel.delete(id); const cb=app.querySelector('[data-pr-pick="'+id+'"]'); if(cb) cb.checked=false; } });
+    prUpdateCount();
+  }));
+  const prEmpty = document.getElementById('pr-empty');
+  if(prEmpty) prEmpty.addEventListener('change', ()=>{
+    pricingCtx.onlyEmpty = prEmpty.checked;
+    customers.filter(c=>c.tripId===pricingCtx.tripId && c.paymentStatus!=='Cancelled').forEach(c=>{
+      const eligible = !prEmpty.checked || !(Number(c.amount)>0);
+      eligible ? pricingCtx.sel.add(c.id) : pricingCtx.sel.delete(c.id);
+      const cb = app.querySelector('[data-pr-pick="'+c.id+'"]'); if(cb) cb.checked = eligible;
+      const row = app.querySelector('[data-pr-row="'+c.id+'"]'); if(row) row.style.opacity = eligible ? '' : '.4';
+    });
+    prUpdateCount();
+  });
+  const applyPricing = app.querySelector('[data-action="apply-pricing"]');
+  if(applyPricing) applyPricing.addEventListener('click', handleApplyPricing);
+  const reupload = app.querySelector('[data-action="reupload"]');
+  if(reupload) reupload.addEventListener('click', ()=>{ uploadCtx.parsedRows=[]; uploadCtx.groups=[]; uploadCtx.fileName=''; render(); openOverlay('overlay-upload'); });
   const confirmUpload = app.querySelector('[data-action="confirm-upload"]');
   if(confirmUpload) confirmUpload.addEventListener('click', handleConfirmUpload);
 
@@ -4431,7 +4562,33 @@ async function handleFile(file){
   openOverlay('overlay-upload');
 }
 
+async function handleApplyPricing(){
+  const aRaw = document.getElementById('pr-amount').value.trim(), dRaw = document.getElementById('pr-deposit').value.trim();
+  const body = { ids:[...pricingCtx.sel] };
+  if(aRaw!=='') body.amount = Number(aRaw);
+  if(dRaw!=='') body.depositAmount = Number(dRaw);
+  if(!body.ids.length){ showToast('Select at least one passenger'); return; }
+  if((body.amount===undefined && body.depositAmount===undefined) || [body.amount,body.depositAmount].some(v=>v!==undefined && !(v>=0))){ showToast('Enter a valid package amount and/or deposit'); return; }
+  if(body.amount>0 && body.depositAmount>body.amount){ showToast('Deposit cannot be more than the package amount'); return; }
+  try{
+    const updated = await apiFetch('/trips/'+pricingCtx.tripId+'/pricing', { method:'PUT', body: JSON.stringify(body) });
+    updated.forEach(u=>{ const i = customers.findIndex(c=>c.id===u.id); if(i>=0) customers[i] = { ...customers[i], ...u }; });
+    closeOverlay('overlay-pricing');
+    showToast(`Prices set for ${updated.length} passenger(s)`);
+  }catch(e){ showToast(e.message || 'Could not set prices'); return; }
+  render();
+}
+function uploadImportCount(){ return uploadCtx.groups.length ? uploadCtx.groups.reduce((n,g)=>n+g.rows.length-(g.dups||0),0) : uploadCtx.parsedRows.length; }
+let uploadBusy = false;   // stops a double-click from importing the same file twice
 async function handleConfirmUpload(){
+  if(uploadBusy) return;
+  uploadBusy = true;
+  const btn = document.querySelector('[data-action="confirm-upload"]');
+  if(btn){ btn.disabled = true; btn.textContent = 'Importing…'; }
+  try{ await doConfirmUpload(); }
+  finally{ uploadBusy = false; const b2 = document.querySelector('[data-action="confirm-upload"]'); if(b2 && b2.disabled && uploadCtx.parsedRows.length){ b2.disabled = false; b2.textContent = 'Import '+uploadImportCount()+' passenger'+(uploadImportCount()===1?'':'s'); } }
+}
+async function doConfirmUpload(){
   const rowsToImport = uploadCtx.parsedRows;
 
   if(uploadCtx.groups.length){
@@ -4441,7 +4598,7 @@ async function handleConfirmUpload(){
       const result = await apiFetch('/trips/bulk-import', { method:'POST', body: JSON.stringify({ rows: rowsToImport }) });
       await loadBootstrap();
       closeOverlay('overlay-upload');
-      showToast(`${result.importedCount} passenger(s) imported`);
+      showToast(`${result.importedCount} passenger(s) imported` + (result.skippedCount ? `, ${result.skippedCount} skipped (already in the trip)` : ''));
       uploadCtx = {mode:'existing', targetTripId:null, parsedRows:[], fileName:'', groups:[], hasTripColumns:false};
       if(result.tripIds && result.tripIds.length===1){
         view.mode='detail'; view.tripId=result.tripIds[0];
@@ -4486,6 +4643,7 @@ async function handleConfirmUpload(){
       body: JSON.stringify({
         name: r.name, dob: r.dob, phone: r.phone, idNumber: r.idNumber,
         medicalCondition: r.medicalCondition, passportNumber: r.passportNumber, passportExpiry: r.passportExpiry, notes: r.notes,
+        amount: r.amount||0, depositAmount: r.deposit||0, paymentStatus: payStatusFor(r.amount||0, r.deposit||0),
       })
     })));
     customers = customers.concat(created);
