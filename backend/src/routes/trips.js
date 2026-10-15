@@ -289,6 +289,8 @@ const importRowSchema = z.object({
   passportExpiry: z.string().optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
   timestamp: z.string().optional().or(z.literal('')),
+  route: z.string().max(200).optional().or(z.literal('')),
+  ticketPurchaser: z.enum(['Self Purchase', 'Excapism']).optional().or(z.literal('')),
 });
 const importSchema = z.object({ rows: z.array(importRowSchema).min(1) });
 
@@ -299,8 +301,9 @@ router.post('/bulk-import', asyncHandler(async (req, res) => {
   for (const r of rows) {
     const type = /private/i.test(r.tripType || '') ? 'private' : 'open';
     const location = (r.location || '').trim() || 'Unspecified destination';
-    const key = `${type}|${location.toLowerCase()}`;
-    if (!groups.has(key)) groups.set(key, { type, location, rows: [] });
+    const route = (r.route || '').replace(/\s+/g, ' ').trim();
+    const key = `${type}|${location.toLowerCase()}|${route.toLowerCase()}`;
+    if (!groups.has(key)) groups.set(key, { type, location, route, rows: [] });
     groups.get(key).rows.push(r);
   }
 
@@ -310,18 +313,18 @@ router.post('/bulk-import', asyncHandler(async (req, res) => {
     const tripIds = [];
 
     for (const g of groups.values()) {
-      const existing = await client.query(
-        'SELECT id FROM trips WHERE type = $1 AND lower(destination) = lower($2) LIMIT 1',
-        [g.type, g.location]
-      );
+      // A row with a Route only joins a trip with the same route; a row without one joins any trip for that country.
+      const existing = g.route
+        ? await client.query('SELECT id FROM trips WHERE type = $1 AND lower(destination) = lower($2) AND lower(route) = lower($3) LIMIT 1', [g.type, g.location, g.route])
+        : await client.query('SELECT id FROM trips WHERE type = $1 AND lower(destination) = lower($2) LIMIT 1', [g.type, g.location]);
       let tripId = existing.rows[0]?.id;
 
       if (!tripId) {
         const history = JSON.stringify([{ status: 'Draft', date: new Date().toISOString() }]);
         const created = await client.query(
-          `INSERT INTO trips (name, type, destination, status, history, created_by, last_edited_by, last_edited_at)
-           VALUES ($1,$2,$3,'Draft',$4,$5,$5,now()) RETURNING id`,
-          [g.location, g.type, g.location, history, req.user.id]
+          `INSERT INTO trips (name, type, destination, route, status, history, created_by, last_edited_by, last_edited_at)
+           VALUES ($1,$2,$3,$4,'Draft',$5,$6,$6,now()) RETURNING id`,
+          [g.route ? `${g.location} – ${g.route}` : g.location, g.type, g.location, g.route || null, history, req.user.id]
         );
         tripId = created.rows[0].id;
         createdTripCount += 1;
@@ -331,12 +334,12 @@ router.post('/bulk-import', asyncHandler(async (req, res) => {
       for (const r of g.rows) {
         await client.query(
           `INSERT INTO passengers
-             (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry, pic_id, notes, submitted_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+             (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry, pic_id, notes, submitted_at, ticket_purchaser)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
           [
             tripId, r.name, r.dob || null, r.phone || null, r.idNumber || null,
             r.medicalCondition || null, r.passportNumber || null, r.passportExpiry || null,
-            req.user.id, r.notes || null, r.timestamp || null,
+            req.user.id, r.notes || null, r.timestamp || null, r.ticketPurchaser || null,
           ]
         );
         importedCount += 1;
@@ -346,6 +349,10 @@ router.post('/bulk-import', asyncHandler(async (req, res) => {
     return { importedCount, createdTripCount, tripIds: [...new Set(tripIds)] };
   });
 
+  // Remember any route that came with the file (after the transaction — the pool has a single connection).
+  for (const g of groups.values()) {
+    if (g.route && g.location !== 'Unspecified destination') await ensureItem({ kind: 'route', country: g.location, name: g.route, userId: req.user.id }).catch(() => {});
+  }
   res.status(201).json(result);
   logActivity({ actor: req.user, action: 'trip.bulk_import', entityType: 'bulk_import', entityId: null, entityLabel: `Bulk import (${result.importedCount} passenger${result.importedCount===1?'':'s'})`, details: result });
 }));
