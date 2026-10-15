@@ -417,7 +417,7 @@
   .cl-tip{margin:10px 0 0;font-size:12.5px;color:var(--ink-soft);}
   /* table */
   .cl-scroll{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:12px;margin-top:12px;background:#fff;}
-  .cl-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;min-width:1000px;}
+  .cl-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;min-width:1060px;}
   .cl-table th,.cl-table td{padding:4px 8px;border-bottom:1px solid rgba(15,44,76,0.07);text-align:left;vertical-align:middle;background:#fff;}
   .cl-table tbody tr:last-child td{border-bottom:0;}
   .cl-table thead th{position:sticky;top:0;z-index:2;background:#F8FAFC;font-size:12.5px;font-weight:600;color:var(--ink-soft);border-bottom:1px solid var(--line);vertical-align:middle;}
@@ -453,6 +453,13 @@
   .cl-pair .cl-in:last-child{flex:1;}
   .cl-sub{font-size:11.5px;color:var(--ink-soft);padding:0 2px;}
   .cl-sec{min-width:150px;}
+  .cl-table .cl-tk{min-width:112px;width:112px;}
+  select.cl-tksel{font-weight:600;}
+  select.cl-tksel.tk-self{background:#E3EEFB;color:#1F5FA8;}
+  select.cl-tksel.tk-excapism{background:#E7F4EC;color:#2E7A4D;}
+  select.cl-tksel.tk-none{color:#9AA7B4;font-weight:500;}
+  .cl-tk-sum{margin:8px 0 0;font-size:12.5px;color:var(--ink-soft);}
+  .tk-self-t{color:#1F5FA8;}
   .cl-sec.is-done .cl-in{color:var(--ink-soft);}
   .cl-table td.cl-opt .cl-chk{opacity:.4;}
   /* inputs: quiet until you hover / focus */
@@ -1374,7 +1381,10 @@ function dashModel(){
 
   let ticketPax = 0; const ticketTrips = new Set();
   countedList.filter(ticketStageTrip).forEach(t=>custByTrip(t.id).forEach(c=>{
-    if(c.ticketPurchaser && c.ticketStatus==='Pending' && c.paymentStatus!=='Cancelled'){ ticketPax++; ticketTrips.add(t.id); }
+    if(c.paymentStatus==='Cancelled') return;
+    if(hasLegacyTicketData(t)){ if(c.ticketPurchaser && c.ticketStatus==='Pending'){ ticketPax++; ticketTrips.add(t.id); } return; }
+    const r = ((t.opsChecklist||{}).pax||{})[c.id] || {};                 // new trips: Excapism-bought tickets not yet ticked off in the checklist
+    if(clTicketOf(c, r)==='Excapism' && !(r.toDone && r.retDone)){ ticketPax++; ticketTrips.add(t.id); }
   }));
   // Money held for cancelled passengers / cancelled trips (settled by recording a refund or a kept amount).
   const refundRows = []; const rt = { paidIn:0, refunded:0, kept:0, held:0 };
@@ -1528,7 +1538,7 @@ function dashboardHTML(){
     <div class="panel-head"><h3>Needs attention</h3></div>
     <div class="dash-body"><ul class="dash-attn">
       ${attn(m.awaiting.length, 'Trips need action', 'Pending Payment, Pending Ops, Ongoing or On-hold')}
-      ${attn(m.ticketPax, 'Flight tickets to purchase', `${m.ticketPax} passenger(s) on ${m.ticketTrips.size} trip(s) in Operations with the ticket still Pending`)}
+      ${attn(m.ticketPax, 'Flight tickets to purchase', `${m.ticketPax} passenger(s) on ${m.ticketTrips.size} trip(s) in Operations where Excapism still has to buy a ticket`)}
       ${attn(m.due30.length, 'Departing within 30 days with a balance due', 'Collect the remaining payment before departure')}
       ${attn(m.emptyTrips.length, 'Upcoming trips with no passengers', 'Add passengers or share the registration link')}
     </ul></div>
@@ -2569,7 +2579,7 @@ function opsPillHTML(t, bare){
 // ---------------------------------------------------------------
 let clOpen=false, clFull=false, clSetup=false, clMore=false;
 const clSel = new Set();
-let clFilter = { q:'', hotel:'', to:'', ret:'', prog:'' }, clSort = { key:'', dir:1 }, clGroup = '', clTripId = null;
+let clFilter = { q:'', hotel:'', to:'', ret:'', prog:'', ticket:'' }, clSort = { key:'', dir:1 }, clGroup = '', clTripId = null;
 const clLastOps = {};
 const CL_REQ = ['hotelDone','toDone','retDone'];            // always required; Add-ons only when it has a note
 const CL_FIELDS = ['hotelId','roomType','roomNumber','toId','toLuggage','retId','retLuggage','addons'];
@@ -2624,6 +2634,12 @@ function clQueueList(t, key){
   const d = clDoc(t);
   clQueue(t.id, { lists: { [key]: d[key].map(x=>({ ...x })) } });
 }
+// Who buys the flight ticket: 'Excapism' | 'Self' | ''. Older passengers fall back to the ticket-purchaser they already had.
+function clTicketOf(c, r){
+  if(r && r.ticketBy !== undefined && r.ticketBy !== null) return r.ticketBy;
+  return c.ticketPurchaser==='Excapism' ? 'Excapism' : c.ticketPurchaser==='Self Purchase' ? 'Self' : '';
+}
+const CL_TK_LABEL = { Excapism:'Excapism buys', Self:'Self-purchase', '':'Not set' };
 function clHotelLabel(h){ return h.name || '(unnamed hotel)'; }
 function clFlightShort(f){ return [f.airline || '(airline)', f.ref].filter(Boolean).join(' · '); }
 function clFlightLabel(f){ return [f.airline || '(airline)', f.ref].filter(Boolean).join(' · ') + (f.departure ? ' · ' + clFmtDT(f.departure) : ''); }
@@ -2664,7 +2680,8 @@ function clVisible(t){
   const sortVal = {
     name: c=>(c.name||'').toLowerCase(), hotel: c=>I.hotelName(I.d.pax[c.id]||{}).toLowerCase(), room: c=>String((I.d.pax[c.id]||{}).roomNumber||'').toLowerCase(),
     to: c=>I.toName(I.d.pax[c.id]||{}).toLowerCase(), ret: c=>I.retName(I.d.pax[c.id]||{}).toLowerCase(),
-    prog: c=>{ const r = I.d.pax[c.id]||{}, k = clReqKeys(r); return k.filter(x=>r[x]).length / k.length; }
+    prog: c=>{ const r = I.d.pax[c.id]||{}, k = clReqKeys(r); return k.filter(x=>r[x]).length / k.length; },
+    ticket: c=>clTicketOf(c, I.d.pax[c.id]||{}).toLowerCase()
   };
   let rows = clPaxList(t).filter(c=>{
     const r = I.d.pax[c.id] || {};
@@ -2672,6 +2689,7 @@ function clVisible(t){
     for(const [f,fld] of [['hotel','hotelId'],['to','toId'],['ret','retId']]){
       if(clFilter[f] === '_none'){ if(r[fld]) return false; } else if(clFilter[f] && r[fld] !== clFilter[f]) return false;
     }
+    if(clFilter.ticket){ const tv = clTicketOf(c, r); if(clFilter.ticket==='_none' ? tv : tv !== clFilter.ticket) return false; }
     const comp = clPaxComplete(r);
     if(clFilter.prog==='done' && !comp) return false;
     if(clFilter.prog==='todo' && comp) return false;
@@ -2691,9 +2709,10 @@ function clVisible(t){
       if(clGroup==='room') return r.roomNumber ? 'Room ' + r.roomNumber + (I.hotelName(r) ? ' · ' + I.hotelName(r) : '') : '';
       if(clGroup==='to') return I.toName(r) || '';
       if(clGroup==='ret') return I.retName(r) || '';
+      if(clGroup==='ticket') return CL_TK_LABEL[clTicketOf(c, r)];
       if(clGroup==='prog') return clPaxComplete(r) ? 'Complete' : 'Incomplete';
       return ''; };
-    const noneLabel = { hotel:'No hotel assigned', room:'No room number', to:'No flight to assigned', ret:'No return flight assigned', prog:'' }[clGroup];
+    const noneLabel = { hotel:'No hotel assigned', room:'No room number', to:'No flight to assigned', ret:'No return flight assigned', prog:'', ticket:'Not set' }[clGroup];
     const m = new Map();
     rows.forEach(c=>{ const l = label(c) || noneLabel; if(!m.has(l)) m.set(l, []); m.get(l).push(c); });
     groups = [...m.entries()].sort((a,b)=>{ const an = a[0]===noneLabel, bn = b[0]===noneLabel; if(an!==bn) return an ? 1 : -1; return a[0].localeCompare(b[0], undefined, {numeric:true}); })
@@ -2718,7 +2737,7 @@ function clTableHTML(t){
   const sel = (f,c,r,arr,lab,item) => `<select class="cl-in ${r[f]?'':'is-empty'}" ${item&&(item.departure||item.arrival)?`title="${esc(clFlightLabel(item))}${item.arrival?' → '+esc(clFmtDT(item.arrival)):''}"`:''} data-cl-field="${f}" data-pid="${esc(c.id)}" ${dis}>${opts(arr,r[f],lab)}</select>`;
   const selCount = rows.filter(c=>clSel.has(c.id)).length;
   const selAll = `<th class="cl-sel"><input type="checkbox" class="cl-box" data-cl-selall ${selCount===rows.length?'checked':''} ${can?'':'disabled'} aria-label="Select all shown" title="Select everyone shown"></th>`;
-  const head = `<tr>${selAll}${sortTh('name','Passenger','cl-name')}${secHead('hotelDone','Stay','hotel')}${secHead('toDone','Flight to','to')}${secHead('retDone','Flight return','ret')}${secHead('addonsDone','Add-ons','', 'optional')}</tr>`;
+  const head = `<tr>${selAll}${sortTh('name','Passenger','cl-name')}${sortTh('ticket','Ticket by','cl-tk-h')}${secHead('hotelDone','Stay','hotel')}${secHead('toDone','Flight to','to')}${secHead('retDone','Flight return','ret')}${secHead('addonsDone','Add-ons','', 'optional')}</tr>`;
   const flightSub = f => { if(!f || !(f.departure || f.arrival)) return '';
     const dep = clFmtDT(f.departure), same = f.departure && f.arrival && String(f.departure).slice(0,10)===String(f.arrival).slice(0,10);
     const arr = f.arrival ? (same ? new Date(f.arrival).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false}) : clFmtDT(f.arrival)) : '';
@@ -2728,6 +2747,7 @@ function clTableHTML(t){
     const selTd = `<td class="cl-sel"><input type="checkbox" class="cl-box" data-cl-sel="${esc(c.id)}" ${clSel.has(c.id)?'checked':''} ${can?'':'disabled'} aria-label="Select ${esc(c.name)}"></td>`;
     return `<tr class="${comp?'cl-complete':''} ${clSel.has(c.id)?'cl-picked':''}">${selTd}
       <td class="cl-name"><span class="cl-nm">${esc(c.name)}</span> <span class="cl-n ${comp?'ok':''}">${comp?'✓ ':''}${n}/${keys.length}</span></td>
+      <td class="cl-tk"><select class="cl-in cl-tksel tk-${(clTicketOf(c,r)||'none').toLowerCase()}" data-cl-field="ticketBy" data-pid="${esc(c.id)}" ${dis} aria-label="Who buys the ticket"><option value="" ${clTicketOf(c,r)===''?'selected':''}>—</option><option value="Excapism" ${clTicketOf(c,r)==='Excapism'?'selected':''}>Excapism</option><option value="Self" ${clTicketOf(c,r)==='Self'?'selected':''}>Self</option></select></td>
       ${optTd('hotelDone',c,r, sel('hotelId',c,r,d.hotels,clHotelLabel) + inp('roomType',c,r,'Type','list="cl-roomtypes" class-x="w-type"') + inp('roomNumber',c,r,'Room','class-x="w-room"'))}
       ${optTd('toDone',c,r, sel('toId',c,r,d.flightsTo,clFlightShort,to) + inp('toLuggage',c,r,'Luggage'))}
       ${optTd('retDone',c,r, sel('retId',c,r,d.flightsReturn,clFlightShort,rt) + inp('retLuggage',c,r,'Luggage'))}
@@ -2737,7 +2757,7 @@ function clTableHTML(t){
     body = groups.map(g=>{
       const ids = g.list.map(c=>c.id), allSel = ids.every(id=>clSel.has(id));
       const doneN = g.list.filter(c=>clPaxComplete(d.pax[c.id])).length;
-      return `<tr class="cl-grp"><td class="cl-sel"><input type="checkbox" class="cl-box" data-cl-selgrp="${esc(ids.join(','))}" ${allSel?'checked':''} ${can?'':'disabled'} title="Select this group"></td><td colspan="5"><b>${esc(g.name)}</b><span class="cl-gcount">${g.list.length} pax · ${doneN} complete</span></td></tr>` + g.list.map(rowHTML).join('');
+      return `<tr class="cl-grp"><td class="cl-sel"><input type="checkbox" class="cl-box" data-cl-selgrp="${esc(ids.join(','))}" ${allSel?'checked':''} ${can?'':'disabled'} title="Select this group"></td><td colspan="6"><b>${esc(g.name)}</b><span class="cl-gcount">${g.list.length} pax · ${doneN} complete</span></td></tr>` + g.list.map(rowHTML).join('');
     }).join('');
   } else body = rows.map(rowHTML).join('');
   return `<div class="cl-scroll"><table class="cl-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>
@@ -2745,16 +2765,21 @@ function clTableHTML(t){
 }
 
 // Search / quick filter / group bar. Kept apart from the table so typing here isn't interrupted.
-function clFilterActive(){ return !!(clFilter.q || clFilter.hotel || clFilter.to || clFilter.ret || clFilter.prog || clSort.key || clGroup); }
+function clTicketSummary(t){
+  const d = clPaxOf(t), n = { Excapism:0, Self:0, '':0 };
+  clPaxList(t).forEach(c=>{ n[clTicketOf(c, d[c.id]||{})]++; });
+  return `Tickets: <b>${n.Excapism}</b> Excapism buys · <b class="tk-self-t">${n.Self}</b> self-purchase · <b>${n['']}</b> not set`;
+}
+function clFilterActive(){ return !!(clFilter.q || clFilter.hotel || clFilter.to || clFilter.ret || clFilter.ticket || clFilter.prog || clSort.key || clGroup); }
 function clControlsHTML(t){
   const d = clDoc(t);
   const selOpt = (arr, cur, lab) => `<option value="">All</option><option value="_none" ${cur==='_none'?'selected':''}>Not assigned</option>` + arr.map(x=>`<option value="${esc(x.id)}" ${cur===x.id?'selected':''}>${esc(lab(x))}</option>`).join('');
-  const extra = [clFilter.hotel, clFilter.to, clFilter.ret].filter(Boolean).length;
+  const extra = [clFilter.hotel, clFilter.to, clFilter.ret, clFilter.ticket].filter(Boolean).length;
   const seg = [['','Everyone'],['todo','To do'],['done','Done']].map(([v,l])=>`<button type="button" class="${clFilter.prog===v?'on':''}" data-cl-prog="${v}">${l}</button>`).join('');
   return `<div class="cl-filter">
       <input type="search" class="cl-in cl-search" id="cl-q" placeholder="🔍  Search name, room or hotel" value="${esc(clFilter.q)}">
       <span class="cl-seg">${seg}</span>
-      <label class="cl-grpby">Group by <select class="cl-in" id="cl-group"><option value="">None</option>${[['hotel','Hotel'],['room','Room number'],['to','Flight to'],['ret','Flight return'],['prog','Completion']].map(([v,l])=>`<option value="${v}" ${clGroup===v?'selected':''}>${l}</option>`).join('')}</select></label>
+      <label class="cl-grpby">Group by <select class="cl-in" id="cl-group"><option value="">None</option>${[['hotel','Hotel'],['room','Room number'],['to','Flight to'],['ret','Flight return'],['ticket','Ticket (who buys)'],['prog','Completion']].map(([v,l])=>`<option value="${v}" ${clGroup===v?'selected':''}>${l}</option>`).join('')}</select></label>
       <button type="button" class="btn btn-ghost btn-sm" data-cl-more aria-expanded="${clMore||extra>0}">Filters${extra?` <span class="cl-badge">${extra}</span>`:''} ${clMore||extra>0?'▴':'▾'}</button>
       <button type="button" class="cl-link" id="cl-reset-link" data-cl-reset ${clFilterActive()?'':'hidden'}>Reset</button>
     </div>
@@ -2762,7 +2787,9 @@ function clControlsHTML(t){
       <label>Hotel <select class="cl-in" data-cl-filter="hotel">${selOpt(d.hotels, clFilter.hotel, clHotelLabel)}</select></label>
       <label>Flight to <select class="cl-in" data-cl-filter="to">${selOpt(d.flightsTo, clFilter.to, clFlightLabel)}</select></label>
       <label>Return <select class="cl-in" data-cl-filter="ret">${selOpt(d.flightsReturn, clFilter.ret, clFlightLabel)}</select></label>
+      <label>Ticket <select class="cl-in" data-cl-filter="ticket"><option value="">All</option><option value="Excapism" ${clFilter.ticket==='Excapism'?'selected':''}>Excapism buys</option><option value="Self" ${clFilter.ticket==='Self'?'selected':''}>Self-purchase</option><option value="_none" ${clFilter.ticket==='_none'?'selected':''}>Not set</option></select></label>
     </div>
+    <p class="cl-tk-sum" id="cl-tk-sum">${clTicketSummary(t)}</p>
     ${isApproverOrAdmin() ? '<p class="cl-tip">Tip: tick passengers on the left to give them a hotel, flights, room or luggage in one go.</p>' : ''}`;
 }
 // Floating "assign to selected" bar — always in the page, but only shown while someone is ticked.
@@ -2777,6 +2804,7 @@ function clBulkHTML(t){
       <select data-cl-bulk="hotelId"><option value="">Hotel…</option>${lst(d.hotels, clHotelLabel)}</select>
       <select data-cl-bulk="toId"><option value="">Flight to…</option>${lst(d.flightsTo, clFlightLabel)}</select>
       <select data-cl-bulk="retId"><option value="">Return flight…</option>${lst(d.flightsReturn, clFlightLabel)}</select>
+      <select data-cl-bulk="ticketBy"><option value="">Ticket by…</option><option value="Excapism">Excapism buys</option><option value="Self">Self-purchase</option><option value="_clear">Not set</option></select>
     </div>
     <div class="cl-bk-row">
       <span class="cl-bk-lab">Set</span>
@@ -2790,7 +2818,7 @@ function clBulkHTML(t){
 }
 
 function clBlockHTML(t){
-  if(clTripId !== t.id){ clTripId = t.id; clFilter = { q:'', hotel:'', to:'', ret:'', prog:'' }; clSort = { key:'', dir:1 }; clGroup = ''; clMore = false; clSel.clear(); }
+  if(clTripId !== t.id){ clTripId = t.id; clFilter = { q:'', hotel:'', to:'', ret:'', prog:'', ticket:'' }; clSort = { key:'', dir:1 }; clGroup = ''; clMore = false; clSel.clear(); }
   clLastOps[t.id] = tripOpsStatus(t);
   const pr = clProgress(t);
   const prog = pr.total ? `${pr.done} of ${pr.total} done` : 'no passengers yet';
@@ -2814,6 +2842,7 @@ function clRefreshMeta(t){
   const pr = clProgress(t), el = document.getElementById('cl-prog');
   if(el) el.textContent = pr.total ? `${pr.done} of ${pr.total} done` : 'no passengers yet';
   const m = document.getElementById('cl-meter-i'); if(m) m.style.width = (pr.total ? Math.round(pr.done / pr.total * 100) : 0) + '%';
+  const ts = document.getElementById('cl-tk-sum'); if(ts) ts.innerHTML = clTicketSummary(t);
   const n = clSelectedVisible(t).length;
   const sc = document.getElementById('cl-selcount'); if(sc) sc.textContent = n;
   const bar = document.getElementById('cl-bulkbar'); if(bar) bar.classList.toggle('show', n > 0);
@@ -2870,7 +2899,7 @@ function bindChecklist(){
       if(clSort.key!==k) clSort = { key:k, dir:1 }; else if(clSort.dir===1) clSort.dir = -1; else clSort = { key:'', dir:1 };
       clRefreshTable(t); return;
     }
-    if(q('[data-cl-reset]')){ clFilter = { q:'', hotel:'', to:'', ret:'', prog:'' }; clSort = { key:'', dir:1 }; clGroup = ''; clRefreshControls(t); clRefreshTable(t); return; }
+    if(q('[data-cl-reset]')){ clFilter = { q:'', hotel:'', to:'', ret:'', prog:'', ticket:'' }; clSort = { key:'', dir:1 }; clGroup = ''; clRefreshControls(t); clRefreshTable(t); return; }
     if(q('[data-cl-more]')){ clMore = !clMore; clRefreshControls(t); return; }
     if((b = q('[data-cl-prog]'))){ clFilter.prog = b.dataset.clProg; clRefreshControls(t); clRefreshTable(t); return; }
     if(q('[data-cl-clearsel]')){ clSel.clear(); clRefreshTable(t); return; }
@@ -2916,7 +2945,7 @@ function bindChecklist(){
       const ids = clSelectedVisible(t);
       if(!el.value) return;
       if(!ids.length){ showToast('Tick the passengers first'); el.value=''; return; }
-      clSetPax(t, ids, { [el.dataset.clBulk]: el.value }); showToast('Assigned to ' + ids.length + ' passenger' + (ids.length>1?'s':''));
+      clSetPax(t, ids, { [el.dataset.clBulk]: el.value==='_clear' ? '' : el.value }); showToast('Assigned to ' + ids.length + ' passenger' + (ids.length>1?'s':''));
       el.value = ''; clRefreshTable(t); clAfterChange(t); return;
     }
     if(el.matches('[data-cl-done]')){ clSetPax(t, [el.dataset.pid], { [el.dataset.clDone]: el.checked }); clRefreshTable(t); clAfterChange(t); return; }

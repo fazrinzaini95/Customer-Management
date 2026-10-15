@@ -228,6 +228,7 @@ const clPax = z.object({
   hotelId: clStr, roomType: clStr, roomNumber: clStr,
   toId: clStr, toLuggage: clStr, retId: clStr, retLuggage: clStr,
   addons: z.string().max(2000),
+  ticketBy: z.enum(['', 'Excapism', 'Self']),
   hotelDone: z.boolean(), toDone: z.boolean(), retDone: z.boolean(), addonsDone: z.boolean(),
 }).partial();
 const checklistSchema = z.object({
