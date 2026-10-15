@@ -13,7 +13,7 @@ router.use(requireAuth);
 router.get('/', asyncHandler(async (req, res) => {
   const isAdmin = req.user.role === 'admin';
 
-  const [tripsRes, passengersRes, settingsRes, seqRes, usersRes] = await Promise.all([
+  const [tripsRes, passengersRes, settingsRes, seqRes, usersRes, listsRes] = await Promise.all([
     query(`
       SELECT t.*, COUNT(p.id) AS passenger_count, u.name AS creator_name, le.name AS editor_name
       FROM trips t
@@ -34,6 +34,7 @@ router.get('/', asyncHandler(async (req, res) => {
     isAdmin
       ? query('SELECT * FROM users WHERE is_active = true ORDER BY created_at')
       : Promise.resolve({ rows: [] }),
+    query('SELECT * FROM list_items ORDER BY kind, lower(country), lower(name)'),
   ]);
 
   const { last_value, is_called } = seqRes.rows[0];
@@ -41,7 +42,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
   res.json({
     trips: tripsRes.rows.map((r) => ({
-      id: r.id, seq: r.seq, name: r.name, type: r.type, destination: r.destination,
+      id: r.id, seq: r.seq, name: r.name, type: r.type, destination: r.destination, route: r.route || '',
       startDate: r.start_date, endDate: r.end_date, status: r.status, history: r.history,
       createdAt: r.created_at, createdByName: r.creator_name || null,
       lastEditedByName: r.editor_name || null, lastEditedAt: r.last_edited_at || null,
@@ -57,6 +58,7 @@ router.get('/', asyncHandler(async (req, res) => {
       ticketPurchaser: r.ticket_purchaser, ticketStatus: r.ticket_status, airline: r.airline, bookingReference: r.booking_reference,
       picName: r.pic_name || null, notes: r.notes, submittedAt: r.submitted_at, addedAt: r.added_at,
     })),
+    lists: listsRes.rows.map((r) => ({ id: r.id, kind: r.kind, country: r.country, name: r.name, city: r.city })),
     settings: { ...(settingsRes.rows[0]?.data || {}), runningNumber: is_called ? Number(last_value) : 0, nextNumber },
     users: isAdmin
       ? usersRes.rows.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, isTemp: u.is_temp, createdAt: u.created_at }))

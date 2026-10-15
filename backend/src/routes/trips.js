@@ -3,6 +3,7 @@ const { z } = require('zod');
 const { query, withTransaction, logActivity } = require('../db');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { ensureItem } = require('./lists');
 
 router.use(requireAuth);
 
@@ -13,6 +14,7 @@ function mapTrip(row, passengerCount) {
     name: row.name,
     type: row.type,
     destination: row.destination,
+    route: row.route || '',
     startDate: row.start_date,
     endDate: row.end_date,
     status: row.status,
@@ -79,6 +81,7 @@ const tripSchema = z.object({
   name: z.string().min(1),
   type: z.enum(['open', 'private']).default('open'),
   destination: z.string().optional().or(z.literal('')),
+  route: z.string().max(200).optional().or(z.literal('')),
   startDate: z.string().optional().or(z.literal('')),
   endDate: z.string().optional().or(z.literal('')),
 });
@@ -91,11 +94,12 @@ router.post('/', asyncHandler(async (req, res) => {
   const d = tripSchema.parse(req.body);
   const history = JSON.stringify([{ status: 'Draft', date: new Date().toISOString() }]);
   const { rows } = await query(
-    `INSERT INTO trips (name, type, destination, start_date, end_date, status, history, created_by, last_edited_by, last_edited_at)
-     VALUES ($1,$2,$3,$4,$5,'Draft',$6,$7,$7,now()) RETURNING *`,
-    [d.name, d.type, d.destination || null, d.startDate || null, d.endDate || null, history, req.user.id]
+    `INSERT INTO trips (name, type, destination, route, start_date, end_date, status, history, created_by, last_edited_by, last_edited_at)
+     VALUES ($1,$2,$3,$4,$5,$6,'Draft',$7,$8,$8,now()) RETURNING *`,
+    [d.name, d.type, d.destination || null, (d.route || '').trim() || null, d.startDate || null, d.endDate || null, history, req.user.id]
   );
   res.status(201).json({ ...mapTrip(rows[0]), createdByName: req.user.name, lastEditedByName: req.user.name });
+  if (rows[0].route && rows[0].destination) ensureItem({ kind: 'route', country: rows[0].destination, name: rows[0].route, userId: req.user.id }).catch(() => {});
   logActivity({ actor: req.user, action: 'trip.created', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { type: rows[0].type, destination: rows[0].destination } });
 }));
 
@@ -107,7 +111,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
   const fields = [];
   const values = [];
   let i = 1;
-  const colMap = { name: 'name', type: 'type', destination: 'destination', startDate: 'start_date', endDate: 'end_date' };
+  const colMap = { name: 'name', type: 'type', destination: 'destination', route: 'route', startDate: 'start_date', endDate: 'end_date' };
   for (const [key, col] of Object.entries(colMap)) {
     if (d[key] !== undefined) { fields.push(`${col} = $${i++}`); values.push(d[key] || null); }
   }
@@ -128,6 +132,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
   );
   if (!rows[0]) return res.status(404).json({ error: 'Trip not found' });
   res.json(mapTrip(rows[0]));
+  if (rows[0].route && rows[0].destination) ensureItem({ kind: 'route', country: rows[0].destination, name: rows[0].route, userId: req.user.id }).catch(() => {});
   logActivity({ actor: req.user, action: 'trip.updated', entityType: 'trip', entityId: rows[0].id, entityLabel: rows[0].name, details: { updatedFields: Object.keys(d) } });
 }));
 

@@ -117,6 +117,11 @@ ALTER TABLE trips ADD COLUMN IF NOT EXISTS pay_status TEXT NOT NULL DEFAULT 'Dra
 ALTER TABLE trips ADD COLUMN IF NOT EXISTS ops_status TEXT NOT NULL DEFAULT 'Pending Ops'
   CHECK (ops_status IN ('Pending Ops','Ongoing','Onhold','Ready','Rejected','Completed'));
 
+-- Operations checklist: one JSON document per trip (accommodation, flights
+-- to/return, add-ons, and the per-passenger assignments + tick boxes).
+-- Safe to re-run.
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS ops_checklist JSONB NOT NULL DEFAULT '{}'::jsonb;
+
 -- ---------------------------------------------------------------
 -- Passengers
 -- ---------------------------------------------------------------
@@ -202,3 +207,28 @@ CREATE TABLE IF NOT EXISTS activity_log (
 );
 
 CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON activity_log(created_at DESC);
+
+-- Payment history per passenger (instalments): [{id, date, amount, note}].
+-- balance_paid ("Payment") is kept equal to the sum of these entries by the
+-- PUT /passengers/:id/payments route. Existing passengers keep their current
+-- Payment figure; the app shows it as an "Earlier payment" line. Safe to re-run.
+ALTER TABLE passengers ADD COLUMN IF NOT EXISTS payments JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+-- Operations On-hold / Rejected now carry a reason (who + when). Safe to re-run.
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS ops_reason TEXT;
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS ops_reason_by TEXT;
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS ops_reason_at TIMESTAMPTZ;
+
+-- Predefined lists (Operations lists): routes per country, hotels per country (+ city) and airlines.
+-- They are only suggestions — trips and checklists keep plain text. Safe to re-run.
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS route TEXT;
+CREATE TABLE IF NOT EXISTS list_items (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  kind       TEXT NOT NULL CHECK (kind IN ('route', 'hotel', 'airline')),
+  country    TEXT NOT NULL DEFAULT '',
+  name       TEXT NOT NULL,
+  city       TEXT NOT NULL DEFAULT '',
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_list_items ON list_items (kind, lower(country), lower(name));

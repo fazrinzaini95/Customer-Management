@@ -12,6 +12,7 @@ const settingsRoutes = require('./routes/settings');
 const bootstrapRoutes = require('./routes/bootstrap');
 const activityRoutes = require('./routes/activity');
 const publicRoutes = require('./routes/public');
+const listsRoutes = require('./routes/lists');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -63,6 +64,7 @@ app.use('/users', usersRoutes);
 app.use('/trips', tripsRoutes);
 app.use('/', passengersRoutes);   // owns /trips/:tripId/passengers and /passengers/:id
 app.use('/settings', settingsRoutes);
+app.use('/lists', listsRoutes);
 app.use('/bootstrap', bootstrapRoutes);
 app.use('/activity', activityRoutes);
 

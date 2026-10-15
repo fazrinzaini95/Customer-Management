@@ -389,6 +389,33 @@
   .ops-arrow{color:var(--ink-soft);}
   .ops-step.auto{cursor:default;}
   .ops-hold-note{margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(107,74,154,0.08);border-left:4px solid #6B4A9A;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;font-size:13.5px;}
+  /* ---------- Operations lists (Admin) + trip route / duration ---------- */
+  .modal.modal-wide{max-width:860px;width:min(860px,96vw);}
+  .lm-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+  .lm-tab{border:0;border-radius:999px;padding:7px 14px;font:inherit;font-weight:600;background:#EEF1F5;color:var(--ink-soft);cursor:pointer;}
+  .lm-tab.on{background:var(--navy);color:#fff;}
+  .lm-tab small,.lm-c small{opacity:.7;font-weight:500;}
+  .lm-grid{display:grid;grid-template-columns:210px 1fr;gap:16px;}
+  @media(max-width:700px){.lm-grid{grid-template-columns:1fr;}}
+  .lm-side{display:flex;flex-direction:column;gap:3px;}
+  .lm-c{border:0;background:none;text-align:left;padding:8px 12px;border-radius:9px;font:inherit;font-weight:600;color:var(--ink);cursor:pointer;}
+  .lm-c:hover{background:#F1F5F9;}.lm-c.on{background:var(--navy);color:#fff;}
+  .lm-side select{margin-top:8px;}
+  .lm-title{font-weight:700;color:var(--navy);margin-bottom:10px;font-size:15px;}
+  .lm-row{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid rgba(15,44,76,.1);border-radius:10px;margin-bottom:6px;background:#FAFBFD;}
+  .lm-in{font:inherit;font-size:13.5px;padding:7px 10px;border:1px solid transparent;border-radius:8px;background:transparent;flex:1;min-width:0;}
+  .lm-row .lm-in:hover{border-color:var(--line);background:#fff;}
+  .lm-in:focus{outline:0;border-color:var(--navy);background:#fff;box-shadow:0 0 0 3px rgba(15,44,76,.1);}
+  .lm-city{flex:0 0 150px;}
+  .lm-used{font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+  .lm-x{border:0;background:none;color:var(--coral);cursor:pointer;font-size:15px;padding:4px 8px;}
+  .lm-add{display:flex;gap:8px;margin-top:10px;padding:8px;border:1.5px dashed var(--line);border-radius:10px;background:#fff;}
+  .lm-add .lm-in{border-color:var(--line);background:#fff;}
+  .lm-empty{padding:18px;border:1px dashed var(--line);border-radius:10px;color:var(--ink-soft);font-size:13.5px;text-align:center;}
+  .dur-chip{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:99px;background:rgba(15,44,76,.08);color:var(--navy);font-size:11px;font-weight:700;letter-spacing:.3px;}
+  .dur-chip.on-dark{background:rgba(255,255,255,.18);color:#fff;}
+  .stub-route{margin-top:2px;}
+  .dur-line{min-height:16px;}
   /* ---------- Operations checklist ---------- */
   .cl-wrap{border-top:1px solid var(--line);padding:14px 20px 18px;}
   .cl-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;}
@@ -644,7 +671,17 @@ function ensureDemoState(){
     demoState = { users:[], trips:[], passengers:[], settings:{prefix:'EXC',includeYear:true,padding:3}, tripSeq:0, activityLog:[] };
   }
   if(!demoState.activityLog) demoState.activityLog = []; // upgrade older saved demo data
+  if(!demoState.lists) demoState.lists = [];
   return demoState;
+}
+function demoEnsureList(state, d){
+  state.lists = state.lists || [];
+  const clean = x => String(x==null?'':x).replace(/\s+/g,' ').trim();
+  const kind = d.kind, name = clean(d.name).slice(0,120); if(!['route','hotel','airline'].includes(kind) || !name) return null;
+  const country = kind==='airline' ? '' : clean(d.country).slice(0,80);
+  if(state.lists.some(x=>x.kind===kind && clean(x.country).toLowerCase()===country.toLowerCase() && x.name.toLowerCase()===name.toLowerCase())) return null;
+  const it = { id:demoId('li'), kind, country, name, city:clean(d.city).slice(0,80), createdAt:new Date().toISOString() };
+  state.lists.push(it); return it;
 }
 function persistDemo(){
   try{ localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(demoState)); }catch(e){ /* demo data just won't survive a refresh */ }
@@ -727,8 +764,32 @@ async function demoFetchInner(path, options = {}){
       trips: state.trips.map(t=>({ ...t, passengerCount: state.passengers.filter(p=>p.tripId===t.id).length })),
       passengers: state.passengers.slice(),
       users: u.role==='admin' ? state.users.map(publicUser) : undefined,
+      lists: (state.lists||[]).slice(),
       settings: { ...state.settings, runningNumber: state.tripSeq, nextNumber: state.tripSeq+1 }
     };
+  }
+
+  // ---- Operations lists ----
+  if(path==='/lists' && method==='GET'){ requireAuthed(); return (state.lists||[]).slice(); }
+  if(path==='/lists/ensure' && method==='POST'){ requireAuthed(); const it = demoEnsureList(state, body); persistDemo(); return { created: !!it, item: it }; }
+  if(path==='/lists' && method==='POST'){
+    const u = requireRoleIn('admin');
+    const it = demoEnsureList(state, body); if(!it) fail(409,'That one is already in the list');
+    logDemoActivity(state, u, 'list.added', 'settings', it.id, it.name, { kind:it.kind }); persistDemo(); return it;
+  }
+  if((m=path.match(/^\/lists\/([^/]+)$/)) && method==='PUT'){
+    const u = requireRoleIn('admin');
+    const it = (state.lists||[]).find(x=>x.id===m[1]); if(!it) fail(404,'Not found');
+    const name = body.name!==undefined ? String(body.name).replace(/\s+/g,' ').trim() : it.name;
+    if(!name) fail(400,'Name is required');
+    if(state.lists.some(x=>x.id!==it.id && x.kind===it.kind && lcKey(x.country)===lcKey(it.country) && lcKey(x.name)===lcKey(name))) fail(409,'There is already one with that name — delete the duplicate instead');
+    it.name = name; if(body.city!==undefined) it.city = String(body.city).replace(/\s+/g,' ').trim();
+    logDemoActivity(state, u, 'list.updated', 'settings', it.id, it.name, { kind:it.kind }); persistDemo(); return it;
+  }
+  if((m=path.match(/^\/lists\/([^/]+)$/)) && method==='DELETE'){
+    const u = requireRoleIn('admin');
+    const idx = (state.lists||[]).findIndex(x=>x.id===m[1]); if(idx<0) fail(404,'Not found');
+    const [gone] = state.lists.splice(idx,1); logDemoActivity(state, u, 'list.deleted', 'settings', gone.id, gone.name, { kind:gone.kind }); persistDemo(); return null;
   }
 
   // ---- Trips ----
@@ -736,11 +797,12 @@ async function demoFetchInner(path, options = {}){
     const u = requireAuthed();
     if(!body.name) fail(400,'Trip name is required');
     state.tripSeq += 1;
-    const t = { id:demoId('trip'), seq:state.tripSeq, name:body.name, type:body.type||'open', destination:body.destination||null,
+    const t = { id:demoId('trip'), seq:state.tripSeq, name:body.name, type:body.type||'open', destination:body.destination||null, route:(body.route||'').trim()||null,
       startDate:body.startDate||null, endDate:body.endDate||null, status:'Draft',
       opsStatus:'Pending Ops',
       history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), createdByName:u.name, publicToken:demoId('tok') };
     state.trips.push(t);
+    if(t.route && t.destination) demoEnsureList(state, { kind:'route', country:t.destination, name:t.route });
     logDemoActivity(state, u, 'trip.created', 'trip', t.id, t.name, { type:t.type, destination:t.destination });
     persistDemo();
     return t;
@@ -749,6 +811,7 @@ async function demoFetchInner(path, options = {}){
     const u = requireAuthed();
     const t = state.trips.find(x=>x.id===m[1]); if(!t) fail(404,'Trip not found');
     Object.assign(t, body);
+    if(t.route && t.destination) demoEnsureList(state, { kind:'route', country:t.destination, name:t.route });
     logDemoActivity(state, u, 'trip.updated', 'trip', t.id, t.name, { updatedFields:Object.keys(body) });
     persistDemo();
     return t;
@@ -1048,6 +1111,7 @@ async function loadBootstrap(){
     trips = data.trips || [];
     customers = data.passengers || [];
     users = data.users || [];
+    opsLists = data.lists || [];
     numberSettings = Object.assign({prefix:'EXC',includeYear:true,padding:3,runningNumber:0,nextNumber:1}, data.settings || {});
   }catch(e){
     showToast(e.message || 'Could not load data from the server');
@@ -1141,7 +1205,7 @@ function render(){
   if(API_NOT_CONFIGURED && !DEMO_MODE){ app.innerHTML = apiNotConfiguredHTML(); bindAuthEvents(); return; }
   if(authView==='signup'){ app.innerHTML = signupHTML(); bindAuthEvents(); return; }
   if(authView==='login'){ app.innerHTML = loginHTML(); bindAuthEvents(); return; }
-  app.innerHTML = headerHTML() + tempBannerHTML() + tabsHTML() + (view.mode==='detail' ? detailHTML() : view.mode==='dashboard' ? dashboardHTML() : view.mode==='calendar' ? calendarHTML() : listHTML()) + modalsHTML() + (isAdmin() ? manageUsersModalHTML() + settingsModalHTML() + activityLogModalHTML() : '');
+  app.innerHTML = headerHTML() + tempBannerHTML() + tabsHTML() + (view.mode==='detail' ? detailHTML() : view.mode==='dashboard' ? dashboardHTML() : view.mode==='calendar' ? calendarHTML() : listHTML()) + modalsHTML() + (isAdmin() ? manageUsersModalHTML() + settingsModalHTML() + listsModalHTML() + activityLogModalHTML() : '');
   bindEvents();
 }
 
@@ -1242,7 +1306,7 @@ function headerHTML(){
         ${DEMO_MODE ? `<span class="badge" style="background:rgba(244,185,60,0.25);color:#9C7A16;">🧪 Demo</span>` : ''}
       </div>
       ${isApproverOrAdmin() ? `<button class="btn ${pendingCount>0?'btn-primary':'btn-ghost'}" data-action="open-approvals" title="Trips that are Pending Payment, Pending Ops, Ongoing or On-hold">Actions needed${pendingCount>0 ? ` <span class="badge" style="background:#fff;color:var(--navy);margin-left:4px;">${pendingCount}</span>` : ''}</button>` : ''}
-      ${isAdmin() ? `<button class="btn btn-ghost" data-action="open-manage-users">Manage users</button><button class="btn btn-ghost" data-action="open-settings">Settings</button><button class="btn btn-ghost" data-action="open-activity-log">Activity log</button>` : ''}
+      ${isAdmin() ? `<button class="btn btn-ghost" data-action="open-manage-users">Manage users</button><button class="btn btn-ghost" data-action="open-settings">Settings</button><button class="btn btn-ghost" data-action="open-lists" title="Routes, hotels and airlines used across trips and operations">Operations lists</button><button class="btn btn-ghost" data-action="open-activity-log">Activity log</button>` : ''}
       <button class="btn btn-ghost" data-action="open-upload">Bulk upload</button>
       <button class="btn btn-primary" data-action="open-new-trip">+ New trip</button>
       ${DEMO_MODE ? `<button class="btn btn-ghost" data-action="reset-demo-data" title="Clear all demo data and start over">Reset demo data</button>` : ''}
@@ -1917,10 +1981,10 @@ function listHTML(){
         <td><span class="cust-sub">${esc(tripYear(t))}</span></td>
         <td>
           <div class="cust-name">${esc(t.name)}</div>
-          <div class="cust-sub">${esc(t.destination||'Destination TBC')}</div>
+          <div class="cust-sub">${esc(t.destination||'Destination TBC')}${t.route?' · '+esc(t.route):''}</div>
         </td>
         <td><span class="cust-sub" style="text-transform:capitalize;">${t.type}</span></td>
-        <td><span class="cust-sub">${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}</span></td>
+        <td><span class="cust-sub">${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}</span>${durationCode(t.startDate,t.endDate)?` <span class="dur-chip">${durationCode(t.startDate,t.endDate)}</span>`:''}</td>
         <td>${stampHTML(t, 'style="display:inline-block;"')}</td>
         <td>${opsPillHTML(t, true) || '<span class="cust-sub">—</span>'}</td>
         <td>${tm.pax}</td>
@@ -1949,11 +2013,11 @@ function listHTML(){
         <div class="stub-code">${tripCode(t)}</div>
         <div class="stub-type">${t.type} trip</div>
         <p class="stub-name">${esc(t.name)}</p>
-        <p class="stub-dest">${esc(t.destination||'Destination TBC')}</p>
+        <p class="stub-dest">${esc(t.destination||'Destination TBC')}</p>${t.route?`<p class="stub-dest stub-route">📍 ${esc(t.route)}</p>`:''}
       </div>
       <div class="stub-perf"></div>
       <div class="stub-bottom">
-        <div class="stub-dates">${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}</div>
+        <div class="stub-dates">${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}${durationCode(t.startDate,t.endDate)?` <span class="dur-chip">${durationCode(t.startDate,t.endDate)}</span>`:''}</div>
         ${stampHTML(t)}
       </div>
       ${isSubmittedTrip(t) ? `<div class="pill-row">${opsPillHTML(t)}</div>` : ''}
@@ -2088,7 +2152,8 @@ function detailHTML(){
     <div class="mh-left">
       <div class="eyebrow">${tripCode(t)} · ${t.type} trip</div>
       <h2>${esc(t.name)}</h2>
-      <div class="mh-sub">${esc(t.destination||'Destination TBC')} · ${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}</div>
+      <div class="mh-sub">${esc(t.destination||'Destination TBC')} · ${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}${durationCode(t.startDate,t.endDate)?` <span class="dur-chip on-dark">${durationCode(t.startDate,t.endDate)}</span>`:''}</div>
+      ${t.route?`<div class="mh-sub" style="margin-top:2px;">📍 ${esc(t.route)}</div>`:''}
       ${isSubmittedTrip(t) ? `<div class="pill-row" style="padding:8px 0 0;">${opsPillHTML(t)}</div>` : ''}
       ${t.createdByName ? `<div class="mh-sub" style="margin-top:2px;opacity:0.8;">Created by ${esc(t.createdByName)}</div>` : ''}
       ${(t.lastEditedByName && t.lastEditedByName !== t.createdByName) ? `<div class="mh-sub" style="margin-top:2px;opacity:0.8;">Last edited by ${esc(t.lastEditedByName)}${t.lastEditedAt ? ' · ' + fmtDate(t.lastEditedAt) : ''}</div>` : ''}
@@ -2138,6 +2203,124 @@ function detailHTML(){
    ========================================================= */
 function modalsHTML(){
   return tripModal() + customerModal() + paymentsModal() + opsReasonModal() + uploadModal();
+}
+
+/* =========================================================
+   Operations lists — routes (per country), hotels (per country + city) and airlines.
+   Admin maintains them in "Operations lists"; everywhere else they are only suggestions,
+   free text always works, and anything new that staff type is remembered automatically.
+   ========================================================= */
+let opsLists = [];
+const lmState = { tab:'route', country:'Indonesia', addCountry:'' };
+const LM_TABS = [['route','Routes'],['hotel','Hotels'],['airline','Airlines']];
+const lcKey = s => String(s||'').replace(/\s+/g,' ').trim().toLowerCase();
+function listItemsFor(kind, country){
+  const c = lcKey(country);
+  return opsLists.filter(i=>i.kind===kind && (kind==='airline' || i.country==='' || lcKey(i.country)===c))
+    .slice().sort((a,b)=>a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}));
+}
+function listOptionsHTML(kind, country){
+  return listItemsFor(kind, country).map(i=>`<option value="${esc(i.name)}"${i.city?` label="${esc(i.city)}"`:''}></option>`).join('');
+}
+async function refreshLists(){ try{ opsLists = await apiFetch('/lists'); }catch(e){ /* keep what we have */ } }
+// Remember something staff typed (once it is finished — on blur / Enter, never while typing).
+async function ensureListItem(kind, country, name){
+  const n = String(name||'').replace(/\s+/g,' ').trim(); if(!n) return;
+  const c = kind==='airline' ? '' : String(country||'').trim();
+  if(opsLists.some(i=>i.kind===kind && lcKey(i.name)===lcKey(n) && (kind==='airline' || lcKey(i.country)===lcKey(c)))) return;
+  try{
+    const r = await apiFetch('/lists/ensure', { method:'POST', body: JSON.stringify({ kind, country:c, name:n }) });
+    if(r && r.item) opsLists.push(r.item);
+  }catch(e){ /* never block the user over a suggestion list */ }
+}
+// 1 Dec → 5 Dec  =>  "5D4N"
+function durationCode(s, e){
+  if(!s || !e || e < s) return '';
+  const days = daysBetweenYmd(s, e) + 1;
+  return `${days}D${days-1}N`;
+}
+function lmCountries(){
+  const have = new Set(opsLists.filter(i=>i.kind===lmState.tab && i.country).map(i=>i.country));
+  return [...new Set([...DEFAULT_FAV_COUNTRIES, ...have, lmState.country].filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b));
+}
+function listsModalHTML(){
+  return `<div class="overlay" id="overlay-lists"><div class="modal modal-wide">
+    <div class="modal-head"><h3>⚙ Operations lists</h3><button class="modal-close" data-close="overlay-lists">✕</button></div>
+    <div class="modal-body" id="lists-body">${listsBodyHTML()}</div>
+    <div class="modal-foot"><span class="hint" style="margin:0;">Lists are suggestions only — renaming or deleting never changes trips that already used them.</span><button class="btn btn-ghost" data-close="overlay-lists">Close</button></div>
+  </div></div>`;
+}
+function listsBodyHTML(){
+  const kind = lmState.tab, perCountry = kind!=='airline';
+  const tabs = `<div class="lm-tabs">${LM_TABS.map(([k,l])=>`<button type="button" class="lm-tab ${kind===k?'on':''}" data-lm-tab="${k}">${l} <small>${opsLists.filter(i=>i.kind===k).length}</small></button>`).join('')}</div>`;
+  const items = (perCountry ? opsLists.filter(i=>i.kind===kind && lcKey(i.country)===lcKey(lmState.country)) : opsLists.filter(i=>i.kind==='airline'))
+    .slice().sort((a,b)=>a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}));
+  const used = it => kind==='route' ? trips.filter(t=>lcKey(t.destination)===lcKey(it.country) && lcKey(t.route)===lcKey(it.name)).length : 0;
+  const rows = items.length ? items.map(it=>`<div class="lm-row">
+      <input class="lm-in" data-lm-name="${esc(it.id)}" value="${esc(it.name)}" aria-label="Name">
+      ${kind==='hotel' ? `<input class="lm-in lm-city" data-lm-city="${esc(it.id)}" value="${esc(it.city||'')}" placeholder="City" aria-label="City">` : ''}
+      ${kind==='route' ? `<span class="lm-used">${used(it) ? `used on ${used(it)} trip${used(it)>1?'s':''}` : ''}</span>` : ''}
+      <button type="button" class="lm-x" data-lm-del="${esc(it.id)}" title="Delete">✕</button></div>`).join('')
+    : `<div class="lm-empty">Nothing in this list yet${perCountry?` for ${esc(lmState.country)}`:''}. Add one below — or just type it on a trip and it will appear here by itself.</div>`;
+  const noun = {route:'route', hotel:'hotel', airline:'airline'}[kind];
+  const add = `<div class="lm-add"><input class="lm-in" id="lm-new-name" placeholder="${kind==='route'?'e.g. Surabaya – Bromo – Malang':kind==='hotel'?'Hotel name':'Airline name'}">
+      ${kind==='hotel' ? '<input class="lm-in lm-city" id="lm-new-city" placeholder="City">' : ''}
+      <button type="button" class="btn btn-primary btn-sm" data-lm-add>+ Add ${noun}</button></div>`;
+  let side = '';
+  if(perCountry){
+    const opts = COUNTRIES.filter(c=>!lmCountries().includes(c)).map(c=>`<option>${esc(c)}</option>`).join('');
+    side = `<div class="lm-side">${lmCountries().map(c=>`<button type="button" class="lm-c ${lcKey(c)===lcKey(lmState.country)?'on':''}" data-lm-country="${esc(c)}">${esc(c)} <small>${opsLists.filter(i=>i.kind===kind && lcKey(i.country)===lcKey(c)).length}</small></button>`).join('')}
+      <select class="lm-in" data-lm-addcountry><option value="">+ Add another country…</option>${opts}</select></div>`;
+  }
+  return `${tabs}<div class="${perCountry?'lm-grid':''}">${side}<div class="lm-main">
+      <div class="lm-title">${perCountry ? esc(lmState.country)+' — '+(kind==='route'?'routes / locations':'hotels') : 'Airlines (all trips)'}</div>
+      ${rows}${add}</div></div>`;
+}
+function lmRefresh(){ const b = document.getElementById('lists-body'); if(b) b.innerHTML = listsBodyHTML(); }
+async function lmAdd(){
+  const nameEl = document.getElementById('lm-new-name'); const name = nameEl.value.trim(); if(!name){ nameEl.focus(); return; }
+  const cityEl = document.getElementById('lm-new-city');
+  const kind = lmState.tab;
+  try{
+    const it = await apiFetch('/lists', { method:'POST', body: JSON.stringify({ kind, country: kind==='airline' ? '' : lmState.country, name, city: cityEl ? cityEl.value.trim() : '' }) });
+    opsLists.push(it); lmRefresh();
+    const n = document.getElementById('lm-new-name'); if(n) n.focus();
+  }catch(e){ showToast(e.message || 'Could not add that'); }
+}
+async function lmEdit(id, patch, inputEl){
+  const it = opsLists.find(x=>x.id===id); if(!it) return;
+  try{ const u = await apiFetch('/lists/'+id, { method:'PUT', body: JSON.stringify(patch) }); Object.assign(it, u); lmRefresh(); }
+  catch(e){ showToast(e.message || 'Could not save'); if(inputEl) inputEl.value = (patch.name !== undefined ? it.name : it.city) || ''; }
+}
+async function lmDelete(id){
+  const it = opsLists.find(x=>x.id===id); if(!it) return;
+  if(!confirm(`Remove "${it.name}" from the list?\n\nTrips that already used it keep their text.`)) return;
+  try{ await apiFetch('/lists/'+id, { method:'DELETE' }); opsLists = opsLists.filter(x=>x.id!==id); lmRefresh(); }
+  catch(e){ showToast(e.message || 'Could not delete'); }
+}
+// Keep the route suggestions in the trip form in step with the country chosen above.
+document.addEventListener('focusin', e=>{
+  if(e.target && e.target.id==='tr-route'){ const dl = document.getElementById('tr-route-dl'), c = document.getElementById('tr-dest'); if(dl && c) dl.innerHTML = listOptionsHTML('route', (COUNTRIES.find(x=>lcKey(x)===lcKey(c.value)) || c.value)); }
+});
+function bindListsModal(){
+  const ov = document.getElementById('overlay-lists'); if(!ov) return;
+  ov.addEventListener('click', e=>{
+    const q = s => e.target.closest(s); let b;
+    if((b = q('[data-lm-tab]'))){ lmState.tab = b.dataset.lmTab; lmRefresh(); return; }
+    if((b = q('[data-lm-country]'))){ lmState.country = b.dataset.lmCountry; lmRefresh(); return; }
+    if(q('[data-lm-add]')){ lmAdd(); return; }
+    if((b = q('[data-lm-del]'))){ lmDelete(b.dataset.lmDel); return; }
+  });
+  ov.addEventListener('change', e=>{
+    const el = e.target;
+    if(el.matches('[data-lm-name]')){ const v = el.value.trim(); if(!v){ lmRefresh(); return; } lmEdit(el.dataset.lmName, { name: v }, el); return; }
+    if(el.matches('[data-lm-city]')){ lmEdit(el.dataset.lmCity, { city: el.value.trim() }, el); return; }
+    if(el.matches('[data-lm-addcountry]') && el.value){ lmState.country = el.value; lmRefresh(); return; }
+  });
+  ov.addEventListener('keydown', e=>{
+    if(e.key==='Enter' && (e.target.id==='lm-new-name' || e.target.id==='lm-new-city')){ e.preventDefault(); lmAdd(); }
+  });
 }
 
 function settingsModalHTML(){
@@ -2481,6 +2664,7 @@ function rpPaint(){
     b.classList.toggle('inr', !!s && !!e && d>s && d<e);
   });
   const sum = document.getElementById('rp-sum');
+  const dur = document.getElementById('tr-duration'); if(dur) dur.innerHTML = (!rp.anchor && rp.start && rp.end) ? 'Duration: <b>'+durationCode(rp.start, rp.end)+'</b>' : '';
   if(sum) sum.textContent = rp.anchor ? (rp.hoverEnd && rp.hoverEnd!==rp.anchor ? rpDuration(...[rp.anchor, rp.hoverEnd].sort()) : 'Now pick the end date (or drag)') : (rp.start && rp.end ? rpDuration(rp.start, rp.end) : 'Pick a start date, then an end date');
   document.getElementById('rp-label').textContent = `${MONTH_NAMES[rp.m]} ${rp.y}`;
   const box = document.getElementById('rp-box'); if(box) box.innerHTML = rpFieldsHTML();
@@ -2659,7 +2843,7 @@ function clSetupHTML(t){
   const add = (key,label) => can ? `<button type="button" class="btn btn-ghost btn-sm" data-cl-add="${key}">+ ${label}</button>` : '';
   const flightRows = key => d[key].length ? d[key].map(f=>`
     <div class="cl-lrow cl-flight">
-      <input data-cl-list="${key}" data-lid="${esc(f.id)}" data-lf="airline" placeholder="Airline" value="${esc(f.airline||'')}" ${dis}>
+      <input data-cl-list="${key}" data-lid="${esc(f.id)}" data-lf="airline" placeholder="Airline" list="cl-airline-dl" autocomplete="off" value="${esc(f.airline||'')}" ${dis}>
       <input data-cl-list="${key}" data-lid="${esc(f.id)}" data-lf="ref" placeholder="Ref / booking" value="${esc(f.ref||'')}" ${dis}>
       <label>Departure<input type="datetime-local" data-cl-list="${key}" data-lid="${esc(f.id)}" data-lf="departure" value="${esc(f.departure||'')}" ${dis}></label>
       <label>Arrival<input type="datetime-local" data-cl-list="${key}" data-lid="${esc(f.id)}" data-lf="arrival" value="${esc(f.arrival||'')}" ${dis}></label>
@@ -2667,12 +2851,13 @@ function clSetupHTML(t){
     </div>`).join('') : '<p class="hint" style="margin:4px 0;">None yet.</p>';
   return `<div class="cl-setup">
     <div class="cl-card"><h4>Hotels</h4>
-      ${d.hotels.length ? d.hotels.map(h=>`<div class="cl-lrow"><input data-cl-list="hotels" data-lid="${esc(h.id)}" data-lf="name" placeholder="Hotel name" value="${esc(h.name||'')}" ${dis}>${del('hotels',h.id)}</div>`).join('') : '<p class="hint" style="margin:4px 0;">None yet.</p>'}
+      ${d.hotels.length ? d.hotels.map(h=>`<div class="cl-lrow"><input data-cl-list="hotels" data-lid="${esc(h.id)}" data-lf="name" placeholder="Hotel name" list="cl-hotel-dl" autocomplete="off" value="${esc(h.name||'')}" ${dis}>${del('hotels',h.id)}</div>`).join('') : '<p class="hint" style="margin:4px 0;">None yet.</p>'}
       ${add('hotels','Add hotel')}</div>
     <div class="cl-card"><h4>Flights to</h4>${flightRows('flightsTo')}${add('flightsTo','Add flight')}</div>
     <div class="cl-card"><h4>Flights return</h4>${flightRows('flightsReturn')}${add('flightsReturn','Add flight')}</div>
   </div>
-  <p class="hint" style="margin:6px 0 10px;">Add each hotel / flight once here, then assign passengers to it in the table below.${can?'':' (View only.)'}</p>`;
+  <p class="hint" style="margin:6px 0 10px;">Add each hotel / flight once here, then assign passengers to it in the table below. Pick a saved hotel or airline from the suggestions, or just type — new ones are remembered.${can?'':' (View only.)'}</p>
+  <datalist id="cl-hotel-dl">${listOptionsHTML('hotel', t.destination)}</datalist><datalist id="cl-airline-dl">${listOptionsHTML('airline','')}</datalist>`;
 }
 
 // ---- rows after filter / sort / group ----
@@ -2963,7 +3148,11 @@ function bindChecklist(){
     if(el.matches('select[data-cl-field="ticketBy"]')){ clSetTicket(t, [el.dataset.pid], el.value).then(()=>{ clRefreshTable(t); clAfterChange(t); }); clRefreshTable(t); return; }
     if(el.matches('select[data-cl-field]')){ clSetPax(t, [el.dataset.pid], { [el.dataset.clField]: el.value }); clRefreshTable(t); clAfterChange(t); return; }
     if(el.matches('input[data-cl-field]')){ clRefreshMeta(t); clAfterChange(t); return; }      // left the box: the status may have changed
-    if(el.matches('[data-cl-list]')){ clDeferRefresh(t); }
+    if(el.matches('[data-cl-list]')){
+      if(el.dataset.clList==='hotels' && el.dataset.lf==='name') ensureListItem('hotel', t.destination, el.value).then(()=>{ const dl = document.getElementById('cl-hotel-dl'); if(dl) dl.innerHTML = listOptionsHTML('hotel', t.destination); });
+      if(el.dataset.lf==='airline') ensureListItem('airline', '', el.value).then(()=>{ const dl = document.getElementById('cl-airline-dl'); if(dl) dl.innerHTML = listOptionsHTML('airline',''); });
+      clDeferRefresh(t);
+    }
   });
   root.addEventListener('input', e=>{
     const el = e.target;
@@ -3030,6 +3219,7 @@ function tripModal(){
     name: editing ? editing.name : '',
     type: editing ? editing.type : 'open',
     dest: editing ? editing.destination : '',
+    route: editing ? (editing.route||'') : '',
     start: editing ? editing.startDate : '',
     end: editing ? editing.endDate : ''
   };
@@ -3052,13 +3242,19 @@ function tripModal(){
           <input type="hidden" id="tr-type" value="${v.type}">
         </div>
         <div class="field">
-          <label for="tr-dest">Location / country</label>
+          <label for="tr-dest">Country</label>
           <div class="combo">
             <input id="tr-dest" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="tr-dest-list" placeholder="Search or choose a country" value="${esc(v.dest)}" data-original="${esc(v.dest)}">
             <button type="button" class="combo-toggle" aria-label="Show countries" tabindex="-1">▾</button>
             <div class="combo-list" id="tr-dest-list" role="listbox" hidden></div>
           </div>
           <div class="hint">Tap ☆ beside a country to pin it to the top. Countries used on more than ${AUTO_FAV_AFTER} trips are pinned automatically.</div>
+        </div>
+        <div class="field">
+          <label for="tr-route">Location / route <span style="font-weight:400;">(optional — choose from the list or type your own)</span></label>
+          <input id="tr-route" list="tr-route-dl" autocomplete="off" placeholder="e.g. Surabaya – Bromo – Malang" value="${esc(v.route)}">
+          <datalist id="tr-route-dl">${listOptionsHTML('route', v.dest)}</datalist>
+          <div class="hint">Pick a saved route for the country above, or type a new one — it is remembered for next time.</div>
         </div>
         <div class="field">
           <label>Trip dates</label>
@@ -3070,6 +3266,7 @@ function tripModal(){
             <div class="rp-foot"><span id="rp-sum"></span><span><button type="button" class="link-btn" data-rp-clear>Clear</button> &nbsp; <button type="button" class="link-btn" data-rp-done>Done</button></span></div>
           </div>
           <div class="hint">Click the start date, then the end date, all in one calendar — or drag from start to end.</div>
+          <div class="hint dur-line" id="tr-duration">${v.start && v.end ? 'Duration: <b>'+durationCode(v.start, v.end)+'</b>' : ''}</div>
         </div>
         ${!editing ? `<p class="hint" style="margin:4px 0 0;">New trips start as <b>Draft</b>. When everything is filled in, open the trip and click <b>Submit</b>.</p>` : ''}
       </div>
@@ -3792,6 +3989,9 @@ function bindEvents(){
     el.addEventListener('click', ()=>handleDeleteUser(el.dataset.delUser));
   });
 
+  const openLists = app.querySelector('[data-action="open-lists"]');
+  if(openLists) openLists.addEventListener('click', ()=>{ lmRefresh(); openOverlay('overlay-lists'); });
+  bindListsModal();
   const openSettings = app.querySelector('[data-action="open-settings"]');
   if(openSettings) openSettings.addEventListener('click', ()=>openOverlay('overlay-settings'));
   const saveSettingsBtn = app.querySelector('[data-action="save-number-settings"]');
@@ -4062,6 +4262,7 @@ async function handleSaveTrip(){
     name,
     type: document.getElementById('tr-type').value,
     destination: dest,
+    route: (document.getElementById('tr-route').value || '').replace(/\s+/g,' ').trim(),
     startDate: document.getElementById('tr-start').value,
     endDate: document.getElementById('tr-end').value
   };
@@ -4071,7 +4272,7 @@ async function handleSaveTrip(){
       const idx = trips.findIndex(t=>t.id===editingTripId);
       if(idx>-1) trips[idx] = { ...trips[idx], ...updated };
       showToast('Trip updated');
-      closeOverlay('overlay-trip');
+      closeOverlay('overlay-trip'); refreshLists();
     }catch(e){
       showToast(e.message || 'Could not update the trip');
     }
@@ -4080,7 +4281,7 @@ async function handleSaveTrip(){
     try{
       const t = await apiFetch('/trips', { method:'POST', body: JSON.stringify(payload) });
       trips.push({ ...t, passengerCount: 0 });
-      closeOverlay('overlay-trip');
+      closeOverlay('overlay-trip'); refreshLists();
       showToast('Trip created');
       view.mode='detail'; view.tripId=t.id;
     }catch(e){
