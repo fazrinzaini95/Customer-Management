@@ -2636,8 +2636,17 @@ function clQueueList(t, key){
 }
 // Who buys the flight ticket: 'Excapism' | 'Self' | ''. Older passengers fall back to the ticket-purchaser they already had.
 function clTicketOf(c, r){
-  if(r && r.ticketBy !== undefined && r.ticketBy !== null) return r.ticketBy;
   return c.ticketPurchaser==='Excapism' ? 'Excapism' : c.ticketPurchaser==='Self Purchase' ? 'Self' : '';
+}
+// Ticket purchaser is stored on the passenger itself (same field as the Add / Edit passenger form).
+async function clSetTicket(t, ids, value){
+  const val = value==='Self' ? 'Self Purchase' : value==='Excapism' ? 'Excapism' : '';
+  for(const id of ids){
+    const c = customers.find(x=>x.id===id); if(!c) continue;
+    const before = c.ticketPurchaser; c.ticketPurchaser = val || null;
+    try{ const u = await apiFetch(`/passengers/${id}`, { method:'PUT', body: JSON.stringify({ ticketPurchaser: val }) }); Object.assign(c, { ticketPurchaser: u.ticketPurchaser }); }
+    catch(e){ c.ticketPurchaser = before; showToast(e.message || 'Could not save the ticket purchaser'); }
+  }
 }
 const CL_TK_LABEL = { Excapism:'Excapism buys', Self:'Self-purchase', '':'Not set' };
 function clHotelLabel(h){ return h.name || '(unnamed hotel)'; }
@@ -2945,11 +2954,13 @@ function bindChecklist(){
       const ids = clSelectedVisible(t);
       if(!el.value) return;
       if(!ids.length){ showToast('Tick the passengers first'); el.value=''; return; }
+      if(el.dataset.clBulk==='ticketBy'){ const v = el.value==='_clear' ? '' : el.value; el.value=''; clSetTicket(t, ids, v).then(()=>{ clRefreshTable(t); clAfterChange(t); }); showToast('Updated ' + ids.length + ' passenger' + (ids.length>1?'s':'')); clRefreshTable(t); return; }
       clSetPax(t, ids, { [el.dataset.clBulk]: el.value==='_clear' ? '' : el.value }); showToast('Assigned to ' + ids.length + ' passenger' + (ids.length>1?'s':''));
       el.value = ''; clRefreshTable(t); clAfterChange(t); return;
     }
     if(el.matches('[data-cl-done]')){ clSetPax(t, [el.dataset.pid], { [el.dataset.clDone]: el.checked }); clRefreshTable(t); clAfterChange(t); return; }
     if(el.matches('[data-cl-colall]')){ clSetPax(t, clVisible(t).rows.map(c=>c.id), { [el.dataset.clColall]: el.checked }); clRefreshTable(t); clAfterChange(t); return; }
+    if(el.matches('select[data-cl-field="ticketBy"]')){ clSetTicket(t, [el.dataset.pid], el.value).then(()=>{ clRefreshTable(t); clAfterChange(t); }); clRefreshTable(t); return; }
     if(el.matches('select[data-cl-field]')){ clSetPax(t, [el.dataset.pid], { [el.dataset.clField]: el.value }); clRefreshTable(t); clAfterChange(t); return; }
     if(el.matches('input[data-cl-field]')){ clRefreshMeta(t); clAfterChange(t); return; }      // left the box: the status may have changed
     if(el.matches('[data-cl-list]')){ clDeferRefresh(t); }
@@ -3246,27 +3257,25 @@ function customerModal(){
           <input id="cu-status" disabled value="${esc(paxStatus(v))}" style="opacity:0.65;" data-cancelled="${v.paymentStatus==='Cancelled'?'1':''}">
           <div class="hint">Deposit only → Deposit · Balance zero → Paid · otherwise Pending</div>
         </div>
-        ${showTicketFields ? `
         <div style="border-top:1.5px dashed var(--line);padding-top:14px;margin-top:6px;">
-          <label style="display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:10px;">Flight ticket</label>
+          <div class="field">
+            <label>Ticket purchased by</label>
+            <select id="cu-ticket-purchaser">
+              <option value="">Not set</option>
+              ${TICKET_PURCHASER_OPTIONS.map(o=>`<option value="${o}" ${v.ticketPurchaser===o?'selected':''}>${o==='Self Purchase'?'Self-purchase (passenger buys own ticket)':'Excapism buys the ticket'}</option>`).join('')}
+            </select>
+            <div class="hint">Also shown (and editable) in the trip's Operations checklist.</div>
+          </div>
+          ${showTicketFields ? `
           <div class="field-row">
-            <div class="field">
-              <label>Ticket purchased by</label>
-              <select id="cu-ticket-purchaser">
-                <option value="">Not set</option>
-                ${TICKET_PURCHASER_OPTIONS.map(o=>`<option value="${o}" ${v.ticketPurchaser===o?'selected':''}>${o}</option>`).join('')}
-              </select>
-            </div>
             <div class="field">
               <label>Ticket status</label>
               <select id="cu-ticket-status">${TICKET_STATUS_OPTIONS.map(o=>`<option value="${o}" ${v.ticketStatus===o?'selected':''}>${o}</option>`).join('')}</select>
             </div>
-          </div>
-          <div class="field-row">
             <div class="field"><label>Airline</label><input id="cu-airline" placeholder="e.g. AirAsia" value="${esc(v.airline)}"></div>
-            <div class="field"><label>Booking reference</label><input id="cu-booking-ref" placeholder="e.g. ABC123" value="${esc(v.bookingReference)}"></div>
           </div>
-        </div>` : ''}
+          <div class="field"><label>Booking reference</label><input id="cu-booking-ref" placeholder="e.g. ABC123" value="${esc(v.bookingReference)}"></div>` : ''}
+        </div>
         <div class="field" style="margin-top:14px;"><label>Notes</label><textarea id="cu-notes" rows="2">${esc(v.notes)}</textarea></div>
       </div>
       <div class="modal-foot">
