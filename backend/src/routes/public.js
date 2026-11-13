@@ -91,7 +91,7 @@ router.post('/trips/:token/register', asyncHandler(async (req, res) => {
         `INSERT INTO passengers
            (trip_id, name, dob, phone, id_number, medical_condition, passport_number, passport_expiry, ticket_purchaser, pic_id, notes)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id, name`,
-        [trip.id, name, d.dob || null, d.phone || null, d.idNumber || null, d.medicalCondition || null,
+        [trip.id, name, d.dob || null, String(d.phone || '').replace(/\D+/g, '') || null, d.idNumber || null, d.medicalCondition || null,
          d.passportNumber || null, d.passportExpiry || null, ticketPurchaser, resolvedPicId, d.notes || null]
       );
       results.push(rows[0]);

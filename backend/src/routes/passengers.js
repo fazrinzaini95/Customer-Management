@@ -21,6 +21,8 @@ function mapPassenger(row) {
     depositAmount: Number(row.deposit_amount),
     balancePaid: Number(row.balance_paid),
     payments: Array.isArray(row.payments) ? row.payments : [],
+    addons: Array.isArray(row.addons) ? row.addons : [],
+    addonsTotal: Number(row.addons_total || 0),
     paymentStatus: row.payment_status,
     ticketPurchaser: row.ticket_purchaser,
     ticketStatus: row.ticket_status,
@@ -32,6 +34,8 @@ function mapPassenger(row) {
     addedAt: row.added_at,
   };
 }
+
+const digits = (v) => String(v == null ? '' : v).replace(/\D+/g, '');
 
 const passengerSchema = z.object({
   name: z.string().min(1),
@@ -74,7 +78,7 @@ router.post('/trips/:tripId/passengers', asyncHandler(async (req, res) => {
         amount, deposit_amount, balance_paid, payment_status, ticket_purchaser, ticket_status, airline, booking_reference, pic_id, notes)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
     [
-      req.params.tripId, d.name, d.dob || null, d.phone || null, d.idNumber || null,
+      req.params.tripId, d.name, d.dob || null, digits(d.phone) || null, d.idNumber || null,
       d.medicalCondition || null, d.passportNumber || null, d.passportExpiry || null,
       d.amount, d.depositAmount, d.balancePaid, d.paymentStatus, d.ticketPurchaser || null, d.ticketStatus,
       d.airline || null, d.bookingReference || null, req.user.id, d.notes || null,
@@ -96,6 +100,7 @@ router.put('/passengers/:id', asyncHandler(async (req, res) => {
     // pic_id is deliberately NOT here — PIC reflects who originally
     // registered this passenger, not who last edited their details.
   };
+  if (d.phone !== undefined) d.phone = digits(d.phone);
   const fields = [];
   const values = [];
   let i = 1;
@@ -157,7 +162,7 @@ router.put('/passengers/:id/payments', asyncHandler(async (req, res) => {
   // Only received payments make up the passenger's "Payment" figure.
   const total = Math.round(clean.filter((e) => e.kind === 'payment').reduce((n, e) => n + e.amount, 0) * 100) / 100;
   const cur = await query(
-    `SELECT p.amount, p.deposit_amount, p.payment_status, t.status AS trip_status
+    `SELECT p.amount + p.addons_total AS amount, p.deposit_amount, p.payment_status, t.status AS trip_status
      FROM passengers p JOIN trips t ON t.id = p.trip_id WHERE p.id = $1`, [req.params.id]);
   if (!cur.rows[0]) return res.status(404).json({ error: 'Passenger not found' });
   const a = Number(cur.rows[0].amount), dep = Number(cur.rows[0].deposit_amount);
@@ -178,6 +183,44 @@ router.put('/passengers/:id/payments', asyncHandler(async (req, res) => {
   logActivity({ actor: req.user, action: 'passenger.payments_updated', entityType: 'passenger', entityId: rows[0].id, entityLabel: rows[0].name, details: { entries: clean.length, total } });
 }));
 
+// Package add-ons (extras requested by the customer, or discounts). Works like the payment history:
+// the lines are the record and `addons_total` (add-ons minus discounts) is kept equal to them, so the
+// package total is always amount + addons_total. Payment status is re-derived with the same rule.
+const addonsSchema = z.object({
+  addons: z.array(z.object({
+    id: z.string().max(60),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    kind: z.enum(['addon', 'discount']).default('addon'),
+    description: z.string().max(300).optional().or(z.literal('')),
+    amount: z.number().positive().max(100000000),
+  })).max(100),
+});
+router.put('/passengers/:id/addons', asyncHandler(async (req, res) => {
+  const { addons } = addonsSchema.parse(req.body);
+  const clean = addons
+    .map((e) => ({ id: e.id, date: e.date, kind: e.kind, description: e.description || '', amount: Math.round(e.amount * 100) / 100 }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const total = Math.round(clean.reduce((n, e) => n + (e.kind === 'discount' ? -e.amount : e.amount), 0) * 100) / 100;
+  const { rows } = await query(
+    `WITH n AS (
+       SELECT id, amount + $2::numeric AS a, deposit_amount AS dep, balance_paid AS bp, payment_status AS ps
+       FROM passengers WHERE id = $1
+     ), updated AS (
+       UPDATE passengers p SET addons = $3::jsonb, addons_total = $2::numeric,
+         payment_status = (CASE WHEN n.ps = 'Cancelled' THEN 'Cancelled'
+                                WHEN n.a > 0 AND n.dep + n.bp >= n.a THEN 'Paid'
+                                WHEN n.dep > 0 AND n.bp = 0 THEN 'Deposit'
+                                ELSE 'Pending' END)::payment_status
+       FROM n WHERE p.id = n.id RETURNING p.*
+     )
+     SELECT updated.*, pic.name AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
+    [req.params.id, total, JSON.stringify(clean)]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Passenger not found' });
+  res.json(mapPassenger(rows[0]));
+  logActivity({ actor: req.user, action: 'passenger.addons_updated', entityType: 'passenger', entityId: rows[0].id, entityLabel: rows[0].name, details: { lines: clean.length, total } });
+}));
+
 // Set the package amount and/or deposit for several passengers at once. A field left out is not
 // changed. Payment status is re-derived with the same rule as the payments route above
 // (Cancelled stays Cancelled; money already received counts towards Paid).
@@ -191,10 +234,10 @@ router.put('/trips/:tripId/pricing', asyncHandler(async (req, res) => {
   const d = pricingSchema.parse(req.body);
   const { rows } = await query(
     `WITH n AS (
-       SELECT id, COALESCE($2::numeric, amount) AS a, COALESCE($3::numeric, deposit_amount) AS dep, balance_paid AS bp, payment_status AS ps
+       SELECT id, COALESCE($2::numeric, amount) AS base, addons_total AS ad, COALESCE($2::numeric, amount) + addons_total AS a, COALESCE($3::numeric, deposit_amount) AS dep, balance_paid AS bp, payment_status AS ps
        FROM passengers WHERE trip_id = $1 AND id = ANY($4::uuid[])
      ), updated AS (
-       UPDATE passengers p SET amount = n.a, deposit_amount = n.dep,
+       UPDATE passengers p SET amount = n.base, deposit_amount = n.dep,
          payment_status = (CASE WHEN n.ps = 'Cancelled' THEN 'Cancelled'
                                 WHEN n.a > 0 AND n.dep + n.bp >= n.a THEN 'Paid'
                                 WHEN n.dep > 0 AND n.bp = 0 THEN 'Deposit'

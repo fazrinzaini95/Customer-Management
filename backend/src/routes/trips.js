@@ -289,6 +289,15 @@ const checklistSchema = z.object({
     flightsReturn: z.array(clFlight).max(60),
   }).partial().optional(),
   pax: z.record(z.string().max(60), clPax).optional(),
+  supplier: z.object({
+    leadName: z.string().max(120),
+    leadContact: z.string().max(60),
+    items: z.array(z.object({
+      id: z.string().max(40), label: z.string().max(80), supplier: z.string().max(160),
+      contact: z.string().max(160), notes: z.string().max(1000), done: z.boolean(),
+    })).max(60),
+    readiness: z.object({ done: z.boolean(), by: z.string().max(120).optional(), at: z.string().max(40).optional() }),
+  }).partial().optional(),
 });
 router.patch('/:id/ops-checklist', requireRole('approver', 'admin'), asyncHandler(async (req, res) => {
   const patch = checklistSchema.parse(req.body);
@@ -300,8 +309,9 @@ router.patch('/:id/ops-checklist', requireRole('approver', 'admin'), asyncHandle
       return { status: 400, error: 'The Operations checklist is available once the trip has been submitted' };
     }
     const doc = trip.ops_checklist && typeof trip.ops_checklist === 'object' ? trip.ops_checklist : {};
-    const next = { hotels: doc.hotels || [], flightsTo: doc.flightsTo || [], flightsReturn: doc.flightsReturn || [], pax: doc.pax || {} };
+    const next = { hotels: doc.hotels || [], flightsTo: doc.flightsTo || [], flightsReturn: doc.flightsReturn || [], pax: doc.pax || {}, supplier: doc.supplier || {} };
     Object.assign(next, patch.lists || {});
+    if (patch.supplier) next.supplier = { ...next.supplier, ...patch.supplier };
     for (const [pid, fields] of Object.entries(patch.pax || {})) {
       next.pax[pid] = { ...(next.pax[pid] || {}), ...fields };
     }
@@ -406,7 +416,7 @@ router.post('/bulk-import', asyncHandler(async (req, res) => {
               amount, deposit_amount, payment_status)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
           [
-            tripId, r.name, r.dob || null, r.phone || null, r.idNumber || null,
+            tripId, r.name, r.dob || null, String(r.phone || '').replace(/\D+/g, '') || null, r.idNumber || null,
             r.medicalCondition || null, r.passportNumber || null, r.passportExpiry || null,
             req.user.id, r.notes || null, r.timestamp || null, r.ticketPurchaser || null,
             amount, deposit, payStatus,

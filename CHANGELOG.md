@@ -933,3 +933,25 @@ New third tab, **Calendar**, a monthly calendar of trips by date (frontend only,
 - Passport expired / expiring within 6 months of trip end is flagged.
 - WhatsApp button, Ticket column and the mini progress bar removed (ticket details live in the Operations checklist).
 - Phones: each row becomes a stacked card.
+
+## #57 — Passenger form: IC no. label, numbers-only contact
+- "IC / Passport no." is now "IC no." (passport number and expiry already have their own fields).
+- Contact number accepts digits only — letters, spaces, dashes and "+" are removed as you type or paste. The server does the same on save, bulk import and the public registration link.
+
+## #58 — Package add-ons (extras / discounts)
+- New "＋ Add-ons" link in the passenger list opens a list like the payment history: date, type (Add-on or Discount), description, amount. The Payments and Add-ons views are two tabs of the same window.
+- Package total = package amount + add-ons − discounts. Balance, payment status, trip totals, dashboard figures, sorting and the Excel export all use the package total. An add-on added after full payment moves the passenger back from Paid to Deposit/Pending until it is paid.
+- Excel export gains "Add-ons (RM)" and "Package Total (RM)" columns.
+- Backend: `PUT /passengers/:id/addons`; payments and pricing routes now compare against package total. New SQL: `passengers.addons` (JSONB) and `passengers.addons_total`.
+
+## #59 — Supplier Readiness + Departed status
+- New expandable "Supplier Readiness" section under Operations: Travel Lead (name + contact) and a flexible checkpoint list (default: Checkpoint customer, Airport transfer, Activity booking, Hotel booking, Transportation, Meal arrangement, Travel documents). Each has supplier/name, contact, notes and a verified tick; checkpoints can be renamed, added or removed per trip.
+- A checkpoint can only be ticked once supplier and contact are filled in. The final **Readiness Check** can only be ticked once every checkpoint is verified; it records who ticked it and when.
+- **Ongoing** shows a red "!" until the Readiness Check is ticked. **Ready** now needs the passenger ticks AND the Readiness Check. New automatic **Departed** status: Ready and the start date has arrived (until the end date, then Completed). If the start date arrives while the trip is not Ready, a red warning shows.
+- Stored in the trip's checklist (no new SQL).
+
+## #60 — Operations checklist updates
+- Tick boxes stay locked until their details are filled in: Stay needs hotel + room number, Flight to / return need a flight. Removing a detail un-ticks the box.
+- "Add-ons" column renamed **Remarks**, shown only in full screen (no tick box any more). Room type removed from the table and the bulk bar.
+- Selection: "N of M selected" counter; Shift+click selects a range, drag across names, Shift+↑/↓ from the keyboard.
+- **Export Excel** button: Passengers sheet (selected passengers, or everything the filters show) + Supplier Readiness sheet.

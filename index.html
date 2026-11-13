@@ -436,6 +436,8 @@
   .pill.s-Paid,.pill.s-Ready{background:rgba(46,139,87,0.13);color:var(--green);}
   .pill.s-Cancelled,.pill.s-Rejected{background:rgba(225,85,84,0.11);color:var(--coral);}
   .pill.s-Ongoing{background:rgba(43,108,176,0.13);color:#2B6CB0;}
+  .pill.s-Departed{background:rgba(14,124,134,0.14);color:#0E7C86;}
+  .bang{display:inline-flex;align-items:center;justify-content:center;min-width:15px;height:15px;border-radius:50%;background:var(--coral);color:#fff;font-size:10px;font-weight:800;line-height:1;vertical-align:middle;}
   .pill.s-Onhold{background:rgba(122,90,166,0.14);color:#6B4A9A;}
   .pill.s-Completed{background:rgba(15,44,76,0.10);color:var(--navy);}
   .stub-bal b.owing{color:var(--coral);}
@@ -488,6 +490,14 @@
   .cl-meter i{display:block;height:100%;background:var(--green);border-radius:99px;transition:width .25s;}
   .cl-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
   .btn-sm{padding:6px 12px;font-size:13px;}
+  .sup-lead{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0;} .sup-lead label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--navy);flex:1 1 220px;max-width:340px;}
+  .sup-table{min-width:760px;} .sup-table .sup-c{width:36px;text-align:center;} .sup-label{font-weight:700;color:var(--navy);}
+  .sup-foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;}
+  .sup-ready{margin-left:auto;display:flex;align-items:center;gap:10px;background:#fff;border:2px solid var(--coral);border-radius:10px;padding:8px 14px;cursor:pointer;} .sup-ready.ok{border-color:var(--green);}
+  .cl-selinfo{background:var(--navy);color:#fff;border-radius:99px;padding:3px 11px;font-size:12px;font-weight:700;}
+  .cl-chk.is-locked{opacity:.45;cursor:not-allowed;}
+  .cl-table .cl-name,.cl-table .cl-sel{user-select:none;cursor:pointer;}
+  .cl-rem-h,.cl-rem{min-width:240px;}
   .cl-wrap.full{position:fixed;inset:0;z-index:950;background:#fff;overflow:auto;padding:16px 22px;border:0;display:flex;flex-direction:column;}
   .cl-wrap.full .cl-scroll{max-height:none;flex:1;}
   /* filter bar */
@@ -586,6 +596,12 @@
   .cl-lrow label{display:flex;flex-direction:column;font-size:11px;color:var(--ink-soft);flex:1 1 150px;}
   .cl-x{border:0;background:none;color:var(--coral);cursor:pointer;font-size:15px;padding:4px 6px;}
   .refund-due{margin-top:4px;font-size:11.5px;font-weight:700;color:var(--coral);white-space:nowrap;}
+  .pay-tabs{display:flex;gap:4px;border-bottom:1.5px solid var(--line);margin:-4px 0 12px;}
+  .pay-tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:7px 14px;font:inherit;font-weight:600;color:var(--ink-soft);cursor:pointer;}
+  .pay-tabs button.on{color:var(--navy);border-color:var(--gold);}
+  .pay-tabs .tcount{background:var(--gold);color:var(--navy);border-radius:20px;font-size:10.5px;padding:1px 7px;margin-left:4px;}
+  .ad-tot{border-top:1.5px dashed var(--line);margin-top:12px;padding-top:8px;display:grid;grid-template-columns:1fr auto;gap:3px 24px;font-size:13px;}
+  .ad-tot b{text-align:right;font-variant-numeric:tabular-nums;} .ad-tot .due{color:var(--coral);}
   .pay-link{background:none;border:0;padding:2px 0;font:inherit;font-size:12px;color:var(--navy);text-decoration:underline;cursor:pointer;white-space:nowrap;}
   .pay-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;}
   .pay-sum div{background:#F4F6F9;border-radius:10px;padding:8px 10px;}
@@ -933,6 +949,7 @@ async function demoFetchInner(path, options = {}){
     const d = t.opsChecklist = t.opsChecklist || {};
     d.hotels = d.hotels||[]; d.flightsTo = d.flightsTo||[]; d.flightsReturn = d.flightsReturn||[]; d.pax = d.pax||{};
     Object.assign(d, body.lists || {});
+    if(body.supplier) d.supplier = Object.assign(d.supplier||{}, body.supplier);
     Object.entries(body.pax || {}).forEach(([pid,f])=>{ d.pax[pid] = Object.assign(d.pax[pid]||{}, f); });
     persistDemo();
     return { opsChecklist: d };
@@ -1002,7 +1019,7 @@ async function demoFetchInner(path, options = {}){
     state.passengers.filter(c=>c.tripId===m[1] && ids.includes(c.id)).forEach(c=>{
       if(body.amount!==undefined) c.amount = Number(body.amount);
       if(body.depositAmount!==undefined) c.depositAmount = Number(body.depositAmount);
-      if(c.paymentStatus!=='Cancelled') c.paymentStatus = payStatusFrom(c.amount, c.depositAmount, Number(c.balancePaid)||0);
+      if(c.paymentStatus!=='Cancelled') c.paymentStatus = payStatusFrom(pkgOf(c), c.depositAmount, Number(c.balancePaid)||0);
       out.push(c);
     });
     logDemoActivity(state, u, 'passenger.pricing_bulk_set', 'trip', m[1], out.length+' passenger(s)', { count:out.length });
@@ -1016,8 +1033,18 @@ async function demoFetchInner(path, options = {}){
     { const tr = state.trips.find(x=>x.id===c.tripId)||{}; if(c.paymentStatus!=='Cancelled' && !['Cancelled','Declined'].includes(tr.status) && list.some(e=>e.kind!=='payment')) fail(400,'Refunds and retained amounts can only be recorded for a cancelled passenger or a cancelled trip'); }
     const total = Math.round(list.filter(e=>e.kind==='payment').reduce((n,e)=>n+e.amount,0)*100)/100;
     c.payments = list; c.balancePaid = total;
-    if(c.paymentStatus!=='Cancelled') c.paymentStatus = payStatusFrom(c.amount, c.depositAmount, total);
+    if(c.paymentStatus!=='Cancelled') c.paymentStatus = payStatusFrom(pkgOf(c), c.depositAmount, total);
     logDemoActivity(state, u, 'passenger.payments_updated', 'passenger', c.id, c.name, { entries:list.length, total });
+    persistDemo();
+    return c;
+  }
+  if((m=path.match(/^\/passengers\/([^/]+)\/addons$/)) && method==='PUT'){
+    const u = requireAuthed();
+    const c = state.passengers.find(x=>x.id===m[1]); if(!c) fail(404,'Passenger not found');
+    const list = (body.addons||[]).map(e=>({ id:e.id, date:e.date, kind:e.kind==='discount'?'discount':'addon', description:e.description||'', amount:Math.round(Number(e.amount)*100)/100 })).sort((a,b)=>a.date.localeCompare(b.date));
+    c.addons = list; c.addonsTotal = Math.round(list.reduce((n,e)=>n+(e.kind==='discount'?-e.amount:e.amount),0)*100)/100;
+    if(c.paymentStatus!=='Cancelled') c.paymentStatus = payStatusFrom(pkgOf(c), c.depositAmount, Number(c.balancePaid)||0);
+    logDemoActivity(state, u, 'passenger.addons_updated', 'passenger', c.id, c.name, { lines:list.length, total:c.addonsTotal });
     persistDemo();
     return c;
   }
@@ -1464,9 +1491,11 @@ function paidOf(c){
   if(!paxCounted(c)) return 0;
   return (Number(c.depositAmount)||0)+(Number(c.balancePaid)||0);
 }
+// Package total = base package + add-ons (minus discounts). Every balance, status and total reads this.
+function pkgOf(c){ return Math.max(0, (Number(c.amount)||0)+(Number(c.addonsTotal)||0)); }
 function paxBalance(c){
   if(!paxCounted(c)) return 0;
-  return Math.max(0, (Number(c.amount)||0)-(Number(c.depositAmount)||0)-(Number(c.balancePaid)||0));
+  return Math.max(0, pkgOf(c)-(Number(c.depositAmount)||0)-(Number(c.balancePaid)||0));
 }
 // Payment status is automatic — nobody picks it. It follows the three money columns:
 //   balance is zero (and there is an amount)  -> Paid
@@ -1481,12 +1510,12 @@ function payStatusFrom(amount, deposit, payment){
 }
 function paxStatus(c){
   if(c.paymentStatus==='Cancelled') return 'Cancelled';
-  return payStatusFrom(c.amount, c.depositAmount, c.balancePaid);
+  return payStatusFrom(pkgOf(c), c.depositAmount, c.balancePaid);
 }
 function tripMoney(t){
   const cs = custByTrip(t.id);
   let amount = 0, collected = 0, balance = 0;
-  cs.forEach(c=>{ if(!paxCounted(c)) return; amount += Number(c.amount)||0; collected += paidOf(c); balance += paxBalance(c); });
+  cs.forEach(c=>{ if(!paxCounted(c)) return; amount += pkgOf(c); collected += paidOf(c); balance += paxBalance(c); });
   return { pax: cs.filter(paxCounted).length, amount, collected, balance };
 }
 function fmtNum(n){ return (Number(n)||0).toLocaleString('en-MY',{minimumFractionDigits:0,maximumFractionDigits:2}); }
@@ -2184,7 +2213,7 @@ function passengerRowsHTML(t){
   const passengerSortExtractors = {
     name: c=>(c.name||'').toLowerCase(),                                          // alphabetical
     contact: c=>{ const digits=(c.phone||'').replace(/\D/g,''); return digits ? Number(digits) : 0; }, // numerical
-    amount: c=>Number(c.amount)||0,                                               // numerical
+    amount: c=>pkgOf(c),                                               // numerical
     deposit: c=>Number(c.depositAmount)||0,                                       // numerical
     paid: c=>paidOf(c),                                                           // numerical — combined Paid column
     balancePaid: c=>Number(c.balancePaid)||0,                                     // numerical — "Payment" column
@@ -2206,7 +2235,7 @@ function passengerRowsHTML(t){
     const draft = pendingPassengerEdits[c.id];
     const isDirty = !!draft;
     const ticketVal = (draft && draft.ticketStatus!==undefined) ? draft.ticketStatus : c.ticketStatus;
-    const dep = Number(c.depositAmount)||0, bp = Number(c.balancePaid)||0, amt = Number(c.amount)||0;
+    const dep = Number(c.depositAmount)||0, bp = Number(c.balancePaid)||0, amt = pkgOf(c), adn = Number(c.addonsTotal)||0, adLines = (c.addons||[]).length;
     const paidTotal = dep + bp;
     const led = payLedger(c);
     const pf = passportFlag(c, t);
@@ -2220,7 +2249,7 @@ function passengerRowsHTML(t){
         <div class="cust-sub pl-ids">${c.idNumber ? `<span>IC ${esc(c.idNumber)}</span>` : ''}${c.passportNumber ? `<span class="${pf?'pp-'+pf:''}" title="${pf==='expired'?'Passport expires before the trip':pf==='soon'?'Passport valid for less than 6 months after the trip':''}">🛂 ${esc(c.passportNumber)}${c.passportExpiry ? ' · exp '+esc(fmtDate(c.passportExpiry)) : ''}${pf?' ⚠':''}</span>` : ''}${!c.idNumber && !c.passportNumber ? '<span>—</span>' : ''}</div>
       </td>
       <td class="pl-contact" data-label="Contact">${c.phone ? `<span>${esc(c.phone)}</span>` : '<span class="cust-sub">—</span>'}</td>
-      <td class="pl-num" data-label="Package">${amt>0 ? fmtRM(amt) : '<span class="cust-sub">—</span>'}</td>
+      <td class="pl-num" data-label="Package">${amt>0 ? fmtRM(amt) : '<span class="cust-sub">—</span>'}${adLines ? `<div class="cust-sub">${fmtNum(Number(c.amount)||0)} ${adn<0?'−':'+'} ${fmtNum(Math.abs(adn))} add-ons</div>` : ''}<button type="button" class="pay-link" data-addon-cust="${esc(c.id)}" title="Extras requested by the customer / discounts">${adLines ? '＋ Add-ons ('+adLines+')' : '＋ Add-ons'}</button></td>
       <td class="pl-paid" data-label="Paid">
         <div class="pl-paid-top"><b>${paidTotal>0 ? fmtRM(paidTotal) : '—'}</b></div>
         ${dep>0 && bp>0 ? `<div class="cust-sub">Deposit ${fmtNum(dep)} · Payments ${fmtNum(bp)}</div>` : ''}
@@ -2321,7 +2350,7 @@ function detailHTML(){
    Modals
    ========================================================= */
 function modalsHTML(){
-  return tripModal() + customerModal() + paymentsModal() + opsReasonModal() + uploadModal() + pricingModal();
+  return tripModal() + customerModal() + paymentsModal() + addonsModal() + opsReasonModal() + uploadModal() + pricingModal();
 }
 
 /* =========================================================
@@ -2422,6 +2451,11 @@ async function lmDelete(id){
   catch(e){ showToast(e.message || 'Could not delete'); }
 }
 // Keep the route suggestions in the trip form in step with the country chosen above.
+// Contact numbers: digits only — anything else typed or pasted is removed straight away.
+document.addEventListener('input', e=>{
+  const el = e.target;
+  if(el && el.matches && el.matches('input[data-digits]')){ const clean = el.value.replace(/\D+/g,''); if(clean!==el.value){ const pos = el.selectionStart - (el.value.length-clean.length); el.value = clean; try{ el.setSelectionRange(pos,pos); }catch(_){} } }
+});
 document.addEventListener('focusin', e=>{
   if(e.target && e.target.id==='tr-route'){ const dl = document.getElementById('tr-route-dl'), c = document.getElementById('tr-dest'); if(dl && c) dl.innerHTML = listOptionsHTML('route', (COUNTRIES.find(x=>lcKey(x)===lcKey(c.value)) || c.value)); }
 });
@@ -2842,8 +2876,8 @@ function bindRangePicker(){
    Operations sub-status (set from Submit onwards, routed by approver/admin):
      Pending Ops -> Ongoing -> Ready -> Completed, or On-hold / Rejected at any stage. */
 const MAIN_STATUSES = ['Draft','Pending Payment','Paid','Cancelled'];
-const OPS_STATUSES = ['Pending Ops','Ongoing','Ready','Completed','Onhold','Rejected'];
-const OPS_FLOW = ['Pending Ops','Ongoing','Ready','Completed'];
+const OPS_STATUSES = ['Pending Ops','Ongoing','Ready','Departed','Completed','Onhold','Rejected'];
+const OPS_FLOW = ['Pending Ops','Ongoing','Ready','Departed','Completed'];
 function opsLabel(s){ return s==='Onhold' ? 'On-hold' : s; }
 function slugS(s){ return String(s).replace(/[\s-]+/g,''); }
 function isCancelledTrip(t){ return t.status==='Cancelled' || t.status==='Declined'; }
@@ -2862,7 +2896,7 @@ function tripOpsStatus(t){
   if(manual==='Onhold' || manual==='Rejected') return manual;
   const end = tripEndYmd(t);
   if(end && end < todayYmd()) return 'Completed';
-  if(clAllReady(t)) return 'Ready';
+  if(clAllReady(t) && supReadyDone(t)){ const st = ymd(t.startDate); return (st && st <= todayYmd()) ? 'Departed' : 'Ready'; }
   if(clFilledCount(t) >= 2) return 'Ongoing';
   return 'Pending Ops';
 }
@@ -2871,14 +2905,23 @@ function opsClosed(t){ return isSubmittedTrip(t) && ['Completed','Rejected'].inc
 // Operations checklist instead, so these only stay visible on trips that already hold ticket data.
 function hasLegacyTicketData(t){ return customers.some(c=>c.tripId===t.id && (c.ticketStatus==='Purchased' || c.airline || c.bookingReference)); }
 function ticketColsTrip(t){ return ticketStageTrip(t) && hasLegacyTicketData(t); }
-function ticketStageTrip(t){ return isSubmittedTrip(t) && ['Ongoing','Ready','Completed'].includes(tripOpsStatus(t)); }
+function ticketStageTrip(t){ return isSubmittedTrip(t) && ['Ongoing','Ready','Departed','Completed'].includes(tripOpsStatus(t)); }
 function needsOpsAction(t){ return isSubmittedTrip(t) && !isCancelledTrip(t) && (tripMainStatus(t)==='Pending Payment' || ['Pending Ops','Ongoing','Onhold'].includes(tripOpsStatus(t))); }
 function statusPillHTML(t){ const m = tripMainStatus(t); return `<span class="pill s-${slugS(m)}">${esc(m)}</span>`; }
 function stampHTML(t, attrs){ const m = tripMainStatus(t); return `<div class="stamp ${slugS(m)}" ${attrs||''}>${m}</div>`; }
+// Ongoing carries a red "!" until the Readiness Check (Supplier Readiness) has been ticked by hand.
+function opsNeedsBang(t){ return isSubmittedTrip(t) && tripOpsStatus(t)==='Ongoing' && !supReadyDone(t); }
+function opsKey(t){ return tripOpsStatus(t) + (opsNeedsBang(t) ? '!' : ''); }
+// Trip start date reached (or passed) but Operations is not Ready yet.
+function opsDepartWarn(t){
+  if(!isSubmittedTrip(t)) return false;
+  const st = ymd(t.startDate), en = tripEndYmd(t), o = tripOpsStatus(t);
+  return !!(st && st <= todayYmd() && (!en || en >= todayYmd()) && ['Pending Ops','Ongoing'].includes(o));
+}
 function opsPillHTML(t, bare){
   if(!isSubmittedTrip(t)) return '';
-  const o = tripOpsStatus(t);
-  return `<span class="pill s-${slugS(o)}" title="Operations: ${esc(opsLabel(o))}">${bare ? '' : '<i>Ops</i> '}${esc(opsLabel(o))}</span>`;
+  const o = tripOpsStatus(t), bang = opsNeedsBang(t);
+  return `<span class="pill s-${slugS(o)}" title="Operations: ${esc(opsLabel(o))}${bang?' — Supplier Readiness Check not ticked yet':''}${opsDepartWarn(t)?' — trip start date reached but not Ready':''}">${bare ? '' : '<i>Ops</i> '}${o==='Departed'?'✈ ':''}${esc(opsLabel(o))}${bang?' <span class="bang">!</span>':''}${opsDepartWarn(t)?' <span class="bang" title="Departs today — not ready">⚠</span>':''}</span>`;
 }
 // ---------------------------------------------------------------
 // Operations checklist — accommodation, flights to/return, add-ons per
@@ -2888,17 +2931,28 @@ function opsPillHTML(t, bare){
 // ---------------------------------------------------------------
 let clOpen=false, clFull=false, clSetup=false, clMore=false;
 const clSel = new Set();
+let clAnchor = null, clDragMoved = false, clDrag = null;
+// Select every visible passenger between two rows (inclusive). on=true adds, on=false removes.
+function clSelectRange(t, a, b, on){
+  const ids = clVisible(t).rows.map(c=>c.id), i = ids.indexOf(a), j = ids.indexOf(b); if(i<0||j<0) return;
+  ids.slice(Math.min(i,j), Math.max(i,j)+1).forEach(id=> on ? clSel.add(id) : clSel.delete(id));
+  clRefreshTable(clTripOf());
+}
+function clTripOf(){ return trips.find(x=>x.id===view.tripId); }
 let clFilter = { q:'', hotel:'', to:'', ret:'', prog:'', ticket:'' }, clSort = { key:'', dir:1 }, clGroup = '', clTripId = null;
 const clLastOps = {};
 const CL_REQ = ['hotelDone','toDone','retDone'];            // always required; Add-ons only when it has a note
-const CL_FIELDS = ['hotelId','roomType','roomNumber','toId','toLuggage','retId','retLuggage','addons'];
+const CL_FIELDS = ['hotelId','roomNumber','toId','toLuggage','retId','retLuggage','addons'];
+// A tick box can only be ticked once its details are filled in.
+function clCanTick(r, k){ r = r||{}; if(k==='hotelDone') return !!(r.hotelId && String(r.roomNumber||'').trim()); if(k==='toDone') return !!r.toId; if(k==='retDone') return !!r.retId; return true; }
+const CL_NEED = { hotelDone:'Pick a hotel and fill in the room number first', toDone:'Pick the flight first', retDone:'Pick the return flight first' };
 function clDoc(t){
   const d = t.opsChecklist || (t.opsChecklist = {});
   d.hotels = d.hotels || []; d.flightsTo = d.flightsTo || []; d.flightsReturn = d.flightsReturn || []; d.pax = d.pax || {};
   return d;
 }
 function clPaxList(t){ return customers.filter(c=>c.tripId===t.id && paxCounted(c)); }
-function clReqKeys(r){ return String((r||{}).addons||'').trim() ? [...CL_REQ,'addonsDone'] : CL_REQ; }
+function clReqKeys(r){ return CL_REQ; }
 function clPaxComplete(r){ r = r || {}; return clReqKeys(r).every(k=>r[k]); }
 function clPaxOf(t){ return (t.opsChecklist && t.opsChecklist.pax) || {}; }
 // How many details have been filled in (hotel, room, flights, luggage, notes) across the whole trip.
@@ -2923,6 +2977,7 @@ const clQueueMap = {}; let clTimer = null;
 function clQueue(tripId, patch){
   const q = clQueueMap[tripId] || (clQueueMap[tripId] = {});
   if(patch.lists) q.lists = Object.assign(q.lists||{}, patch.lists);
+  if(patch.supplier) q.supplier = patch.supplier;
   if(patch.pax){ q.pax = q.pax || {}; Object.entries(patch.pax).forEach(([pid,f])=>{ q.pax[pid] = Object.assign(q.pax[pid]||{}, f); }); }
   clearTimeout(clTimer); clTimer = setTimeout(clFlush, 600);
 }
@@ -2936,7 +2991,13 @@ async function clFlush(){
 }
 function clSetPax(t, pids, fields){
   const d = clDoc(t), patch = {};
-  pids.forEach(pid=>{ d.pax[pid] = Object.assign(d.pax[pid]||{}, fields); patch[pid] = fields; });
+  pids.forEach(pid=>{
+    const f = Object.assign({}, fields);
+    d.pax[pid] = Object.assign(d.pax[pid]||{}, f);
+    // Removing a detail un-ticks the box that depended on it (and a tick can't be added without its details).
+    CL_REQ.forEach(k=>{ if(d.pax[pid][k] && !clCanTick(d.pax[pid], k) && (f[k]===undefined || f[k]===true)){ d.pax[pid][k] = false; f[k] = false; } });
+    patch[pid] = f;
+  });
   clQueue(t.id, { pax: patch });
 }
 function clQueueList(t, key){
@@ -3049,14 +3110,13 @@ function clTableHTML(t){
   const allDone = k => rows.every(c=>(d.pax[c.id]||{})[k]);
   const sortTh = (key, label, cls) => `<th class="cl-sortable ${cls||''}" data-cl-sort="${key}" title="Click to sort">${label}<span class="cl-arrow">${clSort.key===key ? (clSort.dir>0?'▲':'▼') : ''}</span></th>`;
   const secHead = (k, label, sortKey, hint) => `<th class="cl-sec-h"><span class="cl-sec-t ${sortKey?'cl-sortable':''}" ${sortKey?`data-cl-sort="${sortKey}" title="Click to sort"`:''}>${label}<span class="cl-arrow">${sortKey && clSort.key===sortKey ? (clSort.dir>0?'▲':'▼') : ''}</span></span>${hint?`<span class="cl-hint-s">${hint}</span>`:''}<label class="cl-allchk" title="Mark everyone shown as done"><input type="checkbox" class="cl-chk sm" data-cl-colall="${k}" ${allDone(k)?'checked':''} ${dis} aria-label="Mark all ${label} done"></label></th>`;
-  const chk = (k,c,r) => `<input type="checkbox" class="cl-chk" data-cl-done="${k}" data-pid="${esc(c.id)}" ${r[k]?'checked':''} ${dis} title="${r[k]?'Done':'Mark as done'}" aria-label="${k} ${esc(c.name)}">`;
-  const optTd = (k,c,r,inner) => { const optional = k==='addonsDone' && !String(r.addons||'').trim();
-    return `<td class="cl-sec ${r[k]?'is-done':''} ${optional?'cl-opt':''}"><div class="cl-cell"><div class="cl-fields">${inner}</div>${chk(k,c,r)}</div></td>`; };
+  const chk = (k,c,r) => { const lock = !r[k] && !clCanTick(r,k); return `<input type="checkbox" class="cl-chk ${lock?'is-locked':''}" data-cl-done="${k}" data-pid="${esc(c.id)}" ${r[k]?'checked':''} ${dis||lock?'disabled':''} title="${lock?CL_NEED[k]:r[k]?'Done':'Mark as done'}" aria-label="${k} ${esc(c.name)}">`; };
+  const optTd = (k,c,r,inner) => `<td class="cl-sec ${r[k]?'is-done':''}"><div class="cl-cell"><div class="cl-fields">${inner}</div>${chk(k,c,r)}</div></td>`;
   const inp = (f,c,r,ph,extra) => { const m = /class-x="([^"]+)"/.exec(extra||''); extra = (extra||'').replace(/class-x="[^"]+"/,''); return `<input class="cl-in ${m?m[1]:''}" ${extra||''} data-cl-field="${f}" data-pid="${esc(c.id)}" value="${esc(r[f]||'')}" placeholder="${ph||''}" aria-label="${ph||f}" ${dis}>`; };
   const sel = (f,c,r,arr,lab,item) => `<select class="cl-in ${r[f]?'':'is-empty'}" ${item&&(item.departure||item.arrival)?`title="${esc(clFlightLabel(item))}${item.arrival?' → '+esc(clFmtDT(item.arrival)):''}"`:''} data-cl-field="${f}" data-pid="${esc(c.id)}" ${dis}>${opts(arr,r[f],lab)}</select>`;
   const selCount = rows.filter(c=>clSel.has(c.id)).length;
   const selAll = `<th class="cl-sel"><input type="checkbox" class="cl-box" data-cl-selall ${selCount===rows.length?'checked':''} ${can?'':'disabled'} aria-label="Select all shown" title="Select everyone shown"></th>`;
-  const head = `<tr>${selAll}${sortTh('name','Passenger','cl-name')}${sortTh('ticket','Ticket by','cl-tk-h')}${secHead('hotelDone','Stay','hotel')}${secHead('toDone','Flight to','to')}${secHead('retDone','Flight return','ret')}${secHead('addonsDone','Add-ons','', 'optional')}</tr>`;
+  const head = `<tr>${selAll}${sortTh('name','Passenger','cl-name')}${sortTh('ticket','Ticket by','cl-tk-h')}${secHead('hotelDone','Stay','hotel')}${secHead('toDone','Flight to','to')}${secHead('retDone','Flight return','ret')}${clFull ? '<th class="cl-sec-h cl-rem-h">Remarks</th>' : ''}</tr>`;
   const flightSub = f => { if(!f || !(f.departure || f.arrival)) return '';
     const dep = clFmtDT(f.departure), same = f.departure && f.arrival && String(f.departure).slice(0,10)===String(f.arrival).slice(0,10);
     const arr = f.arrival ? (same ? new Date(f.arrival).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false}) : clFmtDT(f.arrival)) : '';
@@ -3067,20 +3127,20 @@ function clTableHTML(t){
     return `<tr class="${comp?'cl-complete':''} ${clSel.has(c.id)?'cl-picked':''}">${selTd}
       <td class="cl-name"><span class="cl-nm">${esc(c.name)}</span> <span class="cl-n ${comp?'ok':''}">${comp?'✓ ':''}${n}/${keys.length}</span></td>
       <td class="cl-tk"><select class="cl-in cl-tksel tk-${(clTicketOf(c,r)||'none').toLowerCase()}" data-cl-field="ticketBy" data-pid="${esc(c.id)}" ${dis} aria-label="Who buys the ticket"><option value="" ${clTicketOf(c,r)===''?'selected':''}>—</option><option value="Excapism" ${clTicketOf(c,r)==='Excapism'?'selected':''}>Excapism</option><option value="Self" ${clTicketOf(c,r)==='Self'?'selected':''}>Self</option></select></td>
-      ${optTd('hotelDone',c,r, sel('hotelId',c,r,d.hotels,clHotelLabel) + inp('roomType',c,r,'Type','list="cl-roomtypes" class-x="w-type"') + inp('roomNumber',c,r,'Room','class-x="w-room"'))}
+      ${optTd('hotelDone',c,r, sel('hotelId',c,r,d.hotels,clHotelLabel) + inp('roomNumber',c,r,'Room','class-x="w-room"'))}
       ${optTd('toDone',c,r, sel('toId',c,r,d.flightsTo,clFlightShort,to) + inp('toLuggage',c,r,'Luggage'))}
       ${optTd('retDone',c,r, sel('retId',c,r,d.flightsReturn,clFlightShort,rt) + inp('retLuggage',c,r,'Luggage'))}
-      ${optTd('addonsDone',c,r, inp('addons',c,r,'Note (optional)'))}</tr>`; };
+      ${clFull ? `<td class="cl-sec cl-rem">${inp('addons',c,r,'Remarks')}</td>` : ''}</tr>`; };
   let body;
   if(groups){
     body = groups.map(g=>{
       const ids = g.list.map(c=>c.id), allSel = ids.every(id=>clSel.has(id));
       const doneN = g.list.filter(c=>clPaxComplete(d.pax[c.id])).length;
-      return `<tr class="cl-grp"><td class="cl-sel"><input type="checkbox" class="cl-box" data-cl-selgrp="${esc(ids.join(','))}" ${allSel?'checked':''} ${can?'':'disabled'} title="Select this group"></td><td colspan="6"><b>${esc(g.name)}</b><span class="cl-gcount">${g.list.length} pax · ${doneN} complete</span></td></tr>` + g.list.map(rowHTML).join('');
+      return `<tr class="cl-grp"><td class="cl-sel"><input type="checkbox" class="cl-box" data-cl-selgrp="${esc(ids.join(','))}" ${allSel?'checked':''} ${can?'':'disabled'} title="Select this group"></td><td colspan="${clFull?7:6}"><b>${esc(g.name)}</b><span class="cl-gcount">${g.list.length} pax · ${doneN} complete</span></td></tr>` + g.list.map(rowHTML).join('');
     }).join('');
   } else body = rows.map(rowHTML).join('');
   return `<div class="cl-scroll"><table class="cl-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>
-    <datalist id="cl-roomtypes"><option>Single</option><option>Twin</option><option>Double</option><option>Triple</option><option>Family</option></datalist>`;
+`;
 }
 
 // Search / quick filter / group bar. Kept apart from the table so typing here isn't interrupted.
@@ -3101,6 +3161,7 @@ function clControlsHTML(t){
       <label class="cl-grpby">Group by <select class="cl-in" id="cl-group"><option value="">None</option>${[['hotel','Hotel'],['room','Room number'],['to','Flight to'],['ret','Flight return'],['ticket','Ticket (who buys)'],['prog','Completion']].map(([v,l])=>`<option value="${v}" ${clGroup===v?'selected':''}>${l}</option>`).join('')}</select></label>
       <button type="button" class="btn btn-ghost btn-sm" data-cl-more aria-expanded="${clMore||extra>0}">Filters${extra?` <span class="cl-badge">${extra}</span>`:''} ${clMore||extra>0?'▴':'▾'}</button>
       <button type="button" class="cl-link" id="cl-reset-link" data-cl-reset ${clFilterActive()?'':'hidden'}>Reset</button>
+      <span class="cl-selinfo" id="cl-selinfo" ${clSelectedVisible(t).length?'':'hidden'}>${clSelectedVisible(t).length} of ${clVisible(t).rows.length} selected</span>
     </div>
     <div class="cl-more ${clMore||extra>0?'open':''}">
       <label>Hotel <select class="cl-in" data-cl-filter="hotel">${selOpt(d.hotels, clFilter.hotel, clHotelLabel)}</select></label>
@@ -3127,7 +3188,6 @@ function clBulkHTML(t){
     </div>
     <div class="cl-bk-row">
       <span class="cl-bk-lab">Set</span>
-      <input list="cl-roomtypes" id="cl-b-roomType" placeholder="Room type">
       <input id="cl-b-roomNumber" placeholder="Room no.">
       <input id="cl-b-toLuggage" placeholder="Luggage (to)">
       <input id="cl-b-retLuggage" placeholder="Luggage (return)">
@@ -3138,12 +3198,13 @@ function clBulkHTML(t){
 
 function clBlockHTML(t){
   if(clTripId !== t.id){ clTripId = t.id; clFilter = { q:'', hotel:'', to:'', ret:'', prog:'', ticket:'' }; clSort = { key:'', dir:1 }; clGroup = ''; clMore = false; clSel.clear(); }
-  clLastOps[t.id] = tripOpsStatus(t);
+  clLastOps[t.id] = opsKey(t);
   const pr = clProgress(t);
   const prog = pr.total ? `${pr.done} of ${pr.total} done` : 'no passengers yet';
   const pct = pr.total ? Math.round(pr.done / pr.total * 100) : 0;
   const tools = clOpen ? `<div class="cl-tools">
       <button type="button" class="btn btn-ghost btn-sm" data-cl-setup>${clSetup?'Hide':'Edit'} hotels &amp; flights</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-cl-export title="Download this table (and Supplier Readiness) as an Excel file">⬇ Export Excel</button>
       <button type="button" class="btn btn-ghost btn-sm" data-cl-full>${clFull?'✕ Exit full screen':'⤢ Full screen'}</button>
     </div>` : '';
   const head = `<div class="cl-head"><button type="button" class="cl-toggle" data-cl-toggle aria-expanded="${clOpen}"><span class="cl-caret">${clOpen?'▾':'▸'}</span> Operations checklist <span class="cl-prog" id="cl-prog">${prog}</span><span class="cl-meter" aria-hidden="true"><i id="cl-meter-i" style="width:${pct}%"></i></span></button>${tools}</div>`;
@@ -3157,6 +3218,19 @@ function clRefreshTable(t){
   const sc2 = host.querySelector('.cl-scroll'); if(sc2){ sc2.scrollLeft = left; sc2.scrollTop = top; }
   clRefreshMeta(t);
 }
+// Typing a room number etc. can unlock / re-lock a tick box — update the row in place (no table rebuild, so no click is lost).
+function clSyncRow(t, pid){
+  const r = clDoc(t).pax[pid] || {}, can = isApproverOrAdmin();
+  document.querySelectorAll(`.cl-table input[data-cl-done][data-pid="${pid}"]`).forEach(cb=>{
+    const k = cb.dataset.clDone, lock = !r[k] && !clCanTick(r,k);
+    cb.checked = !!r[k]; cb.disabled = !can || lock; cb.classList.toggle('is-locked', lock);
+    cb.title = lock ? CL_NEED[k] : r[k] ? 'Done' : 'Mark as done';
+    const td = cb.closest('td'); if(td) td.classList.toggle('is-done', !!r[k]);
+  });
+  const tr = document.querySelector(`.cl-table input[data-cl-sel="${pid}"]`); const row = tr && tr.closest('tr');
+  if(row){ const n = CL_REQ.filter(k=>r[k]).length, comp = n===CL_REQ.length; row.classList.toggle('cl-complete', comp);
+    const nn = row.querySelector('.cl-n'); if(nn){ nn.textContent = (comp?'✓ ':'') + n + '/' + CL_REQ.length; nn.classList.toggle('ok', comp); } }
+}
 function clRefreshMeta(t){
   const pr = clProgress(t), el = document.getElementById('cl-prog');
   if(el) el.textContent = pr.total ? `${pr.done} of ${pr.total} done` : 'no passengers yet';
@@ -3164,6 +3238,7 @@ function clRefreshMeta(t){
   const ts = document.getElementById('cl-tk-sum'); if(ts) ts.innerHTML = clTicketSummary(t);
   const n = clSelectedVisible(t).length;
   const sc = document.getElementById('cl-selcount'); if(sc) sc.textContent = n;
+  const si = document.getElementById('cl-selinfo'); if(si){ si.textContent = n + ' of ' + clVisible(t).rows.length + ' selected'; si.hidden = !n; }
   const bar = document.getElementById('cl-bulkbar'); if(bar) bar.classList.toggle('show', n > 0);
 }
 function clRefreshControls(t, withBulk){
@@ -3198,7 +3273,7 @@ function clDeferRefresh(t, tries){
 }
 function clAfterChange(t, allowFullRender){
   const host = document.getElementById('ops-flow-host'); if(host) host.innerHTML = opsFlowHTML(t);
-  const cur = tripOpsStatus(t);
+  const cur = opsKey(t);
   if(allowFullRender !== false && clLastOps[t.id] !== undefined && clLastOps[t.id] !== cur){
     clLastOps[t.id] = cur; clDeferRender();
   }
@@ -3213,6 +3288,7 @@ function bindChecklist(){
     let b;
     if(q('[data-cl-setup]')){ clSetup = !clSetup; render(); return; }
     if(q('[data-cl-full]')){ clFull = !clFull; render(); return; }
+    if(q('[data-cl-export]')){ clExportXlsx(t); return; }
     if((b = q('[data-cl-sort]'))){
       const k = b.dataset.clSort;
       if(clSort.key!==k) clSort = { key:k, dir:1 }; else if(clSort.dir===1) clSort.dir = -1; else clSort = { key:'', dir:1 };
@@ -3222,15 +3298,28 @@ function bindChecklist(){
     if(q('[data-cl-more]')){ clMore = !clMore; clRefreshControls(t); return; }
     if((b = q('[data-cl-prog]'))){ clFilter.prog = b.dataset.clProg; clRefreshControls(t); clRefreshTable(t); return; }
     if(q('[data-cl-clearsel]')){ clSel.clear(); clRefreshTable(t); return; }
+    if(clDragMoved){ clDragMoved = false; return; }
+    {   // click a passenger (name or box): Shift = range, Ctrl/Cmd or plain = toggle
+      const selBox = q('[data-cl-sel]'), nameCell = q('td.cl-name, td.cl-sel');
+      if(can && (selBox || nameCell)){
+        const tr = e.target.closest('tr'), cb = tr && tr.querySelector('[data-cl-sel]');
+        if(cb){
+          const pid = cb.dataset.clSel;
+          if(e.shiftKey && clAnchor){ e.preventDefault(); clSelectRange(t, clAnchor, pid, true); }
+          else { const on = !clSel.has(pid); if(selBox) { /* native toggle happens via change */ clAnchor = pid; return; } on ? clSel.add(pid) : clSel.delete(pid); clAnchor = pid; clRefreshTable(t); }
+          return;
+        }
+      }
+    }
     if(!can) return;
     if(q('[data-cl-bulk-apply]')){
       const ids = clSelectedVisible(t);
       if(!ids.length){ showToast('Tick the passengers first'); return; }
       const fields = {};
-      ['roomType','roomNumber','toLuggage','retLuggage'].forEach(k=>{ const el = document.getElementById('cl-b-'+k); if(el && el.value.trim()) fields[k] = el.value.trim(); });
+      ['roomNumber','toLuggage','retLuggage'].forEach(k=>{ const el = document.getElementById('cl-b-'+k); if(el && el.value.trim()) fields[k] = el.value.trim(); });
       if(!Object.keys(fields).length){ showToast('Fill in at least one box to apply'); return; }
       clSetPax(t, ids, fields);
-      ['roomType','roomNumber','toLuggage','retLuggage'].forEach(k=>{ const el = document.getElementById('cl-b-'+k); if(el) el.value = ''; });
+      ['roomNumber','toLuggage','retLuggage'].forEach(k=>{ const el = document.getElementById('cl-b-'+k); if(el) el.value = ''; });
       showToast('Updated ' + ids.length + ' passenger' + (ids.length>1?'s':''));
       clRefreshTable(t); clAfterChange(t); return;
     }
@@ -3257,7 +3346,7 @@ function bindChecklist(){
     if(el.matches('[data-cl-filter]')){ clFilter[el.dataset.clFilter] = el.value; clRefreshTable(t); clRefreshControls(t); return; }
     if(el.id==='cl-group'){ clGroup = el.value; clRefreshTable(t); clRefreshControls(t); return; }
     if(!can) return;
-    if(el.matches('[data-cl-sel]')){ el.checked ? clSel.add(el.dataset.clSel) : clSel.delete(el.dataset.clSel); clRefreshTable(t); return; }
+    if(el.matches('[data-cl-sel]')){ el.checked ? clSel.add(el.dataset.clSel) : clSel.delete(el.dataset.clSel); clAnchor = el.dataset.clSel; clRefreshTable(t); return; }
     if(el.matches('[data-cl-selgrp]')){ el.dataset.clSelgrp.split(',').forEach(id=>{ el.checked ? clSel.add(id) : clSel.delete(id); }); clRefreshTable(t); return; }
     if(el.matches('[data-cl-selall]')){ clVisible(t).rows.forEach(c=>{ el.checked ? clSel.add(c.id) : clSel.delete(c.id); }); clRefreshTable(t); return; }
     if(el.matches('[data-cl-bulk]')){
@@ -3269,7 +3358,7 @@ function bindChecklist(){
       el.value = ''; clRefreshTable(t); clAfterChange(t); return;
     }
     if(el.matches('[data-cl-done]')){ clSetPax(t, [el.dataset.pid], { [el.dataset.clDone]: el.checked }); clRefreshTable(t); clAfterChange(t); return; }
-    if(el.matches('[data-cl-colall]')){ clSetPax(t, clVisible(t).rows.map(c=>c.id), { [el.dataset.clColall]: el.checked }); clRefreshTable(t); clAfterChange(t); return; }
+    if(el.matches('[data-cl-colall]')){ const ck = el.dataset.clColall; const ids = clVisible(t).rows.filter(c=>!el.checked || clCanTick(clDoc(t).pax[c.id], ck)).map(c=>c.id); if(el.checked && ids.length < clVisible(t).rows.length) showToast('Only passengers with details filled in were ticked'); clSetPax(t, ids, { [ck]: el.checked }); clRefreshTable(t); clAfterChange(t); return; }
     if(el.matches('select[data-cl-field="ticketBy"]')){ clSetTicket(t, [el.dataset.pid], el.value).then(()=>{ clRefreshTable(t); clAfterChange(t); }); clRefreshTable(t); return; }
     if(el.matches('select[data-cl-field]')){ clSetPax(t, [el.dataset.pid], { [el.dataset.clField]: el.value }); clRefreshTable(t); clAfterChange(t); return; }
     if(el.matches('input[data-cl-field]')){ clRefreshMeta(t); clAfterChange(t); return; }      // left the box: the status may have changed
@@ -3285,8 +3374,7 @@ function bindChecklist(){
     if(!can) return;
     if(el.matches('input[data-cl-field]')){
       clSetPax(t, [el.dataset.pid], { [el.dataset.clField]: el.value });
-      if(el.dataset.clField==='addons'){ const td = el.closest('tr') && el.closest('tr').querySelector('[data-cl-done="addonsDone"]'); if(td) td.closest('td').classList.toggle('cl-opt', !el.value.trim()); }
-      clRefreshMeta(t); clAfterChange(t, false); return;
+      clSyncRow(t, el.dataset.pid); clRefreshMeta(t); clAfterChange(t, false); return;
     }
     if(el.matches('[data-cl-list]')){
       const d = clDoc(t), key = el.dataset.clList, item = d[key].find(x=>x.id===el.dataset.lid);
@@ -3295,21 +3383,182 @@ function bindChecklist(){
   });
 }
 document.addEventListener('keydown', e=>{ if(e.key==='Escape' && clFull){ clFull = false; render(); } });
+// Drag across passenger names to select several at once; Shift+↑/↓ extends the selection from the keyboard.
+document.addEventListener('mousedown', e=>{
+  const cell = e.target.closest && e.target.closest('.cl-table td.cl-name, .cl-table td.cl-sel');
+  if(!cell || e.shiftKey || e.target.matches('input')) { if(cell && e.shiftKey) e.preventDefault(); return; }
+  const cb = cell.closest('tr').querySelector('[data-cl-sel]'); if(!cb || cb.disabled) return;
+  clDrag = { anchor: cb.dataset.clSel, on: !clSel.has(cb.dataset.clSel), last: cb.dataset.clSel, moved:false };
+});
+document.addEventListener('mouseover', e=>{
+  if(!clDrag) return; const tr = e.target.closest && e.target.closest('.cl-table tbody tr'); const cb = tr && tr.querySelector('[data-cl-sel]'); if(!cb) return;
+  const t = clTripOf(); if(!t || cb.dataset.clSel===clDrag.last) return;
+  clDrag.last = cb.dataset.clSel; clDrag.moved = true;
+  const ids = clVisible(t).rows.map(c=>c.id), i = ids.indexOf(clDrag.anchor), j = ids.indexOf(clDrag.last); if(i<0||j<0) return;
+  ids.forEach((id,k)=>{ const inR = k>=Math.min(i,j) && k<=Math.max(i,j); const box = document.querySelector(`.cl-table [data-cl-sel="${id}"]`); if(inR){ clDrag.on ? clSel.add(id) : clSel.delete(id); if(box){ box.checked = clDrag.on; box.closest('tr').classList.toggle('cl-picked', clDrag.on); } } });
+  const si = document.getElementById('cl-selinfo'); if(si){ si.textContent = clSel.size + ' of ' + ids.length + ' selected'; si.hidden = !clSel.size; }
+});
+document.addEventListener('mouseup', ()=>{ if(!clDrag) return; const d = clDrag; clDrag = null; if(d.moved){ clDragMoved = true; clAnchor = d.anchor; const t = clTripOf(); if(t) clRefreshTable(t); setTimeout(()=>{ clDragMoved = false; }, 0); } });
+document.addEventListener('keydown', e=>{
+  if(!['ArrowDown','ArrowUp'].includes(e.key) || !e.target.matches || !e.target.matches('[data-cl-sel]')) return;
+  const t = clTripOf(); if(!t) return; e.preventDefault();
+  const ids = clVisible(t).rows.map(c=>c.id), i = ids.indexOf(e.target.dataset.clSel), n = ids[i + (e.key==='ArrowDown'?1:-1)]; if(n===undefined) return;
+  if(e.shiftKey){ if(!clAnchor) clAnchor = ids[i]; clSel.add(ids[i]); clSel.add(n); clRefreshTable(t); }
+  const box = document.querySelector(`.cl-table [data-cl-sel="${n}"]`); if(box) box.focus();
+});
+
+
+// ---------------------------------------------------------------
+// Supplier Readiness — who is doing what on the ground. A flexible checklist (add / rename / delete any
+// checkpoint), each with the supplier's name, contact and notes. A checkpoint can only be ticked once the
+// supplier and contact are filled in; the final Readiness Check can only be ticked once every checkpoint is.
+// Ticking Readiness Check removes the red "!" from Ongoing and (with the passenger ticks) makes the trip Ready.
+// Stored inside the trip's opsChecklist.supplier and saved through the same debounced PATCH.
+// ---------------------------------------------------------------
+let supOpen = false;
+const SUP_DEFAULTS = ['Checkpoint customer','Airport transfer','Activity booking','Hotel booking','Transportation','Meal arrangement','Travel documents'];
+function supReadyDone(t){ const s = (t.opsChecklist||{}).supplier; return !!(s && s.readiness && s.readiness.done); }
+function supDoc(t){
+  const d = clDoc(t), s = d.supplier || (d.supplier = {});
+  if(!Array.isArray(s.items)) s.items = SUP_DEFAULTS.map(label=>({ id: clNewId('s'), label, supplier:'', contact:'', notes:'', done:false }));
+  s.leadName = s.leadName || ''; s.leadContact = s.leadContact || ''; s.readiness = s.readiness || { done:false };
+  return s;
+}
+const supItemOk = it => !!(String(it.supplier||'').trim() && String(it.contact||'').trim());
+const supAllDone = s => s.items.length > 0 && s.items.every(i=>i.done);
+function supQueue(t){ const s = supDoc(t); clQueue(t.id, { supplier: { leadName:s.leadName, leadContact:s.leadContact, items:s.items.map(i=>({ ...i })), readiness:{ ...s.readiness } } }); }
+function supRowHTML(it, can){
+  const lock = !it.done && !supItemOk(it);
+  return `<tr data-sup-row="${esc(it.id)}">
+    <td class="sup-c"><input type="checkbox" class="cl-chk ${lock?'is-locked':''}" data-sup-done ${it.done?'checked':''} ${!can||lock?'disabled':''} title="${lock?'Fill in the supplier and contact first':it.done?'Verified':'Mark as verified'}" aria-label="Verified: ${esc(it.label)}"></td>
+    <td><input class="cl-in sup-label" data-sup-f="label" value="${esc(it.label)}" ${can?'':'disabled'} title="Click to rename" aria-label="Checkpoint name"></td>
+    <td><input class="cl-in" data-sup-f="supplier" value="${esc(it.supplier)}" placeholder="Supplier / person" ${can?'':'disabled'}></td>
+    <td><input class="cl-in" data-sup-f="contact" value="${esc(it.contact)}" placeholder="Phone / email" ${can?'':'disabled'}></td>
+    <td><input class="cl-in" data-sup-f="notes" value="${esc(it.notes)}" placeholder="Notes" ${can?'':'disabled'}></td>
+    <td class="sup-c">${can?'<button type="button" class="cl-x" data-sup-del title="Remove this checkpoint">✕</button>':''}</td></tr>`;
+}
+function supHeadMeta(t){
+  const s = supDoc(t), n = s.items.filter(i=>i.done).length;
+  return { text: `${n} of ${s.items.length} verified`, pill: s.readiness.done ? '<span class="pill s-Ready">✓ Readiness confirmed</span>' : '<span class="pill s-Ongoing"><span class="bang">!</span> Readiness Check pending</span>' };
+}
+function supBodyHTML(t){
+  const s = supDoc(t), can = isApproverOrAdmin(), rd = s.readiness, all = supAllDone(s);
+  const by = rd.done && rd.by ? `Ticked by ${esc(rd.by)}${rd.at ? ' · ' + esc(new Date(rd.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})) : ''} · untick to reopen` : (all ? 'All checkpoints verified — tick to confirm' : 'Tick once all suppliers are verified');
+  return `<div class="sup-lead"><label>Travel Lead<input class="cl-in" data-sup-lead="leadName" value="${esc(s.leadName)}" placeholder="Name" ${can?'':'disabled'}></label>
+      <label>Travel Lead contact<input class="cl-in" data-sup-lead="leadContact" value="${esc(s.leadContact)}" placeholder="Phone" ${can?'':'disabled'}></label></div>
+    <div class="cl-scroll"><table class="cl-table sup-table"><thead><tr><th class="sup-c">✓</th><th>Checkpoint</th><th>Supplier / name</th><th>Contact</th><th>Notes</th><th></th></tr></thead>
+      <tbody id="sup-rows">${s.items.map(i=>supRowHTML(i, can)).join('') || '<tr><td colspan="6" class="hint">No checkpoints — add one below.</td></tr>'}</tbody></table></div>
+    <div class="sup-foot">${can?'<button type="button" class="btn btn-ghost btn-sm" data-sup-add>＋ Add checkpoint</button>':''}
+      <span class="hint" style="margin:0;">A grey tick stays locked until the supplier and contact are filled in. Click a checkpoint name to rename it.</span>
+      <label class="sup-ready ${rd.done?'ok':''}" id="sup-ready"><input type="checkbox" class="cl-chk" data-sup-ready ${rd.done?'checked':''} ${!can||(!rd.done&&!all)?'disabled':''}> <b>Readiness Check</b> <span class="hint" id="sup-ready-note" style="margin:0;">${by}</span></label></div>`;
+}
+function supBlockHTML(t){
+  const m = supHeadMeta(t);
+  return `<div class="cl-wrap sup-wrap" id="ops-sup"><div class="cl-head"><button type="button" class="cl-toggle" data-sup-toggle aria-expanded="${supOpen}"><span class="cl-caret">${supOpen?'▾':'▸'}</span> Supplier Readiness <span class="cl-prog" id="sup-prog">${m.text}</span></button><span id="sup-pill">${m.pill}</span></div>${supOpen ? `<div id="sup-body">${supBodyHTML(t)}</div>` : ''}</div>`;
+}
+// Refresh just the bits that depend on the ticks (locks, counts, pill, readiness box) without touching the inputs.
+function supSync(t){
+  const s = supDoc(t), can = isApproverOrAdmin(), m = supHeadMeta(t);
+  const p = document.getElementById('sup-prog'); if(p) p.textContent = m.text;
+  const pl = document.getElementById('sup-pill'); if(pl) pl.innerHTML = m.pill;
+  s.items.forEach(it=>{
+    const tr = document.querySelector(`#sup-rows tr[data-sup-row="${it.id}"]`); const cb = tr && tr.querySelector('[data-sup-done]'); if(!cb) return;
+    const lock = !it.done && !supItemOk(it);
+    cb.checked = !!it.done; cb.disabled = !can || lock; cb.classList.toggle('is-locked', lock);
+    cb.title = lock ? 'Fill in the supplier and contact first' : it.done ? 'Verified' : 'Mark as verified';
+  });
+  const all = supAllDone(s), rb = document.querySelector('[data-sup-ready]');
+  if(rb){ rb.checked = !!s.readiness.done; rb.disabled = !can || (!s.readiness.done && !all); }
+  const lab = document.getElementById('sup-ready'); if(lab) lab.classList.toggle('ok', !!s.readiness.done);
+  const note = document.getElementById('sup-ready-note');
+  if(note){ const rd = s.readiness; note.textContent = rd.done && rd.by ? `Ticked by ${rd.by}${rd.at ? ' · ' + new Date(rd.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}) : ''} · untick to reopen` : (all ? 'All checkpoints verified — tick to confirm' : 'Tick once all suppliers are verified'); }
+}
+function bindSupplier(){
+  const root = document.getElementById('ops-sup'); if(!root) return;
+  const t = trips.find(x=>x.id===view.tripId); if(!t) return;
+  const can = isApproverOrAdmin();
+  root.addEventListener('click', e=>{
+    if(e.target.closest('[data-sup-toggle]')){ supOpen = !supOpen; render(); return; }
+    if(!can) return;
+    const s = supDoc(t);
+    if(e.target.closest('[data-sup-add]')){
+      s.items.push({ id: clNewId('s'), label:'New checkpoint', supplier:'', contact:'', notes:'', done:false });
+      s.readiness.done = false; supQueue(t);
+      document.getElementById('sup-body').innerHTML = supBodyHTML(t); supSync(t); clAfterChange(t);
+      const labs = document.querySelectorAll('#sup-rows .sup-label'); const l = labs[labs.length-1]; if(l){ l.focus(); l.select(); } return;
+    }
+    const del = e.target.closest('[data-sup-del]');
+    if(del){
+      const id = del.closest('tr').dataset.supRow, it = s.items.find(x=>x.id===id);
+      if(!confirm('Remove "' + (it ? it.label : 'this checkpoint') + '" from this trip\'s checklist?')) return;
+      s.items = s.items.filter(x=>x.id!==id); supQueue(t);
+      document.getElementById('sup-body').innerHTML = supBodyHTML(t); supSync(t); clAfterChange(t);
+    }
+  });
+  root.addEventListener('input', e=>{
+    const el = e.target; if(!can) return; const s = supDoc(t);
+    if(el.matches('[data-sup-lead]')){ s[el.dataset.supLead] = el.value; supQueue(t); return; }
+    if(el.matches('[data-sup-f]')){
+      const it = s.items.find(x=>x.id===el.closest('tr').dataset.supRow); if(!it) return;
+      it[el.dataset.supF] = el.value;
+      if(it.done && !supItemOk(it)){ it.done = false; s.readiness.done = false; }   // details removed: the tick goes too
+      supQueue(t); supSync(t); clAfterChange(t, false);
+    }
+  });
+  root.addEventListener('change', e=>{
+    const el = e.target; if(!can) return; const s = supDoc(t);
+    if(el.matches('[data-sup-done]')){
+      const it = s.items.find(x=>x.id===el.closest('tr').dataset.supRow); if(!it) return;
+      if(el.checked && !supItemOk(it)){ el.checked = false; showToast('Fill in the supplier and contact first'); return; }
+      it.done = el.checked; if(!it.done) s.readiness.done = false;
+      supQueue(t); supSync(t); clAfterChange(t); return;
+    }
+    if(el.matches('[data-sup-ready]')){
+      if(el.checked && !supAllDone(s)){ el.checked = false; showToast('Verify every checkpoint first'); return; }
+      s.readiness = el.checked ? { done:true, by: (currentUser && currentUser.name) || '', at: new Date().toISOString() } : { done:false };
+      supQueue(t); supSync(t); clAfterChange(t);
+    }
+  });
+}
+
+// Excel export of the Operations checklist (what the filters show, or only the selected passengers) + Supplier Readiness.
+function clExportXlsx(t){
+  const { rows, I } = clVisible(t), d = I.d, picked = rows.filter(c=>clSel.has(c.id)), list = picked.length ? picked : rows;
+  if(!list.length){ showToast('Nothing to export'); return; }
+  const flight = (f) => f ? { name: clFlightShort(f), time: [clFmtDT(f.departure), f.arrival ? '→ ' + clFmtDT(f.arrival) : ''].filter(Boolean).join(' ') } : { name:'', time:'' };
+  const data = list.map((c,i)=>{ const r = d.pax[c.id] || {}, h = I.hotel(r.hotelId), a = flight(I.fTo(r.toId)), b = flight(I.fRet(r.retId)), n = CL_REQ.filter(k=>r[k]).length;
+    return { '#': i+1, 'Passenger': c.name || '', 'Contact': c.phone || '', 'Ticket by': CL_TK_LABEL[clTicketOf(c, r)], 'Hotel': h ? clHotelLabel(h) : '', 'Room': r.roomNumber || '',
+      'Flight to': a.name, 'Flight to time': a.time, 'Luggage (to)': r.toLuggage || '', 'Flight return': b.name, 'Flight return time': b.time, 'Luggage (return)': r.retLuggage || '',
+      'Remarks': r.addons || '', 'Stay done': r.hotelDone ? 'Yes' : 'No', 'Flight to done': r.toDone ? 'Yes' : 'No', 'Return done': r.retDone ? 'Yes' : 'No', 'Complete': n===CL_REQ.length ? 'Yes' : `${n}/${CL_REQ.length}` }; });
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{wch:4},{wch:28},{wch:14},{wch:14},{wch:22},{wch:8},{wch:18},{wch:24},{wch:10},{wch:18},{wch:24},{wch:10},{wch:34},{wch:10},{wch:12},{wch:12},{wch:10}];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Passengers');
+  const s = supDoc(t);
+  const sup = [{ 'Checkpoint':'Travel Lead', 'Supplier / name': s.leadName, 'Contact': s.leadContact, 'Notes':'', 'Verified':'' }]
+    .concat(s.items.map(i=>({ 'Checkpoint': i.label, 'Supplier / name': i.supplier, 'Contact': i.contact, 'Notes': i.notes, 'Verified': i.done ? 'Yes' : 'No' })))
+    .concat([{ 'Checkpoint':'Readiness Check', 'Supplier / name': s.readiness.done ? 'Confirmed' : 'Pending', 'Contact': s.readiness.by || '', 'Notes': s.readiness.at ? new Date(s.readiness.at).toLocaleString('en-GB') : '', 'Verified': s.readiness.done ? 'Yes' : 'No' }]);
+  const ws2 = XLSX.utils.json_to_sheet(sup); ws2['!cols'] = [{wch:22},{wch:26},{wch:22},{wch:40},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Supplier Readiness');
+  const safe = (t.name||'trip').replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'');
+  try{ XLSX.writeFile(wb, `${tripCode(t)}_${safe}_operations.xlsx`); showToast(picked.length ? `Exporting ${picked.length} selected passenger${picked.length>1?'s':''}…` : 'Operations checklist downloading…'); }
+  catch(e){ showToast('Could not export the checklist'); }
+}
 
 function opsFlowHTML(t){
   const can = isApproverOrAdmin(), cur = tripOpsStatus(t), ci = OPS_FLOW.indexOf(cur), manual = cur==='Onhold' || cur==='Rejected';
-  const step = (s, i) => `${i?'<span class="ops-arrow">›</span>':''}<span class="ops-step auto ${!manual && ci>=0 && i<ci?'done':''} ${s===cur?'current':''}">${esc(s)}</span>`;
+  const step = (s, i) => `${i?'<span class="ops-arrow">›</span>':''}<span class="ops-step auto ${!manual && ci>=0 && i<ci?'done':''} ${s===cur?'current':''}">${s==='Departed'?'✈ ':''}${esc(s)}${s==='Ongoing' && s===cur && opsNeedsBang(t) ? ' <span class="bang" title="Readiness Check not ticked yet">!</span>' : ''}</span>`;
   const side = (s, extra) => `<button type="button" class="ops-step side ${extra} ${s===cur?'current':''}" data-ops-hold="${s}" ${can?'':'disabled'} title="${can?'Needs a reason':'Only approvers and admins can do this'}">${esc(opsLabel(s))}</button>`;
   const note = manual ? `<div class="ops-hold-note"><div><b>${esc(opsLabel(cur))}</b> — ${esc(t.opsReason || 'no reason recorded')}${t.opsReasonBy ? ` <span class="hint" style="margin:0;">· ${esc(t.opsReasonBy)}${t.opsReasonAt ? ', ' + esc(fmtDate(String(t.opsReasonAt).slice(0,10))) : ''}</span>` : ''}</div>${can ? '<button type="button" class="btn btn-ghost btn-sm" data-ops-resume>Resume</button>' : ''}</div>` : '';
-  return `<div class="ops-flow">${OPS_FLOW.map(step).join('')}<span class="ops-sep"></span>${side('Onhold','')}${side('Rejected','rej')}</div>${note}
-    <p class="hint" style="margin:10px 0 0;">Updates automatically: <b>Ongoing</b> once two checklist details are filled in · <b>Ready</b> when every required tick box is ticked for every passenger · <b>Completed</b> after the trip's end date.${can ? ' On-hold and Rejected can be set at any time (a reason is needed).' : ''}</p>`;
+  const warn = opsDepartWarn(t) ? `<div class="ops-hold-note" style="background:rgba(225,85,84,.08);border-color:var(--coral);"><div><b style="color:var(--coral);">Departs ${ymd(t.startDate)===todayYmd()?'today':'(start date passed)'} — not ready.</b> Finish the passenger checklist and tick the Readiness Check.</div></div>` : '';
+  return `<div class="ops-flow">${OPS_FLOW.map(step).join('')}<span class="ops-sep"></span>${side('Onhold','')}${side('Rejected','rej')}</div>${note}${warn}
+    <p class="hint" style="margin:10px 0 0;">Updates automatically: <b>Ongoing</b> once two checklist details are filled in · <span class="bang">!</span> stays until the <b>Readiness Check</b> in Supplier Readiness is ticked · <b>Ready</b> when every passenger tick box <i>and</i> the Readiness Check are ticked · <b>Departed</b> from the start date once Ready · <b>Completed</b> after the trip's end date.${can ? ' On-hold and Rejected can be set at any time (a reason is needed).' : ''}</p>`;
 }
 function opsPanelHTML(t){
   if(!isSubmittedTrip(t)){
     return `<div class="panel ops-panel"><div class="panel-head"><h3>Operations</h3></div><div class="ops-body"><p class="hint" style="margin:0;">${isCancelledTrip(t) ? 'This trip is cancelled.' : 'Operations starts once the trip is submitted. Click <b>Submit</b> when all the information is filled in.'}</p></div></div>`;
   }
   return `<div class="panel ops-panel" id="ops-panel"><div class="panel-head"><h3>Operations</h3></div>
-    <div class="ops-body"><div id="ops-flow-host">${opsFlowHTML(t)}</div></div>${clBlockHTML(t)}</div>`;
+    <div class="ops-body"><div id="ops-flow-host">${opsFlowHTML(t)}</div></div>${clBlockHTML(t)}${clFull ? '' : supBlockHTML(t)}</div>`;
 }
 let opsReasonCtx = null;
 function opsReasonModal(){
@@ -3449,7 +3698,9 @@ function tripModal(){
 // whenever Package amount, Deposit paid, or Payment changes.
 // Formula: Balance = Package amount - Deposit paid - Payment (floored at 0).
 function recalcBalanceField(){
-  const amount = Number(document.getElementById('cu-amount').value)||0;
+  const net = Number((document.getElementById('cu-addons')||{dataset:{}}).dataset.net)||0;
+  const amount = Math.max(0, (Number(document.getElementById('cu-amount').value)||0) + net);
+  const pt = document.getElementById('cu-pkgtotal'); if(pt) pt.value = amount.toFixed(2);
   const deposit = Number(document.getElementById('cu-deposit').value)||0;
   const payment = Number(document.getElementById('cu-payment').value)||0;
   document.getElementById('cu-balance').value = Math.max(0, amount - deposit - payment).toFixed(2);
@@ -3489,16 +3740,21 @@ function payRowHTML(e, i){
   const kindSel = canc ? `<td><select class="pay-kind" onchange="payRecalc()">${Object.entries(PAY_KINDS).map(([k,l])=>`<option value="${k}" ${e.kind===k?'selected':''}>${l}</option>`).join('')}</select></td>` : '';
   return `<tr data-pay-row="${i}"><td><input type="date" class="pay-date" value="${esc(e.date)}"></td>${kindSel}<td><input type="number" class="pay-amt" min="0" step="0.01" value="${e.amount||''}" placeholder="0.00" oninput="payRecalc()"></td><td><input class="pay-note" value="${esc(e.note||'')}" placeholder="${canc?'e.g. refund via transfer, cancellation fee':'e.g. 2nd instalment, bank transfer'}"></td><td><button type="button" class="cl-x" data-pay-del="${i}" title="Remove">✕</button></td></tr>`;
 }
+function payTabsHTML(active, c){
+  const n = (c.addons||[]).length;
+  return `<div class="pay-tabs"><button type="button" class="${active==='pay'?'on':''}" data-pay-tab="pay">🧾 Payments</button><button type="button" class="${active==='addons'?'on':''}" data-pay-tab="addons">＋ Add-ons${n?` <span class="tcount">${n}</span>`:''}</button></div>`;
+}
 function paymentsModal(){
   const c = payEditId ? customers.find(x=>x.id===payEditId) : null;
   const dep = c ? (Number(c.depositAmount)||0) : 0, canc = payIsCancelled(c);
   const summary = !c ? '' : canc
     ? `<div class="pay-sum"><div><span>Paid in</span><b id="pay-in">RM 0.00</b></div><div><span>Refunded</span><b id="pay-refunded">RM 0.00</b></div><div><span>Kept</span><b id="pay-kept">RM 0.00</b></div><div><span>Still held</span><b id="pay-held">RM 0.00</b></div></div>
        <p class="hint" style="margin:0 0 10px;">Cancelled passenger / trip. Record each <b>Refund</b> (money returned) or <b>Kept</b> amount (e.g. a cancellation fee) as you decide — anything left is shown as <b>Still held</b> until it's settled.</p>`
-    : `<div class="pay-sum"><div><span>Package</span><b>${fmtMoney(c.amount)}</b></div><div><span>Deposit</span><b>${fmtMoney(dep)}</b></div><div><span>Payments</span><b id="pay-total">RM 0.00</b></div><div><span>Balance</span><b id="pay-balance">RM 0.00</b></div></div><div class="pay-bar"><div id="pay-bar-fill"></div></div>`;
+    : `<div class="pay-sum"><div><span>Package</span><b>${fmtMoney(pkgOf(c))}</b></div><div><span>Deposit</span><b>${fmtMoney(dep)}</b></div><div><span>Payments</span><b id="pay-total">RM 0.00</b></div><div><span>Balance</span><b id="pay-balance">RM 0.00</b></div></div><div class="pay-bar"><div id="pay-bar-fill"></div></div>`;
   return `<div class="overlay" id="overlay-payments"><div class="modal" style="max-width:680px;">
     <div class="modal-head"><h3>Payments${c ? ' — ' + esc(c.name) : ''}${canc ? ` <span class="badge Cancelled" style="vertical-align:middle;">${c.paymentStatus==='Cancelled' ? 'Cancelled' : 'Cancelled trip'}</span>` : ''}</h3><button class="modal-close" data-close="overlay-payments">✕</button></div>
     <div class="modal-body">
+      ${c ? payTabsHTML('pay', c) : ''}
       ${summary}
       ${c ? `<table class="pay-table"><thead><tr><th>Date</th>${canc?'<th>Type</th>':''}<th>Amount (RM)</th><th>Note</th><th></th></tr></thead>
         <tbody>${dep>0 ? `<tr class="pay-dep"><td>—</td>${canc?'<td>Deposit</td>':''}<td>${fmtMoney(dep)}</td><td colspan="2">Deposit paid <span class="hint" style="margin:0;">(edit it in Edit passenger)</span></td></tr>` : ''}</tbody>
@@ -3523,7 +3779,7 @@ function payReadDraft(){
 function payRecalc(){
   const c = customers.find(x=>x.id===payEditId); if(!c) return;
   const rows = payReadDraft(), by = k => rows.filter(e=>e.kind===k).reduce((n,e)=>n+e.amount,0);
-  const dep = Number(c.depositAmount)||0, amt = Number(c.amount)||0;
+  const dep = Number(c.depositAmount)||0, amt = pkgOf(c);
   const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
   const warn = document.getElementById('pay-warn'); let msg = '';
   if(payIsCancelled(c)){
@@ -3561,6 +3817,74 @@ async function paySave(){
   }catch(e){ showToast(e.message || 'Could not save'); return; }
   closeOverlay('overlay-payments'); render();
 }
+// ---------------------------------------------------------------
+// Package add-ons: extras the customer asks for (or discounts). Same idea as the payment history —
+// each line is recorded, the net total is kept on the passenger (addonsTotal) and the package total
+// (base package + add-ons) drives balance, status and every total in the app.
+// ---------------------------------------------------------------
+let adEditId = null, adDraft = [];
+const AD_KINDS = { addon:'Add-on', discount:'Discount' };
+function adRowHTML(e, i){
+  return `<tr data-ad-row="${i}"><td><input type="date" class="ad-date" value="${esc(e.date)}"></td><td><select class="ad-kind" onchange="adRecalc()">${Object.entries(AD_KINDS).map(([k,l])=>`<option value="${k}" ${e.kind===k?'selected':''}>${l}</option>`).join('')}</select></td><td><input class="ad-desc" value="${esc(e.description||'')}" placeholder="e.g. Single room supplement, travel insurance"></td><td><input type="number" class="ad-amt" min="0" step="0.01" value="${e.amount||''}" placeholder="0.00" oninput="adRecalc()"></td><td><button type="button" class="cl-x" data-ad-del="${i}" title="Remove">✕</button></td></tr>`;
+}
+function addonsModal(){
+  const c = adEditId ? customers.find(x=>x.id===adEditId) : null;
+  return `<div class="overlay" id="overlay-addons"><div class="modal" style="max-width:700px;">
+    <div class="modal-head"><h3>Payments &amp; add-ons${c ? ' — ' + esc(c.name) : ''}</h3><button class="modal-close" data-close="overlay-addons">✕</button></div>
+    <div class="modal-body">
+      ${c ? payTabsHTML('addons', c) : ''}
+      ${c ? `<p class="hint" style="margin:0 0 10px;">Record extras the customer asked for after booking (extra night, room upgrade, insurance…) or a discount. The package total, balance and payment status update from this list.</p>
+      <table class="pay-table"><thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Amount (RM)</th><th></th></tr></thead>
+        <tbody id="ad-rows">${adDraft.map(adRowHTML).join('')}</tbody></table>
+      <div style="margin-top:10px;"><button type="button" class="btn btn-ghost btn-sm" data-ad-add>+ Add line</button></div>
+      <div class="ad-tot"><span>Base package</span><b id="ad-base">RM 0.00</b><span>Add-ons net</span><b id="ad-net">RM 0.00</b><span><b style="text-align:left;">Package total</b></span><b id="ad-total">RM 0.00</b><span>Deposit + payments</span><b id="ad-paid">RM 0.00</b><span class="due"><b style="text-align:left;">Balance due</b></span><b class="due" id="ad-bal">RM 0.00</b></div>
+      <p class="hint" id="ad-warn" style="color:var(--coral);display:none;margin-top:8px;"></p>` : ''}
+    </div>
+    <div class="modal-foot"><span></span><div style="display:flex;gap:10px;">
+      <button class="btn btn-ghost" data-close="overlay-addons">Cancel</button>
+      <button class="btn btn-primary" data-ad-save>Save</button></div></div>
+  </div></div>`;
+}
+function adReadDraft(){
+  return [...document.querySelectorAll('#ad-rows tr')].map(tr=>({
+    id: tr.dataset.adId || ('ad_'+Math.random().toString(36).slice(2,9)),
+    date: tr.querySelector('.ad-date').value,
+    kind: tr.querySelector('.ad-kind').value,
+    description: tr.querySelector('.ad-desc').value.trim(),
+    amount: Number(tr.querySelector('.ad-amt').value)||0
+  }));
+}
+function adRecalc(){
+  const c = customers.find(x=>x.id===adEditId); if(!c) return;
+  const rows = adReadDraft(), net = Math.round(rows.reduce((n,e)=>n+(e.kind==='discount'?-e.amount:e.amount),0)*100)/100;
+  const base = Number(c.amount)||0, total = Math.max(0, base+net), paid = (Number(c.depositAmount)||0)+(Number(c.balancePaid)||0);
+  const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('ad-base', fmtMoney(base)); set('ad-net', (net<0?'− ':net>0?'+ ':'')+fmtMoney(Math.abs(net))); set('ad-total', fmtMoney(total)); set('ad-paid', fmtMoney(paid)); set('ad-bal', fmtMoney(Math.max(0,total-paid)));
+  const warn = document.getElementById('ad-warn'); if(warn){ const msg = (base+net<0) ? 'Discounts are more than the package amount.' : ''; warn.textContent = msg; warn.style.display = msg ? 'block' : 'none'; }
+}
+function openAddons(id){
+  const c = customers.find(x=>x.id===id); if(!c) return;
+  adEditId = id; adDraft = (c.addons||[]).map(e=>({...e}));
+  render(); openOverlay('overlay-addons'); adRecalc();
+}
+function adRefreshRows(){
+  document.getElementById('ad-rows').innerHTML = adDraft.map(adRowHTML).join('');
+  document.querySelectorAll('#ad-rows tr').forEach((tr,i)=>{ if(adDraft[i].id) tr.dataset.adId = adDraft[i].id; });
+  adRecalc();
+}
+async function adSave(){
+  const c = customers.find(x=>x.id===adEditId); if(!c) return;
+  const rows = adReadDraft().filter(e=>e.amount>0 || e.description);
+  if(rows.some(e=>!(e.amount>0))){ showToast('Each line needs an amount'); return; }
+  if(rows.some(e=>!e.date)){ showToast('Each line needs a date'); return; }
+  try{
+    const updated = await apiFetch(`/passengers/${adEditId}/addons`, { method:'PUT', body: JSON.stringify({ addons: rows }) });
+    const idx = customers.findIndex(x=>x.id===adEditId);
+    if(idx>-1) customers[idx] = updated;
+    showToast('Add-ons saved');
+  }catch(e){ showToast(e.message || 'Could not save'); return; }
+  closeOverlay('overlay-addons'); render();
+}
 // Cancel / reinstate a passenger (keeps their payment history; refunds are recorded separately).
 async function toggleCancelCustomer(id){
   const c = customers.find(x=>x.id===id); if(!c) return;
@@ -3572,7 +3896,7 @@ async function toggleCancelCustomer(id){
     : (hasRefunds ? 'Reinstate this passenger? Refund / kept entries are already recorded for them — they stay in their payment history. Continue?' : 'Reinstate this passenger?');
   if(!confirm(msg)) return;
   try{
-    const status = cancelling ? 'Cancelled' : payStatusFrom(c.amount, c.depositAmount, c.balancePaid);
+    const status = cancelling ? 'Cancelled' : payStatusFrom(pkgOf(c), c.depositAmount, c.balancePaid);
     const updated = await apiFetch(`/passengers/${id}/payment-status`, { method:'PUT', body: JSON.stringify({ paymentStatus: status }) });
     const idx = customers.findIndex(x=>x.id===id); if(idx>-1) customers[idx] = { ...customers[idx], ...updated };
     showToast(cancelling ? (hasMoney ? 'Passenger cancelled — record any refund in their payments (🧾)' : 'Passenger cancelled') : 'Passenger reinstated');
@@ -3581,12 +3905,14 @@ async function toggleCancelCustomer(id){
 }
 function bindPaymentEvents(root){
   root.querySelectorAll('[data-pay-cust]').forEach(el=>el.addEventListener('click', ()=>openPayments(el.dataset.payCust)));
+  root.querySelectorAll('[data-addon-cust]').forEach(el=>el.addEventListener('click', ()=>openAddons(el.dataset.addonCust)));
 }
 
 function customerModal(){
   const editing = editingCustomerId ? customers.find(c=>c.id===editingCustomerId) : null;
   const v = editing || {name:'',dob:'',phone:'',idNumber:'',medicalCondition:'',passportNumber:'',passportExpiry:'',amount:0,depositAmount:0,balancePaid:0,paymentStatus:'Pending',ticketPurchaser:'',ticketStatus:'Pending',airline:'',bookingReference:'',notes:''};
-  const balanceAmount = Math.max(0,(Number(v.amount)||0)-(Number(v.depositAmount)||0)-(Number(v.balancePaid)||0));
+  const addonsNet = Number(v.addonsTotal)||0;
+  const balanceAmount = Math.max(0,(Number(v.amount)||0)+addonsNet-(Number(v.depositAmount)||0)-(Number(v.balancePaid)||0));
   const trip = trips.find(t=>t.id===(editing ? editing.tripId : view.tripId));
   const showTicketFields = trip && ticketColsTrip(trip);
   return `
@@ -3597,9 +3923,9 @@ function customerModal(){
         <div class="field"><label>Full name (as per IC)</label><input id="cu-name" placeholder="As per IC / passport" value="${esc(v.name)}"></div>
         <div class="field-row">
           <div class="field"><label>Date of birth</label><input type="date" id="cu-dob" value="${esc(v.dob)}"></div>
-          <div class="field"><label>Contact number</label><input id="cu-phone" value="${esc(v.phone)}"></div>
+          <div class="field"><label>Contact number</label><input id="cu-phone" data-digits inputmode="numeric" autocomplete="off" placeholder="Numbers only" value="${esc(v.phone)}"></div>
         </div>
-        <div class="field"><label>IC / Passport no. <span style="font-weight:400;">(optional)</span></label><input id="cu-idnum" value="${esc(v.idNumber)}"></div>
+        <div class="field"><label>IC no. <span style="font-weight:400;">(optional)</span></label><input id="cu-idnum" value="${esc(v.idNumber)}"></div>
         <div class="field"><label>Medical condition / history <span style="font-weight:400;">(if applicable)</span></label><textarea id="cu-medical" rows="2" placeholder="Leave blank if none">${esc(v.medicalCondition)}</textarea></div>
         <div class="field-row">
           <div class="field"><label>Passport number <span style="font-weight:400;">(optional)</span></label><input id="cu-passport-number" placeholder="e.g. A12345678" value="${esc(v.passportNumber)}"></div>
@@ -3608,6 +3934,10 @@ function customerModal(){
         <div class="field-row">
           <div class="field"><label>Package amount (RM)</label><input type="number" id="cu-amount" min="0" step="0.01" value="${v.amount||0}" oninput="recalcBalanceField()"></div>
           <div class="field"><label>Deposit paid (RM)</label><input type="number" id="cu-deposit" min="0" step="0.01" value="${v.depositAmount||0}" oninput="recalcBalanceField()"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Add-ons (RM)</label><input type="number" id="cu-addons" data-net="${addonsNet}" disabled value="${addonsNet.toFixed(2)}" style="opacity:0.65;"><div class="hint">Total of the add-ons list — add items with “＋ Add-ons” in the passenger list${editing?'':' (after saving)'}.</div></div>
+          <div class="field"><label>Package total (RM)</label><input type="number" id="cu-pkgtotal" disabled value="${Math.max(0,(Number(v.amount)||0)+addonsNet).toFixed(2)}" style="opacity:0.65;"></div>
         </div>
         <div class="field-row">
           <div class="field"><label>Payment (RM)</label><input type="number" id="cu-payment" disabled value="${v.balancePaid||0}" style="opacity:0.65;"><div class="hint">Total of the payment history — add instalments with the 🧾 link in the passenger list${editing?'':' (after saving)'}.</div></div>
@@ -3808,6 +4138,8 @@ function exportTripToExcel(tripId){
     'Passport Expiry': c.passportExpiry || '',
     'Payment Status': paxStatus(c),
     'Amount (RM)': Number(c.amount)||0,
+    'Add-ons (RM)': Number(c.addonsTotal)||0,
+    'Package Total (RM)': pkgOf(c),
     'Deposit Paid (RM)': Number(c.depositAmount)||0,
     'Payment (RM)': Number(c.balancePaid)||0,
     'Balance (RM)': paxBalance(c),
@@ -3826,7 +4158,7 @@ function exportTripToExcel(tripId){
   const ws = XLSX.utils.json_to_sheet(rows);
   ws['!cols'] = [
     {wch:26},{wch:14},{wch:16},{wch:16},{wch:12},{wch:20},
-    {wch:30},{wch:16},{wch:14},{wch:14},{wch:12},{wch:14},{wch:14},{wch:14},{wch:18},{wch:14},{wch:16},{wch:18},{wch:16},{wch:24},{wch:14}
+    {wch:30},{wch:16},{wch:14},{wch:14},{wch:12},{wch:12},{wch:14},{wch:14},{wch:14},{wch:14},{wch:18},{wch:14},{wch:16},{wch:18},{wch:16},{wch:24},{wch:14}
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Passengers');
@@ -3972,7 +4304,7 @@ function parseWorkbookFile(file){
             timestamp: map.timestamp!==undefined ? excelDateToStr(r[map.timestamp]) : '',
             name: String(name).trim(),
             dob: map.dob!==undefined ? excelDateToStr(r[map.dob]) : '',
-            phone: map.phone!==undefined ? String(r[map.phone]||'').trim() : '',
+            phone: map.phone!==undefined ? String(r[map.phone]||'').replace(/\D+/g,'') : '',
             tripType: map.tripType!==undefined ? String(r[map.tripType]||'').trim() : 'Open',
             location: loc.country,
             route: routeCell || loc.route,
@@ -4351,8 +4683,20 @@ function bindEvents(){
       const del = e.target.closest('[data-pay-del]');
       if(del){ payDraft = payReadDraft(); payDraft.splice(Number(del.dataset.payDel),1); payRefreshRows(); return; }
       if(e.target.closest('[data-pay-save]')) paySave();
+      if(e.target.closest('[data-pay-tab="addons"]')) openAddons(payEditId);
     });
     document.querySelectorAll('#pay-rows tr').forEach((tr,i)=>{ if(payDraft[i] && payDraft[i].id) tr.dataset.payId = payDraft[i].id; });
+  }
+  const adModal = document.getElementById('overlay-addons');
+  if(adModal){
+    adModal.addEventListener('click', e=>{
+      if(e.target.closest('[data-ad-add]')){ adDraft = adReadDraft(); adDraft.push({ id:'', date:todayYmd(), kind:'addon', description:'', amount:0 }); adRefreshRows(); const ins=document.querySelectorAll('#ad-rows .ad-desc'); if(ins.length) ins[ins.length-1].focus(); return; }
+      const del = e.target.closest('[data-ad-del]');
+      if(del){ adDraft = adReadDraft(); adDraft.splice(Number(del.dataset.adDel),1); adRefreshRows(); return; }
+      if(e.target.closest('[data-ad-save]')) adSave();
+      if(e.target.closest('[data-pay-tab="pay"]')) openPayments(adEditId);
+    });
+    document.querySelectorAll('#ad-rows tr').forEach((tr,i)=>{ if(adDraft[i] && adDraft[i].id) tr.dataset.adId = adDraft[i].id; });
   }
   const togCancelBtn = app.querySelector('[data-action="toggle-cancel-customer"]');
   if(togCancelBtn) togCancelBtn.addEventListener('click', ()=>toggleCancelCustomer(editingCustomerId));
@@ -4376,6 +4720,7 @@ function bindEvents(){
   });
 
   bindChecklist();
+  bindSupplier();
 
   bindPassengerRowHandlers(app);
 
@@ -4611,14 +4956,14 @@ async function handleSaveCustomer(){
   const payload = {
     name,
     dob: document.getElementById('cu-dob').value,
-    phone: document.getElementById('cu-phone').value.trim(),
+    phone: document.getElementById('cu-phone').value.replace(/\D+/g,''),
     idNumber: document.getElementById('cu-idnum').value.trim(),
     medicalCondition: document.getElementById('cu-medical').value.trim(),
     passportNumber: document.getElementById('cu-passport-number').value.trim(),
     passportExpiry: document.getElementById('cu-passport-expiry').value,
     amount: Number(document.getElementById('cu-amount').value)||0,
     depositAmount: Number(document.getElementById('cu-deposit').value)||0,
-    paymentStatus: document.getElementById('cu-status').dataset.cancelled ? 'Cancelled' : payStatusFrom(Number(document.getElementById('cu-amount').value), Number(document.getElementById('cu-deposit').value), Number(document.getElementById('cu-payment').value)),
+    paymentStatus: document.getElementById('cu-status').dataset.cancelled ? 'Cancelled' : payStatusFrom(Math.max(0,(Number(document.getElementById('cu-amount').value)||0)+(Number(document.getElementById('cu-addons').dataset.net)||0)), Number(document.getElementById('cu-deposit').value), Number(document.getElementById('cu-payment').value)),
     notes: document.getElementById('cu-notes').value.trim()
   };
   if(!editingCustomerId) payload.balancePaid = 0;   // payments are added through the payment history
@@ -4836,9 +5181,9 @@ function publicPassengerBlockHTML(p, i, total){
     <div class="field"><label>Full name (as per IC)</label><input id="pr-name-${i}" style="text-transform:uppercase;" placeholder="AS PER IC / PASSPORT" value="${esc(p.name)}"></div>
     <div class="field-row">
       <div class="field"><label>Date of birth</label><input type="date" id="pr-dob-${i}" value="${esc(p.dob)}"></div>
-      <div class="field"><label>Contact number</label><input id="pr-phone-${i}" value="${esc(p.phone)}"></div>
+      <div class="field"><label>Contact number</label><input id="pr-phone-${i}" data-digits inputmode="numeric" autocomplete="off" placeholder="Numbers only" value="${esc(p.phone)}"></div>
     </div>
-    <div class="field"><label>IC / Passport no. <span style="font-weight:400;">(optional)</span></label><input id="pr-idnum-${i}" value="${esc(p.idNumber)}"></div>
+    <div class="field"><label>IC no. <span style="font-weight:400;">(optional)</span></label><input id="pr-idnum-${i}" value="${esc(p.idNumber)}"></div>
     <div class="field"><label>Medical condition / history <span style="font-weight:400;">(if applicable)</span></label><textarea id="pr-medical-${i}" rows="2" placeholder="Leave blank if none">${esc(p.medicalCondition)}</textarea></div>
     <div class="field" style="margin-bottom:${p.wantsFlight?'10px':'0'};">
       <label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;">
@@ -4947,7 +5292,7 @@ function syncPublicFormFromDOM(){
     if(!nameEl) return;
     p.name = nameEl.value;
     p.dob = document.getElementById(`pr-dob-${i}`).value;
-    p.phone = document.getElementById(`pr-phone-${i}`).value;
+    p.phone = document.getElementById(`pr-phone-${i}`).value.replace(/\D+/g,'');
     p.idNumber = document.getElementById(`pr-idnum-${i}`).value;
     p.medicalCondition = document.getElementById(`pr-medical-${i}`).value;
     const flightEl = document.getElementById(`pr-wants-flight-${i}`);
