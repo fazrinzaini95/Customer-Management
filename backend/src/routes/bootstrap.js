@@ -42,7 +42,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
   res.json({
     trips: tripsRes.rows.map((r) => ({
-      id: r.id, seq: r.seq, name: r.name, type: r.type, destination: r.destination, route: r.route || '',
+      id: r.id, seq: r.seq, name: r.name, type: r.type, destination: r.destination, route: r.route || '', reference: r.reference || '',
       startDate: r.start_date, endDate: r.end_date, status: r.status, history: r.history,
       createdAt: r.created_at, createdByName: r.creator_name || null,
       lastEditedByName: r.editor_name || null, lastEditedAt: r.last_edited_at || null,
@@ -58,7 +58,7 @@ router.get('/', asyncHandler(async (req, res) => {
       ticketPurchaser: r.ticket_purchaser, ticketStatus: r.ticket_status, airline: r.airline, bookingReference: r.booking_reference,
       picName: r.pic_name || null, notes: r.notes, submittedAt: r.submitted_at, addedAt: r.added_at,
     })),
-    lists: listsRes.rows.map((r) => ({ id: r.id, kind: r.kind, country: r.country, name: r.name, city: r.city })),
+    lists: listsRes.rows.map((r) => ({ id: r.id, kind: r.kind, country: r.country, name: r.name, city: r.city, shortName: r.short_name || '' })),
     settings: { ...(settingsRes.rows[0]?.data || {}), runningNumber: is_called ? Number(last_value) : 0, nextNumber },
     users: isAdmin
       ? usersRes.rows.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, isTemp: u.is_temp, createdAt: u.created_at }))

@@ -912,3 +912,24 @@ New third tab, **Calendar**, a monthly calendar of trips by date (frontend only,
 - Applies to people already in the trip and to repeated rows inside the same file.
 - Upload preview greys out skipped rows ("Skip – already in this trip"), totals and the Import button count only passengers who will really be added; after import the message says how many were skipped.
 - The server enforces the same rule, so re-uploading a file can never double up. No new SQL.
+
+## #53 — Standard trip names + Reference
+- The "Trip name" field is gone. Names are built automatically: `[Open] Phu Quoc Apr'27`, and for private trips `[Private] Phu Quoc Apr'27 - Fatihah`.
+- New optional **Reference** field (private trips only) holds the guest name. New column `trips.reference`.
+- A live name preview shows in the New/Edit trip form. Editing type, country, route, start date or reference rebuilds the name; bulk import uses the same naming.
+- Existing trips keep their old names until they are edited.
+
+## #54 — Route short names (Operations lists)
+- Each route can have a **Short name** (e.g. "Phu Quoc Island Escape" → "Phu Quoc") used in trip names. If blank, the full route name is used, then the country. New column `list_items.short_name`.
+- Changing a short name does not rename trips that already exist.
+
+## #55 — Compact trips overview
+- Grid: smaller cards with status pills, 2-line name, code · country · route, date range with duration, pax count, paid bar and money chip.
+- List: Code, Year, Trip, Type, Dates, Payment, Operations, Pax, Paid, Balance.
+
+## #56 — Passenger list redesign
+- DOB removed. Columns: #, Passenger (medical flag, IC, passport with expiry warning), Contact, Package, Paid, Balance, Status badge, PIC, actions.
+- Status filter chips with counts; search also matches passport numbers.
+- Passport expired / expiring within 6 months of trip end is flagged.
+- WhatsApp button, Ticket column and the mini progress bar removed (ticket details live in the Operations checklist).
+- Phones: each row becomes a stacked card.

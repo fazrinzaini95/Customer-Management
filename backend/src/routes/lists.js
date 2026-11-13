@@ -13,21 +13,21 @@ const KINDS = ['route', 'hotel', 'airline'];
 const clean = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
 
 function mapItem(r) {
-  return { id: r.id, kind: r.kind, country: r.country, name: r.name, city: r.city, createdAt: r.created_at };
+  return { id: r.id, kind: r.kind, country: r.country, name: r.name, city: r.city, shortName: r.short_name || '', createdAt: r.created_at };
 }
 
 // Adds the item unless one with the same kind + country + name (ignoring case) already exists.
 // Used by the auto-add (anything staff type is remembered) and by trips.js when a route is saved.
-async function ensureItem({ kind, country, name, city, userId }) {
+async function ensureItem({ kind, country, name, city, shortName, userId }) {
   const n = clean(name).slice(0, 120);
   if (!KINDS.includes(kind) || !n) return null;
   const c = kind === 'airline' ? '' : clean(country).slice(0, 80);
   const { rows } = await query(
-    `INSERT INTO list_items (kind, country, name, city, created_by)
-     VALUES ($1,$2,$3,$4,$5)
+    `INSERT INTO list_items (kind, country, name, city, short_name, created_by)
+     VALUES ($1,$2,$3,$4,$5,$6)
      ON CONFLICT (kind, lower(country), lower(name)) DO NOTHING
      RETURNING *`,
-    [kind, c, n, clean(city).slice(0, 80), userId || null]
+    [kind, c, n, clean(city).slice(0, 80), kind === 'route' ? clean(shortName).slice(0, 40) : '', userId || null]
   );
   return rows[0] ? mapItem(rows[0]) : null;
 }
@@ -42,6 +42,7 @@ const itemSchema = z.object({
   country: z.string().max(80).optional().or(z.literal('')),
   name: z.string().min(1).max(120),
   city: z.string().max(80).optional().or(z.literal('')),
+  shortName: z.string().max(40).optional().or(z.literal('')),   // routes only: used in the standard trip name
 });
 
 // Any signed-in user: typing something new on a trip / checklist remembers it for next time.
@@ -72,7 +73,8 @@ router.put('/:id', requireRole('admin'), asyncHandler(async (req, res) => {
     [cur.rows[0].kind, cur.rows[0].country, name, req.params.id]
   );
   if (dup.rows[0]) return res.status(409).json({ error: 'There is already one with that name — delete the duplicate instead' });
-  const { rows } = await query('UPDATE list_items SET name = $1, city = $2 WHERE id = $3 RETURNING *', [name, city, req.params.id]);
+  const shortName = cur.rows[0].kind === 'route' && d.shortName !== undefined ? clean(d.shortName).slice(0, 40) : cur.rows[0].short_name || '';
+  const { rows } = await query('UPDATE list_items SET name = $1, city = $2, short_name = $3 WHERE id = $4 RETURNING *', [name, city, shortName, req.params.id]);
   res.json(mapItem(rows[0]));
   logActivity({ actor: req.user, action: 'list.updated', entityType: 'settings', entityId: rows[0].id, entityLabel: rows[0].name, details: { kind: rows[0].kind, from: cur.rows[0].name } });
 }));

@@ -119,6 +119,58 @@
   .stub-meta{padding:0 18px 16px;display:flex;gap:14px;font-size:12px;color:var(--ink-soft);}
   .stub-meta b{color:var(--ink);font-weight:600;}
 
+  /* ---------- Compact trip cards + list ---------- */
+  .trip-grid{grid-template-columns:repeat(auto-fill,minmax(262px,1fr));gap:12px;}
+  .tcard{position:relative;background:#fff;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:12px;padding:11px 14px 12px;cursor:pointer;box-shadow:0 1px 2px rgba(15,44,76,.05);transition:transform .12s ease, box-shadow .12s ease;display:flex;flex-direction:column;gap:5px;min-width:0;}
+  .tcard:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(15,44,76,.14);}
+  .tcard.s-Draft{border-left-color:#9AA7B4;} .tcard.s-PendingPayment{border-left-color:#F4B93C;} .tcard.s-Paid{border-left-color:var(--green);} .tcard.s-Cancelled{border-left-color:var(--coral);}
+  .tc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .tc-pills{display:flex;flex-wrap:wrap;gap:4px;min-width:0;}
+  .tc-code{font-family:var(--font-mono);font-size:11px;color:var(--navy);}
+  .tc-name{margin:2px 0 0;font-family:var(--font-display);font-weight:700;font-size:16px;line-height:1.25;color:var(--navy-deep);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;}
+  .tc-place{font-size:12.5px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tc-dates{font-size:12.5px;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .tc-dates .dur-chip{margin-left:4px;}
+  .tc-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:4px;padding-top:8px;border-top:1px dashed var(--line);font-size:12px;color:var(--ink-soft);}
+  .tc-foot b{color:var(--ink);font-weight:700;}
+  .tc-pax{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;}
+  .tc-bar{display:inline-block;width:38px;height:5px;border-radius:99px;background:rgba(15,44,76,.12);overflow:hidden;vertical-align:middle;}
+  .tc-bar i{display:block;height:100%;background:var(--green);border-radius:99px;}
+  .tc-bal{font-weight:700;font-size:12px;white-space:nowrap;} .tc-bal.owing{color:var(--coral);} .tc-bal.ok{color:var(--green);} .tc-bal.none{color:var(--ink-soft);font-weight:500;}
+  .trip-table td,.trip-table th{padding:9px 10px;}
+  .trip-table .tl-trip{min-width:240px;max-width:440px;} .trip-table .cust-name{white-space:normal;line-height:1.25;overflow-wrap:anywhere;}
+  .trip-table .tl-code{font-family:var(--font-mono);font-size:11px;color:var(--navy);}
+  .trip-table .tl-dates{white-space:nowrap;font-size:13px;font-variant-numeric:tabular-nums;}
+  .trip-table .tl-paid,.trip-table .tl-pax{white-space:nowrap;font-size:13px;} .trip-table .tl-pax{text-align:center;} .trip-table .tl-code{white-space:nowrap;font-weight:600;}
+  @media (max-width:560px){ .trip-grid{grid-template-columns:1fr;} }
+
+  /* ---------- Passenger list ---------- */
+  .pl-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:12px 20px;border-bottom:1px solid var(--line);}
+  .pl-bar .search{flex:1 1 260px;} .pl-chips .chip small{opacity:.65;font-weight:700;margin-left:2px;}
+  .pl-table thead th{padding:9px 10px;} .pl-table tbody td{padding:9px 10px;vertical-align:top;}
+  .pl-table .pl-no{width:30px;color:var(--ink-soft);font-size:12px;text-align:center;padding-left:6px;padding-right:2px;}
+  .pl-who{min-width:190px;max-width:300px;} .pl-who .cust-name{line-height:1.25;align-items:flex-start;}
+  .pl-ids{display:flex;flex-wrap:wrap;gap:2px 10px;margin-top:2px;} .pl-ids span{white-space:nowrap;}
+  .pl-ids .pp-soon{color:#B7791F;font-weight:600;} .pl-ids .pp-expired{color:var(--coral);font-weight:700;}
+  .pl-contact{white-space:nowrap;} .pl-wa{display:inline-block;margin-left:4px;font-size:10.5px;font-weight:700;color:var(--green);background:rgba(46,139,87,.12);padding:1px 7px;border-radius:99px;text-decoration:none;}
+  .pl-wa:hover{background:rgba(46,139,87,.22);}
+  .pl-num{white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .pl-paid .pay-link{font-size:11.5px;opacity:.8;} .pl-paid{min-width:128px;} .pl-paid-top{display:flex;align-items:center;gap:7px;font-variant-numeric:tabular-nums;} .pl-paid .pay-link{margin-top:2px;}
+  .pl-bal b.owing{color:var(--coral);} .pl-ok{color:var(--green);font-weight:700;font-size:12.5px;}
+  .pl-ticket{min-width:150px;font-size:12.5px;} .pl-ticket .status-select{margin-top:4px;padding:3px 6px;font-size:12px;}
+  .pl-av{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:rgba(15,44,76,.1);color:var(--navy);font-size:10.5px;font-weight:800;cursor:help;text-transform:uppercase;}
+  .pl-row .row-actions{opacity:.35;transition:opacity .12s;} .pl-row:hover .row-actions,.pl-row:focus-within .row-actions{opacity:1;}
+  @media (max-width:760px){
+    .pl-table thead{display:none;}
+    .pl-table,.pl-table tbody{display:block;}
+    .pl-table tr.pl-row{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;padding:12px 14px;border-bottom:1px solid var(--line);}
+    .pl-table tr.pl-row td{display:block;padding:0;border:0;min-width:0;max-width:none;}
+    .pl-table tr.pl-row td::before{content:attr(data-label);display:block;font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-soft);margin-bottom:1px;}
+    .pl-table tr.pl-row td.pl-no,.pl-table tr.pl-row td.pl-act{display:none;}
+    .pl-table tr.pl-row td.pl-who{grid-column:1 / -1;} .pl-table tr.pl-row td.pl-who::before{display:none;}
+    .pl-table tr.pl-row td.pl-ticket,.pl-table tr.pl-row td.pl-paid{grid-column:1 / -1;}
+  }
+
   .empty{
     text-align:center;padding:70px 20px;background:#fff;border-radius:var(--radius);border:1.5px dashed var(--line);
   }
@@ -264,6 +316,9 @@
   .preview-group{border:1px solid var(--line);border-radius:9px;margin-bottom:10px;overflow:hidden;}
   .preview-group-head{background:var(--paper-dim);padding:8px 12px;font-size:12.5px;font-weight:600;color:var(--navy-deep);display:flex;justify-content:space-between;}
   .preview-group-head span.tag{font-family:var(--font-mono);font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:5px;background:#fff;color:var(--ink-soft);margin-left:6px;}
+  .name-card{background:#fff;border:1px solid var(--line);border-left:4px solid var(--gold,#F4B93C);border-radius:10px;padding:10px 14px;margin-bottom:14px;}
+  .name-card-l{font-size:11.5px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;} .name-card-l span{font-weight:500;text-transform:none;letter-spacing:0;}
+  .name-card-v{font-size:17px;font-weight:700;color:var(--navy-deep);margin-top:2px;word-break:break-word;} .name-card-v.dim{color:var(--ink-soft);opacity:.6;}
   .preview-sums{padding:7px 12px;font-size:12px;color:var(--ink-soft);}
   .preview-sums b{color:var(--navy-deep);}
   .preview-det{padding:0 12px 10px;} .preview-det summary{cursor:pointer;font-size:12px;color:var(--ink-soft);padding:2px 0 6px;}
@@ -413,7 +468,7 @@
   .lm-in{font:inherit;font-size:13.5px;padding:7px 10px;border:1px solid transparent;border-radius:8px;background:transparent;flex:1;min-width:0;}
   .lm-row .lm-in:hover{border-color:var(--line);background:#fff;}
   .lm-in:focus{outline:0;border-color:var(--navy);background:#fff;box-shadow:0 0 0 3px rgba(15,44,76,.1);}
-  .lm-city{flex:0 0 150px;}
+  .lm-city{flex:0 0 150px;} .lm-short{flex:0 0 150px;} .lm-note{font-size:12.5px;color:var(--ink-soft);background:#fff;border:1px solid var(--line);border-left:4px solid var(--gold,#F4B93C);border-radius:8px;padding:8px 12px;margin:-2px 0 10px;}
   .lm-used{font-size:12px;color:var(--ink-soft);white-space:nowrap;}
   .lm-x{border:0;background:none;color:var(--coral);cursor:pointer;font-size:15px;padding:4px 8px;}
   .lm-add{display:flex;gap:8px;margin-top:10px;padding:8px;border:1.5px dashed var(--line);border-radius:10px;background:#fff;}
@@ -687,7 +742,7 @@ function demoEnsureList(state, d){
   const kind = d.kind, name = clean(d.name).slice(0,120); if(!['route','hotel','airline'].includes(kind) || !name) return null;
   const country = kind==='airline' ? '' : clean(d.country).slice(0,80);
   if(state.lists.some(x=>x.kind===kind && clean(x.country).toLowerCase()===country.toLowerCase() && x.name.toLowerCase()===name.toLowerCase())) return null;
-  const it = { id:demoId('li'), kind, country, name, city:clean(d.city).slice(0,80), createdAt:new Date().toISOString() };
+  const it = { id:demoId('li'), kind, country, name, city:clean(d.city).slice(0,80), shortName: kind==='route' ? clean(d.shortName).slice(0,40) : '', createdAt:new Date().toISOString() };
   state.lists.push(it); return it;
 }
 function persistDemo(){
@@ -790,7 +845,7 @@ async function demoFetchInner(path, options = {}){
     const name = body.name!==undefined ? String(body.name).replace(/\s+/g,' ').trim() : it.name;
     if(!name) fail(400,'Name is required');
     if(state.lists.some(x=>x.id!==it.id && x.kind===it.kind && lcKey(x.country)===lcKey(it.country) && lcKey(x.name)===lcKey(name))) fail(409,'There is already one with that name — delete the duplicate instead');
-    it.name = name; if(body.city!==undefined) it.city = String(body.city).replace(/\s+/g,' ').trim();
+    it.name = name; if(body.city!==undefined) it.city = String(body.city).replace(/\s+/g,' ').trim(); if(it.kind==='route' && body.shortName!==undefined) it.shortName = String(body.shortName).replace(/\s+/g,' ').trim().slice(0,40);
     logDemoActivity(state, u, 'list.updated', 'settings', it.id, it.name, { kind:it.kind }); persistDemo(); return it;
   }
   if((m=path.match(/^\/lists\/([^/]+)$/)) && method==='DELETE'){
@@ -802,9 +857,8 @@ async function demoFetchInner(path, options = {}){
   // ---- Trips ----
   if(path==='/trips' && method==='POST'){
     const u = requireAuthed();
-    if(!body.name) fail(400,'Trip name is required');
     state.tripSeq += 1;
-    const t = { id:demoId('trip'), seq:state.tripSeq, name:body.name, type:body.type||'open', destination:body.destination||null, route:(body.route||'').trim()||null,
+    const t = { id:demoId('trip'), seq:state.tripSeq, name:standardTripName(body.type||'open', body.destination, body.route, body.startDate, body.reference, state.lists), type:body.type||'open', destination:body.destination||null, route:(body.route||'').trim()||null, reference:(body.type==='private' ? (body.reference||'').trim() : '')||null,
       startDate:body.startDate||null, endDate:body.endDate||null, status:'Draft',
       opsStatus:'Pending Ops',
       history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), createdByName:u.name, publicToken:demoId('tok') };
@@ -818,6 +872,10 @@ async function demoFetchInner(path, options = {}){
     const u = requireAuthed();
     const t = state.trips.find(x=>x.id===m[1]); if(!t) fail(404,'Trip not found');
     Object.assign(t, body);
+    if(['type','destination','route','startDate','reference'].some(k=>k in body)){
+      if(t.type!=='private') t.reference = null;
+      t.name = standardTripName(t.type, t.destination, t.route, t.startDate, t.reference, state.lists);
+    }
     if(t.route && t.destination) demoEnsureList(state, { kind:'route', country:t.destination, name:t.route });
     logDemoActivity(state, u, 'trip.updated', 'trip', t.id, t.name, { updatedFields:Object.keys(body) });
     persistDemo();
@@ -896,7 +954,7 @@ async function demoFetchInner(path, options = {}){
       let t = state.trips.find(x=>normType(x.type)===g.type && String(x.destination||'').trim().toLowerCase()===g.location.toLowerCase() && (!g.route || String(x.route||'').trim().toLowerCase()===g.route.toLowerCase()));
       if(!t){
         state.tripSeq += 1;
-        t = { id:demoId('trip'), seq:state.tripSeq, name:g.route ? g.location+' – '+g.route : g.location, type:g.type, destination:g.location, route:g.route||null, startDate:null, endDate:null,
+        t = { id:demoId('trip'), seq:state.tripSeq, name:standardTripName(g.type, g.location, g.route, null, '', state.lists), type:g.type, destination:g.location, route:g.route||null, startDate:null, endDate:null,
           status:'Draft', history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), createdByName:u.name, publicToken:demoId('tok') };
         state.trips.push(t); createdTripCount += 1;
       }
@@ -1116,6 +1174,7 @@ let editingTripId = null;     // null => creating new trip
 let passengerSort = { col:null, dir:'asc' };    // which passenger-table column is sorted, and which direction
 let tripListSort = { col:null, dir:'asc' };     // same, for the trip list-view table
 let pendingPassengerEdits = {}; // { [passengerId]: { paymentStatus?, ticketStatus? } } — draft dropdown values not yet saved
+let passengerStatusFilter = 'All'; // status chip above the passenger table
 let passengerFilterKeyword = ''; // live keyword filter for the passenger table
 let numberSettings = { prefix:'EXC', includeYear:true, padding:3, runningNumber:0, nextNumber:1 }; // from GET /settings
 let activityLog = []; // fetched fresh each time the Activity log panel opens
@@ -1183,6 +1242,31 @@ function fmtDate(d){
   const dt = new Date(d + (String(d).length<=10 ? 'T00:00:00' : ''));
   if(isNaN(dt)) return d;
   return dt.toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'});
+}
+// Compact date range: "12–16 Apr 2027", "28 Mar – 3 Apr 2027", "28 Dec 2026 – 3 Jan 2027"
+function fmtRange(a, b){
+  const pa = a ? new Date(a + (String(a).length<=10 ? 'T00:00:00' : '')) : null, pb = b ? new Date(b + (String(b).length<=10 ? 'T00:00:00' : '')) : null;
+  const ok = d => d && !isNaN(d);
+  if(!ok(pa) && !ok(pb)) return 'Dates TBC';
+  const mon = d => d.toLocaleDateString('en-MY',{month:'short'});
+  if(ok(pa) && !ok(pb)) return fmtDate(a);
+  if(!ok(pa) && ok(pb)) return 'Until ' + fmtDate(b);
+  if(pa.getTime()===pb.getTime()) return fmtDate(a);
+  if(pa.getFullYear()===pb.getFullYear()){
+    if(pa.getMonth()===pb.getMonth()) return `${pa.getDate()}–${pb.getDate()} ${mon(pb)} ${pb.getFullYear()}`;
+    return `${pa.getDate()} ${mon(pa)} – ${pb.getDate()} ${mon(pb)} ${pb.getFullYear()}`;
+  }
+  return `${pa.getDate()} ${mon(pa)} ${pa.getFullYear()} – ${pb.getDate()} ${mon(pb)} ${pb.getFullYear()}`;
+}
+// Money line shared by the trip card and the trip list row.
+function tripMoneyChip(tm, cancelled){
+  if(cancelled) return '<span class="tc-bal none">—</span>';
+  if(tm.amount<=0) return '<span class="tc-bal none">No amount yet</span>';
+  return tm.balance>0 ? `<span class="tc-bal owing" title="Still to collect, of ${esc(fmtRM(tm.amount))}">${fmtRM(tm.balance)} due</span>` : '<span class="tc-bal ok">✓ Settled</span>';
+}
+function paidBar(paid, pax){
+  const pct = pax ? Math.round(paid/pax*100) : 0;
+  return `<span class="tc-bar" title="${paid} of ${pax} passengers fully paid"><i style="width:${pct}%"></i></span>`;
 }
 function fmtMoney(n){
   const v = Number(n)||0;
@@ -1762,7 +1846,7 @@ function bindDashboardEvents(app){
     render();
   });
   app.querySelectorAll('[data-dash-open-trip]').forEach(el=>el.addEventListener('click', ()=>{
-    view.mode = 'detail'; view.tripId = el.dataset.dashOpenTrip; view.returnTo = 'dashboard'; passengerFilterKeyword = ''; render();
+    view.mode = 'detail'; view.tripId = el.dataset.dashOpenTrip; view.returnTo = 'dashboard'; passengerFilterKeyword = ''; passengerStatusFilter='All'; render();
   }));
 
   // Chart tooltip: value first, then what it is, then context. textContent only.
@@ -1940,7 +2024,7 @@ function bindCalendarEvents(app){
     const [yy, mm] = el.dataset.calJump.split('-').map(Number); calCursor = { y:yy, m:mm }; render();
   }));
   app.querySelectorAll('[data-cal-trip]').forEach(el=>el.addEventListener('click', ()=>{
-    view.mode = 'detail'; view.tripId = el.dataset.calTrip; view.returnTo = 'calendar'; passengerFilterKeyword = ''; render();
+    view.mode = 'detail'; view.tripId = el.dataset.calTrip; view.returnTo = 'calendar'; passengerFilterKeyword = ''; passengerStatusFilter='All'; render();
   }));
 }
 
@@ -2004,28 +2088,29 @@ function listHTML(){
       const cs = custByTrip(t.id);
       const paid = cs.filter(c=>paxStatus(c)==='Paid').length;
       const tm = tripMoney(t);
+      const place = [t.destination, t.route].filter(Boolean).join(' · ') || 'Destination TBC';
       return `
       <tr data-open-trip="${t.id}" style="cursor:pointer;">
-        <td><span style="font-family:var(--font-mono);font-size:12px;color:var(--navy);font-weight:600;white-space:nowrap;">${tripCode(t)}</span></td>
+        <td><span class="tl-code">${tripCode(t)}</span></td>
         <td><span class="cust-sub">${esc(tripYear(t))}</span></td>
-        <td>
+        <td class="tl-trip">
           <div class="cust-name">${esc(t.name)}</div>
-          <div class="cust-sub">${esc(t.destination||'Destination TBC')}${t.route?' · '+esc(t.route):''}</div>
+          <div class="cust-sub">${esc(place)}</div>
         </td>
         <td><span class="cust-sub" style="text-transform:capitalize;">${t.type}</span></td>
-        <td><span class="cust-sub">${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}</span>${durationCode(t.startDate,t.endDate)?` <span class="dur-chip">${durationCode(t.startDate,t.endDate)}</span>`:''}</td>
-        <td>${stampHTML(t, 'style="display:inline-block;"')}</td>
+        <td class="tl-dates">${esc(fmtRange(t.startDate,t.endDate))}${durationCode(t.startDate,t.endDate)?` <span class="dur-chip">${durationCode(t.startDate,t.endDate)}</span>`:''}</td>
+        <td>${statusPillHTML(t)}</td>
         <td>${opsPillHTML(t, true) || '<span class="cust-sub">—</span>'}</td>
-        <td>${tm.pax}</td>
-        <td>${paid}</td>
-        <td class="bal-cell"><b>${fmtRM(tm.balance)}</b><small>of ${fmtRM(tm.amount)}</small></td>
+        <td class="tl-pax"><b>${tm.pax}</b></td>
+        <td class="tl-paid"><b>${paid}</b> ${paidBar(paid, tm.pax)}</td>
+        <td class="bal-cell">${tripMoneyChip(tm, tripMainStatus(t)==='Cancelled')}${tm.amount>0 && tripMainStatus(t)!=='Cancelled' ?`<small>of ${fmtRM(tm.amount)}</small>`:''}</td>
       </tr>`;
     }).join('');
     return toolbar + `
     <div class="panel">
       <div style="overflow-x:auto;">
-        <table>
-          <thead><tr>${sortHeader('Code','code',tripListSort)}${sortHeader('Year','year',tripListSort)}${sortHeader('Trip','trip',tripListSort)}${sortHeader('Type','type',tripListSort)}${sortHeader('Dates','dates',tripListSort)}${sortHeader('Status','status',tripListSort)}${sortHeader('Operations','opsStatus',tripListSort)}${sortHeader('Pax','pax',tripListSort)}${sortHeader('Paid','paid',tripListSort)}${sortHeader('Balance','balance',tripListSort)}</tr></thead>
+        <table class="trip-table">
+          <thead><tr>${sortHeader('Code','code',tripListSort)}${sortHeader('Year','year',tripListSort)}${sortHeader('Trip','trip',tripListSort)}${sortHeader('Type','type',tripListSort)}${sortHeader('Dates','dates',tripListSort)}${sortHeader('Payment','status',tripListSort)}${sortHeader('Operations','opsStatus',tripListSort)}${sortHeader('Pax','pax',tripListSort)}${sortHeader('Paid','paid',tripListSort)}${sortHeader('Balance','balance',tripListSort)}</tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -2036,24 +2121,16 @@ function listHTML(){
     const cs = custByTrip(t.id);
     const paid = cs.filter(c=>paxStatus(c)==='Paid').length;
     const tm = tripMoney(t);
+    const place = [t.destination, t.route].filter(Boolean).join(' · ') || 'Destination TBC';
     return `
-    <div class="stub" data-open-trip="${t.id}">
-      <div class="stub-top">
-        <div class="stub-code">${tripCode(t)}</div>
-        <div class="stub-type">${t.type} trip</div>
-        <p class="stub-name">${esc(t.name)}</p>
-        <p class="stub-dest">${esc(t.destination||'Destination TBC')}</p>${t.route?`<p class="stub-dest stub-route">📍 ${esc(t.route)}</p>`:''}
-      </div>
-      <div class="stub-perf"></div>
-      <div class="stub-bottom">
-        <div class="stub-dates">${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}${durationCode(t.startDate,t.endDate)?` <span class="dur-chip">${durationCode(t.startDate,t.endDate)}</span>`:''}</div>
-        ${stampHTML(t)}
-      </div>
-      ${isSubmittedTrip(t) ? `<div class="pill-row">${opsPillHTML(t)}</div>` : ''}
-      <div class="stub-meta">
-        <span><b>${tm.pax}</b> pax</span>
-        <span><b>${paid}</b> paid</span>
-        <span class="stub-bal" title="Balance still to collect (of ${esc(fmtRM(tm.amount))})"><b class="${tm.balance>0?'owing':''}">${fmtRM(tm.balance)}</b> balance</span>
+    <div class="tcard s-${slugS(tripMainStatus(t))}" data-open-trip="${t.id}">
+      <div class="tc-pills">${statusPillHTML(t)}${opsPillHTML(t, true)}</div>
+      <h4 class="tc-name" title="${esc(t.name)}">${esc(t.name)}</h4>
+      <div class="tc-place" title="${esc(tripCode(t)+' · '+place)}"><span class="tc-code">${tripCode(t)}</span> · ${esc(place)}</div>
+      <div class="tc-dates">${esc(fmtRange(t.startDate,t.endDate))}${durationCode(t.startDate,t.endDate)?` <span class="dur-chip">${durationCode(t.startDate,t.endDate)}</span>`:''}</div>
+      <div class="tc-foot">
+        <span class="tc-pax"><b>${tm.pax}</b> pax · <b>${paid}</b> paid ${paidBar(paid, tm.pax)}</span>
+        ${tripMoneyChip(tm, tripMainStatus(t)==='Cancelled')}
       </div>
     </div>`;
   }).join('');
@@ -2081,22 +2158,35 @@ function applySort(list, sortState, extractors){
   });
 }
 
+// ---- Passenger list helpers ----
+function initialsOf(n){ const w = String(n||'').trim().split(/\s+/).filter(Boolean); return ((w[0]||'')[0]||'')+((w.length>1?w[w.length-1][0]:'')||''); }
+// Passport should stay valid for 6 months after the trip ends (a common entry rule).
+function passportFlag(c, t){
+  if(!c.passportExpiry) return '';
+  const ref = new Date((t.endDate || t.startDate || new Date().toISOString().slice(0,10)) + 'T00:00:00'); if(isNaN(ref)) return '';
+  const exp = new Date(String(c.passportExpiry).slice(0,10) + 'T00:00:00'); if(isNaN(exp)) return '';
+  const need = new Date(ref); need.setMonth(need.getMonth()+6);
+  if(exp < ref) return 'expired';
+  return exp < need ? 'soon' : '';
+}
 function passengerRowsHTML(t){
   const showTicketCols = ticketColsTrip(t);
-  const colCount = showTicketCols ? 12 : 9;
+  const colCount = 9;
   const allCs = custByTrip(t.id).sort((a,b)=>(b.addedAt||'').localeCompare(a.addedAt||''));
 
   const kw = passengerFilterKeyword.trim().toLowerCase();
-  const filteredCs = kw ? allCs.filter(c =>
-    [c.name, c.phone, c.idNumber, paxStatus(c), c.picName, c.ticketPurchaser, c.airline, c.bookingReference, c.ticketStatus, c.notes]
+  const byStatus = passengerStatusFilter==='All' ? allCs : allCs.filter(c=>paxStatus(c)===passengerStatusFilter);
+  const filteredCs = kw ? byStatus.filter(c =>
+    [c.name, c.phone, c.idNumber, c.passportNumber, paxStatus(c), c.picName, c.ticketPurchaser, c.airline, c.bookingReference, c.ticketStatus, c.notes]
       .some(v => v && String(v).toLowerCase().includes(kw))
-  ) : allCs;
+  ) : byStatus;
 
   const passengerSortExtractors = {
     name: c=>(c.name||'').toLowerCase(),                                          // alphabetical
     contact: c=>{ const digits=(c.phone||'').replace(/\D/g,''); return digits ? Number(digits) : 0; }, // numerical
     amount: c=>Number(c.amount)||0,                                               // numerical
     deposit: c=>Number(c.depositAmount)||0,                                       // numerical
+    paid: c=>paidOf(c),                                                           // numerical — combined Paid column
     balancePaid: c=>Number(c.balancePaid)||0,                                     // numerical — "Payment" column
     balanceAmount: c=>paxBalance(c), // numerical — "Balance" column
     paymentStatus: c=>paxStatus(c).toLowerCase(),                                 // alphabetical
@@ -2112,38 +2202,34 @@ function passengerRowsHTML(t){
     return `<tr><td colspan="${colCount}" style="text-align:center;color:var(--ink-soft);padding:28px;">${msg}</td></tr>`;
   }
 
-  return sortedCs.map(c=>{
+  return sortedCs.map((c, idx)=>{
     const draft = pendingPassengerEdits[c.id];
     const isDirty = !!draft;
     const ticketVal = (draft && draft.ticketStatus!==undefined) ? draft.ticketStatus : c.ticketStatus;
+    const dep = Number(c.depositAmount)||0, bp = Number(c.balancePaid)||0, amt = Number(c.amount)||0;
+    const paidTotal = dep + bp;
+    const led = payLedger(c);
+    const pf = passportFlag(c, t);
+    const bal = paxBalance(c);
+    const payLabel = led.length ? led.length + (payIsCancelled(c) ? (led.length===1?' entry':' entries') : (led.length===1?' payment':' payments')) : '+ Add payment';
     return `
-    <tr data-cust-row="${c.id}" ${isDirty ? 'style="background:rgba(244,185,60,0.10);"' : ''}>
-      <td>
+    <tr class="pl-row" data-cust-row="${c.id}" ${isDirty ? 'style="background:rgba(244,185,60,0.10);"' : ''}>
+      <td class="pl-no" data-label="#">${idx+1}</td>
+      <td class="pl-who" data-label="Passenger">
         <div class="cust-name">${esc(c.name)} ${c.medicalCondition ? `<span class="med-flag" title="${esc(c.medicalCondition)}">⚠</span>` : ''}</div>
-        <div class="cust-sub">${c.dob ? 'DOB ' + fmtDate(c.dob) : (c.idNumber ? esc(c.idNumber) : '—')}</div>
+        <div class="cust-sub pl-ids">${c.idNumber ? `<span>IC ${esc(c.idNumber)}</span>` : ''}${c.passportNumber ? `<span class="${pf?'pp-'+pf:''}" title="${pf==='expired'?'Passport expires before the trip':pf==='soon'?'Passport valid for less than 6 months after the trip':''}">🛂 ${esc(c.passportNumber)}${c.passportExpiry ? ' · exp '+esc(fmtDate(c.passportExpiry)) : ''}${pf?' ⚠':''}</span>` : ''}${!c.idNumber && !c.passportNumber ? '<span>—</span>' : ''}</div>
       </td>
-      <td>
-        <div>${esc(c.phone||'—')}</div>
-        ${c.passportNumber ? `<div class="cust-sub">🛂 ${esc(c.passportNumber)}${c.passportExpiry ? ' · exp ' + fmtDate(c.passportExpiry) : ''}</div>` : ''}
+      <td class="pl-contact" data-label="Contact">${c.phone ? `<span>${esc(c.phone)}</span>` : '<span class="cust-sub">—</span>'}</td>
+      <td class="pl-num" data-label="Package">${amt>0 ? fmtRM(amt) : '<span class="cust-sub">—</span>'}</td>
+      <td class="pl-paid" data-label="Paid">
+        <div class="pl-paid-top"><b>${paidTotal>0 ? fmtRM(paidTotal) : '—'}</b></div>
+        ${dep>0 && bp>0 ? `<div class="cust-sub">Deposit ${fmtNum(dep)} · Payments ${fmtNum(bp)}</div>` : ''}
+        <button type="button" class="pay-link" data-pay-cust="${esc(c.id)}" title="Payment history / instalments${payIsCancelled(c)?' / refunds':''}">🧾 ${payLabel}</button>
       </td>
-      <td>${fmtMoney(c.amount)}</td>
-      <td>${(Number(c.depositAmount)||0)>0 ? fmtMoney(c.depositAmount) : '—'}</td>
-      <td>${payCellHTML(c)}</td>
-      <td>${fmtMoney(paxBalance(c))}</td>
-      <td><span class="badge ${paxStatus(c)}" title="Set automatically from Deposit paid, Payment and Balance">${paxStatus(c)}</span>${refundDue(c)>0 ? `<div class="refund-due" title="Money still held for this cancelled passenger — record a refund or kept amount in 🧾">Refund due ${fmtMoney(refundDue(c))}</div>` : ''}</td>
-      <td><span class="cust-sub">${c.picName ? esc(c.picName) : '—'}</span></td>
-      ${showTicketCols ? `
-      <td>${c.ticketPurchaser ? esc(c.ticketPurchaser) : '<span class="cust-sub">Not set</span>'}</td>
-      <td>
-        <div>${esc(c.airline||'—')}</div>
-        ${c.bookingReference ? `<div class="cust-sub">${esc(c.bookingReference)}</div>` : ''}
-      </td>
-      <td>
-        <select class="status-select" data-ticket-status="${c.id}">
-          ${TICKET_STATUS_OPTIONS.map(s=>`<option value="${s}" ${ticketVal===s?'selected':''}>${s}</option>`).join('')}
-        </select>
-      </td>` : ''}
-      <td>
+      <td class="pl-num pl-bal" data-label="Balance">${payIsCancelled(c) ? '<span class="cust-sub">—</span>' : amt>0 ? (bal>0 ? `<b class="owing">${fmtRM(bal)}</b>` : '<span class="pl-ok">✓ Settled</span>') : '<span class="cust-sub">—</span>'}</td>
+      <td data-label="Status"><span class="badge ${paxStatus(c)}" title="Set automatically from Deposit paid, Payment and Balance">${paxStatus(c)}</span>${refundDue(c)>0 ? `<div class="refund-due" title="Money still held for this cancelled passenger — record a refund or kept amount in 🧾">Refund due ${fmtMoney(refundDue(c))}</div>` : ''}</td>
+      <td data-label="PIC">${c.picName ? `<span class="pl-av" title="${esc(c.picName)}">${esc(initialsOf(c.picName))}</span>` : '<span class="cust-sub">—</span>'}</td>
+      <td class="pl-act">
         ${isDirty ? `
         <div class="row-actions">
           <button class="btn btn-sm btn-primary" data-save-passenger="${c.id}">💾 Save</button>
@@ -2172,7 +2258,9 @@ function detailHTML(){
     : '';
 
   const showTicketCols = ticketColsTrip(t);
-  const ticketHeaderCells = showTicketCols ? `${sortHeader('Ticket purchaser','ticketPurchaser',passengerSort)}${sortHeader('Airline / Ref','airline',passengerSort)}${sortHeader('Ticket status','ticketStatus',passengerSort)}` : '';
+  const ticketHeaderCells = '';   // ticket details live in the Operations checklist now
+  const stCount = k => k==='All' ? cs.length : cs.filter(c=>paxStatus(c)===k).length;
+  const statusChips = `<div class="chip-row pl-chips">${['All','Paid','Deposit','Pending','Cancelled'].filter(k=>k==='All'||k===passengerStatusFilter||stCount(k)>0).map(k=>`<button class="chip ${passengerStatusFilter===k?'active':''}" data-pl-status="${k}">${k} <small>${stCount(k)}</small></button>`).join('')}</div>`;
   const rows = passengerRowsHTML(t);
 
   return `
@@ -2216,12 +2304,13 @@ function detailHTML(){
         <button class="btn btn-sm btn-primary" data-action="open-add-customer">+ Add passenger</button>
       </div>
     </div>
-    <div style="padding:12px 20px;border-bottom:1px solid var(--line);">
-      <input class="search" id="passenger-filter-input" placeholder="Filter passengers by keyword…" value="${esc(passengerFilterKeyword)}">
+    <div class="pl-bar">
+      <input class="search" id="passenger-filter-input" placeholder="Filter passengers by name, IC, passport, phone…" value="${esc(passengerFilterKeyword)}">
+      ${statusChips}
     </div>
     <div style="overflow-x:auto;">
-      <table>
-        <thead><tr>${sortHeader('Name / DOB','name',passengerSort)}${sortHeader('Contact','contact',passengerSort)}${sortHeader('Amount','amount',passengerSort)}${sortHeader('Deposit paid','deposit',passengerSort)}${sortHeader('Payment','balancePaid',passengerSort)}${sortHeader('Balance','balanceAmount',passengerSort)}${sortHeader('Payment status','paymentStatus',passengerSort)}${sortHeader('PIC','pic',passengerSort)}${ticketHeaderCells}<th></th></tr></thead>
+      <table class="pl-table">
+        <thead><tr><th class="pl-no">#</th>${sortHeader('Passenger','name',passengerSort)}${sortHeader('Contact','contact',passengerSort)}${sortHeader('Package','amount',passengerSort)}${sortHeader('Paid','paid',passengerSort)}${sortHeader('Balance','balanceAmount',passengerSort)}${sortHeader('Status','paymentStatus',passengerSort)}${ticketHeaderCells}${sortHeader('PIC','pic',passengerSort)}<th></th></tr></thead>
         <tbody id="passenger-tbody">${rows}</tbody>
       </table>
     </div>
@@ -2290,12 +2379,14 @@ function listsBodyHTML(){
   const rows = items.length ? items.map(it=>`<div class="lm-row">
       <input class="lm-in" data-lm-name="${esc(it.id)}" value="${esc(it.name)}" aria-label="Name">
       ${kind==='hotel' ? `<input class="lm-in lm-city" data-lm-city="${esc(it.id)}" value="${esc(it.city||'')}" placeholder="City" aria-label="City">` : ''}
+      ${kind==='route' ? `<input class="lm-in lm-short" data-lm-short="${esc(it.id)}" value="${esc(it.shortName||'')}" placeholder="Short name" maxlength="40" aria-label="Short name for trip names" title="Used in the trip name, e.g. [Open] Bromo Dec'26">` : ''}
       ${kind==='route' ? `<span class="lm-used">${used(it) ? `used on ${used(it)} trip${used(it)>1?'s':''}` : ''}</span>` : ''}
       <button type="button" class="lm-x" data-lm-del="${esc(it.id)}" title="Delete">✕</button></div>`).join('')
     : `<div class="lm-empty">Nothing in this list yet${perCountry?` for ${esc(lmState.country)}`:''}. Add one below — or just type it on a trip and it will appear here by itself.</div>`;
   const noun = {route:'route', hotel:'hotel', airline:'airline'}[kind];
   const add = `<div class="lm-add"><input class="lm-in" id="lm-new-name" placeholder="${kind==='route'?'e.g. Surabaya – Bromo – Malang':kind==='hotel'?'Hotel name':'Airline name'}">
       ${kind==='hotel' ? '<input class="lm-in lm-city" id="lm-new-city" placeholder="City">' : ''}
+      ${kind==='route' ? '<input class="lm-in lm-short" id="lm-new-short" placeholder="Short name" maxlength="40">' : ''}
       <button type="button" class="btn btn-primary btn-sm" data-lm-add>+ Add ${noun}</button></div>`;
   let side = '';
   if(perCountry){
@@ -2305,15 +2396,16 @@ function listsBodyHTML(){
   }
   return `${tabs}<div class="${perCountry?'lm-grid':''}">${side}<div class="lm-main">
       <div class="lm-title">${perCountry ? esc(lmState.country)+' — '+(kind==='route'?'routes / locations':'hotels') : 'Airlines (all trips)'}</div>
+      ${kind==='route' ? `<div class="lm-note">The <b>short name</b> is what appears in the trip name — e.g. route “Surabaya – Bromo – Malang” with short name “Bromo” gives <b>[Open] Bromo Dec'26</b>. Leave it empty to use the full route.</div>` : ''}
       ${rows}${add}</div></div>`;
 }
 function lmRefresh(){ const b = document.getElementById('lists-body'); if(b) b.innerHTML = listsBodyHTML(); }
 async function lmAdd(){
   const nameEl = document.getElementById('lm-new-name'); const name = nameEl.value.trim(); if(!name){ nameEl.focus(); return; }
-  const cityEl = document.getElementById('lm-new-city');
+  const cityEl = document.getElementById('lm-new-city'), shortEl = document.getElementById('lm-new-short');
   const kind = lmState.tab;
   try{
-    const it = await apiFetch('/lists', { method:'POST', body: JSON.stringify({ kind, country: kind==='airline' ? '' : lmState.country, name, city: cityEl ? cityEl.value.trim() : '' }) });
+    const it = await apiFetch('/lists', { method:'POST', body: JSON.stringify({ kind, country: kind==='airline' ? '' : lmState.country, name, city: cityEl ? cityEl.value.trim() : '', shortName: shortEl ? shortEl.value.trim() : '' }) });
     opsLists.push(it); lmRefresh();
     const n = document.getElementById('lm-new-name'); if(n) n.focus();
   }catch(e){ showToast(e.message || 'Could not add that'); }
@@ -2321,7 +2413,7 @@ async function lmAdd(){
 async function lmEdit(id, patch, inputEl){
   const it = opsLists.find(x=>x.id===id); if(!it) return;
   try{ const u = await apiFetch('/lists/'+id, { method:'PUT', body: JSON.stringify(patch) }); Object.assign(it, u); lmRefresh(); }
-  catch(e){ showToast(e.message || 'Could not save'); if(inputEl) inputEl.value = (patch.name !== undefined ? it.name : it.city) || ''; }
+  catch(e){ showToast(e.message || 'Could not save'); if(inputEl) inputEl.value = (patch.name !== undefined ? it.name : patch.shortName !== undefined ? it.shortName : it.city) || ''; }
 }
 async function lmDelete(id){
   const it = opsLists.find(x=>x.id===id); if(!it) return;
@@ -2345,11 +2437,12 @@ function bindListsModal(){
   ov.addEventListener('change', e=>{
     const el = e.target;
     if(el.matches('[data-lm-name]')){ const v = el.value.trim(); if(!v){ lmRefresh(); return; } lmEdit(el.dataset.lmName, { name: v }, el); return; }
+    if(el.matches('[data-lm-short]')){ lmEdit(el.dataset.lmShort, { shortName: el.value.trim() }, el); return; }
     if(el.matches('[data-lm-city]')){ lmEdit(el.dataset.lmCity, { city: el.value.trim() }, el); return; }
     if(el.matches('[data-lm-addcountry]') && el.value){ lmState.country = el.value; lmRefresh(); return; }
   });
   ov.addEventListener('keydown', e=>{
-    if(e.key==='Enter' && (e.target.id==='lm-new-name' || e.target.id==='lm-new-city')){ e.preventDefault(); lmAdd(); }
+    if(e.key==='Enter' && (e.target.id==='lm-new-name' || e.target.id==='lm-new-city' || e.target.id==='lm-new-short')){ e.preventDefault(); lmAdd(); }
   });
 }
 
@@ -2780,6 +2873,7 @@ function hasLegacyTicketData(t){ return customers.some(c=>c.tripId===t.id && (c.
 function ticketColsTrip(t){ return ticketStageTrip(t) && hasLegacyTicketData(t); }
 function ticketStageTrip(t){ return isSubmittedTrip(t) && ['Ongoing','Ready','Completed'].includes(tripOpsStatus(t)); }
 function needsOpsAction(t){ return isSubmittedTrip(t) && !isCancelledTrip(t) && (tripMainStatus(t)==='Pending Payment' || ['Pending Ops','Ongoing','Onhold'].includes(tripOpsStatus(t))); }
+function statusPillHTML(t){ const m = tripMainStatus(t); return `<span class="pill s-${slugS(m)}">${esc(m)}</span>`; }
 function stampHTML(t, attrs){ const m = tripMainStatus(t); return `<div class="stamp ${slugS(m)}" ${attrs||''}>${m}</div>`; }
 function opsPillHTML(t, bare){
   if(!isSubmittedTrip(t)) return '';
@@ -3244,10 +3338,45 @@ async function setOpsStatus(tripId, opsStatus, reason){
   return true;
 }
 
+// Standard trip name: [Open] Phu Quoc Apr'27   |   [Private] Phu Quoc Apr'27 - Fatihah
+// Location = the route when there is one, otherwise the country. Month comes from the start date.
+const TRIP_NAME_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// A route's short name (set in Operations lists) stands in for the full route; otherwise the route as typed.
+function routeLabel(country, route, lists){
+  const r = String(route||'').replace(/\s+/g,' ').trim(); if(!r) return '';
+  const hit = (lists||opsLists||[]).find(i=>i.kind==='route' && lcKey(i.country)===lcKey(country) && lcKey(i.name)===lcKey(r));
+  return (hit && hit.shortName) || r;
+}
+function standardTripName(type, country, route, startDate, reference, lists){
+  const isPrivate = String(type)==='private';
+  const place = routeLabel(country, route, lists) || String(country||'').trim();
+  const m = /^(\d{4})-(\d{2})/.exec(String(startDate||''));
+  const month = m ? ` ${TRIP_NAME_MONTHS[Number(m[2])-1]}'${m[1].slice(2)}` : '';
+  const ref = isPrivate ? String(reference||'').replace(/\s+/g,' ').trim() : '';
+  return `[${isPrivate?'Private':'Open'}] ${place||'Trip'}${month}${ref ? ' - '+ref : ''}`;
+}
+
+// Live preview of the automatic name inside the New / Edit trip form.
+function updateTripNamePreview(){
+  const el = document.getElementById('tr-name-preview'); if(!el) return;
+  const type = document.getElementById('tr-type').value;
+  const destEl = document.getElementById('tr-dest');
+  const country = (COUNTRIES.find(c=>c.toLowerCase()===destEl.value.trim().toLowerCase()) || destEl.value.trim());
+  const refEl = document.getElementById('tr-ref');
+  const refField = document.getElementById('tr-ref-field'); if(refField) refField.style.display = type==='private' ? '' : 'none';
+  const name = standardTripName(type, country, document.getElementById('tr-route').value, document.getElementById('tr-start').value, refEl ? refEl.value : '');
+  el.textContent = name;
+  el.classList.toggle('dim', !country);
+}
+['click','input','change','keyup'].forEach(ev=>document.addEventListener(ev, e=>{
+  if(e.target && e.target.closest && e.target.closest('#overlay-trip')) setTimeout(updateTripNamePreview, 40);
+}));
+
 function tripModal(){
   const editing = editingTripId ? trips.find(t=>t.id===editingTripId) : null;
   const v = {
     name: editing ? editing.name : '',
+    ref: editing ? (editing.reference||'') : '',
     type: editing ? editing.type : 'open',
     dest: editing ? editing.destination : '',
     route: editing ? (editing.route||'') : '',
@@ -3260,9 +3389,9 @@ function tripModal(){
     <div class="modal">
       <div class="modal-head"><h3>${editing ? 'Edit trip' : 'New trip'}</h3><button class="modal-close" data-close="overlay-trip">✕</button></div>
       <div class="modal-body">
-        <div class="field">
-          <label>Trip name</label>
-          <input id="tr-name" placeholder="e.g. Bromo Sunrise Getaway" value="${esc(v.name)}">
+        <div class="name-card">
+          <div class="name-card-l">Trip name <span>(automatic)</span></div>
+          <div class="name-card-v" id="tr-name-preview">${esc(standardTripName(v.type, v.dest, v.route, v.start, v.ref))}</div>
         </div>
         <div class="field">
           <label>Trip type</label>
@@ -3282,10 +3411,14 @@ function tripModal(){
           <div class="hint">Tap ☆ beside a country to pin it to the top. Countries used on more than ${AUTO_FAV_AFTER} trips are pinned automatically.</div>
         </div>
         <div class="field">
-          <label for="tr-route">Location / route <span style="font-weight:400;">(optional — choose from the list or type your own)</span></label>
+          <label for="tr-route">Location / route <span style="font-weight:400;">(optional — used in the trip name instead of the country)</span></label>
           <input id="tr-route" list="tr-route-dl" autocomplete="off" placeholder="e.g. Surabaya – Bromo – Malang" value="${esc(v.route)}">
           <datalist id="tr-route-dl">${listOptionsHTML('route', v.dest)}</datalist>
           <div class="hint">Pick a saved route for the country above, or type a new one — it is remembered for next time.</div>
+        </div>
+        <div class="field" id="tr-ref-field" style="${v.type==='private'?'':'display:none;'}">
+          <label for="tr-ref">Reference <span style="font-weight:400;">(guest / group name — added to the end of the trip name)</span></label>
+          <input id="tr-ref" autocomplete="off" placeholder="e.g. Fatihah" value="${esc(v.ref)}">
         </div>
         <div class="field">
           <label>Trip dates</label>
@@ -4107,7 +4240,7 @@ function bindEvents(){
   const openApprovals = app.querySelector('[data-action="open-approvals"]');
   if(openApprovals) openApprovals.addEventListener('click', ()=>{
     view = { mode:'list', tripId:null, search:'', statusFilter:'All', opsFilter:'Action', typeFilter:'All', layout:view.layout };
-    passengerFilterKeyword='';
+    passengerFilterKeyword=''; passengerStatusFilter='All';
     render();
   });
 
@@ -4145,10 +4278,10 @@ function bindEvents(){
   if(applyNextNumberBtn) applyNextNumberBtn.addEventListener('click', handleApplyNextNumber);
 
   app.querySelectorAll('[data-open-trip]').forEach(el=>{
-    el.addEventListener('click', ()=>{ view.mode='detail'; view.tripId = el.dataset.openTrip; view.returnTo = null; passengerFilterKeyword=''; render(); });
+    el.addEventListener('click', ()=>{ view.mode='detail'; view.tripId = el.dataset.openTrip; view.returnTo = null; passengerFilterKeyword=''; passengerStatusFilter='All'; render(); });
   });
   const back = app.querySelector('[data-action="back-to-list"]');
-  if(back) back.addEventListener('click', ()=>{ view.mode = view.returnTo || 'list'; view.returnTo = null; passengerFilterKeyword=''; render(); });
+  if(back) back.addEventListener('click', ()=>{ view.mode = view.returnTo || 'list'; view.returnTo = null; passengerFilterKeyword=''; passengerStatusFilter='All'; render(); });
 
   const searchInput = app.querySelector('#search-input');
   if(searchInput){
@@ -4249,6 +4382,7 @@ function bindEvents(){
   const passengerFilterInput = app.querySelector('#passenger-filter-input');
   if(passengerFilterInput){
     passengerFilterInput.addEventListener('input', ()=>{ passengerFilterKeyword = passengerFilterInput.value; renderPassengerTableOnly(); });
+    document.querySelectorAll('[data-pl-status]').forEach(b=>b.addEventListener('click', ()=>{ passengerStatusFilter = b.dataset.plStatus; render(); }));
   }
 
   // Upload modal
@@ -4337,7 +4471,7 @@ function renderListOnly(){
     // — otherwise trip cards/rows shown after typing a search become
     // unclickable (they exist in the DOM but nothing is listening).
     newGrid.querySelectorAll('[data-open-trip]').forEach(el=>{
-      el.addEventListener('click', ()=>{ view.mode='detail'; view.tripId = el.dataset.openTrip; view.returnTo = null; passengerFilterKeyword=''; render(); });
+      el.addEventListener('click', ()=>{ view.mode='detail'; view.tripId = el.dataset.openTrip; view.returnTo = null; passengerFilterKeyword=''; passengerStatusFilter='All'; render(); });
     });
     newGrid.querySelectorAll('[data-action="open-new-trip"]').forEach(btn=>{
       btn.addEventListener('click', ()=>{ editingTripId=null; render(); openOverlay('overlay-trip'); });
@@ -4413,19 +4547,22 @@ function renderPassengerTableOnly(){
 }
 
 async function handleSaveTrip(){
-  const name = document.getElementById('tr-name').value.trim();
-  if(!name){ showToast('Trip name is required'); return; }
   const dest = resolveCountryValue();
   if(dest===null){ showToast('Please choose a country from the list'); document.getElementById('tr-dest').focus(); return; }
+  if(!dest){ showToast('Please choose a country'); document.getElementById('tr-dest').focus(); return; }
   const startV = document.getElementById('tr-start').value, endV = document.getElementById('tr-end').value;
   if(startV && endV && endV < startV){ showToast('End date cannot be before the start date'); return; }
+  const type = document.getElementById('tr-type').value;
+  const route = (document.getElementById('tr-route').value || '').replace(/\s+/g,' ').trim();
+  const reference = type==='private' ? (document.getElementById('tr-ref').value || '').replace(/\s+/g,' ').trim() : '';
   const payload = {
-    name,
-    type: document.getElementById('tr-type').value,
+    name: standardTripName(type, dest, route, startV, reference),   // the server rebuilds it the same way
+    type,
     destination: dest,
-    route: (document.getElementById('tr-route').value || '').replace(/\s+/g,' ').trim(),
-    startDate: document.getElementById('tr-start').value,
-    endDate: document.getElementById('tr-end').value
+    route,
+    reference,
+    startDate: startV,
+    endDate: endV
   };
   if(editingTripId){
     try{

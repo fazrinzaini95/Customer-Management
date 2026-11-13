@@ -7,6 +7,30 @@ const { ensureItem } = require('./lists');
 
 router.use(requireAuth);
 
+// Standard trip name — kept identical to standardTripName() in index.html:
+//   [Open] Phu Quoc Apr'27      [Private] Phu Quoc Apr'27 - Fatihah
+// Location = the route when there is one, otherwise the country; the month comes from the start date.
+const NAME_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function buildTripName({ type, destination, route, startDate, reference }) {
+  const isPrivate = type === 'private';
+  const place = String(route || '').replace(/\s+/g, ' ').trim() || String(destination || '').trim();
+  const m = /^(\d{4})-(\d{2})/.exec(String(startDate instanceof Date ? startDate.toISOString() : startDate || ''));
+  const month = m ? ` ${NAME_MONTHS[Number(m[2]) - 1]}'${m[1].slice(2)}` : '';
+  const ref = isPrivate ? String(reference || '').replace(/\s+/g, ' ').trim() : '';
+  return `[${isPrivate ? 'Private' : 'Open'}] ${place || 'Trip'}${month}${ref ? ' - ' + ref : ''}`;
+}
+
+// The route's short name from Operations lists, if it has one; otherwise the route as typed.
+async function routeLabel(run, destination, route) {
+  const r = String(route || '').replace(/\s+/g, ' ').trim();
+  if (!r) return '';
+  const { rows } = await run(
+    "SELECT short_name FROM list_items WHERE kind = 'route' AND lower(country) = lower($1) AND lower(name) = lower($2) LIMIT 1",
+    [String(destination || '').trim(), r]
+  );
+  return (rows[0] && rows[0].short_name) || r;
+}
+
 function mapTrip(row, passengerCount) {
   return {
     id: row.id,
@@ -15,6 +39,7 @@ function mapTrip(row, passengerCount) {
     type: row.type,
     destination: row.destination,
     route: row.route || '',
+    reference: row.reference || '',
     startDate: row.start_date,
     endDate: row.end_date,
     status: row.status,
@@ -78,7 +103,8 @@ router.get('/:id', asyncHandler(async (req, res) => {
 const OPS_STATUSES = ['Pending Ops', 'Ongoing', 'Onhold', 'Ready', 'Rejected', 'Completed'];
 
 const tripSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().optional(),            // ignored — the name is always built from the other fields
+  reference: z.string().max(120).optional().or(z.literal('')),
   type: z.enum(['open', 'private']).default('open'),
   destination: z.string().optional().or(z.literal('')),
   route: z.string().max(200).optional().or(z.literal('')),
@@ -93,10 +119,12 @@ const tripSchema = z.object({
 router.post('/', asyncHandler(async (req, res) => {
   const d = tripSchema.parse(req.body);
   const history = JSON.stringify([{ status: 'Draft', date: new Date().toISOString() }]);
+  const reference = d.type === 'private' ? (d.reference || '').trim() || null : null;
+  const name = buildTripName({ type: d.type, destination: d.destination, route: await routeLabel(query, d.destination, d.route), startDate: d.startDate, reference });
   const { rows } = await query(
-    `INSERT INTO trips (name, type, destination, route, start_date, end_date, status, history, created_by, last_edited_by, last_edited_at)
-     VALUES ($1,$2,$3,$4,$5,$6,'Draft',$7,$8,$8,now()) RETURNING *`,
-    [d.name, d.type, d.destination || null, (d.route || '').trim() || null, d.startDate || null, d.endDate || null, history, req.user.id]
+    `INSERT INTO trips (name, type, destination, route, reference, start_date, end_date, status, history, created_by, last_edited_by, last_edited_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,'Draft',$8,$9,$9,now()) RETURNING *`,
+    [name, d.type, d.destination || null, (d.route || '').trim() || null, reference, d.startDate || null, d.endDate || null, history, req.user.id]
   );
   res.status(201).json({ ...mapTrip(rows[0]), createdByName: req.user.name, lastEditedByName: req.user.name });
   if (rows[0].route && rows[0].destination) ensureItem({ kind: 'route', country: rows[0].destination, name: rows[0].route, userId: req.user.id }).catch(() => {});
@@ -111,11 +139,29 @@ router.put('/:id', asyncHandler(async (req, res) => {
   const fields = [];
   const values = [];
   let i = 1;
-  const colMap = { name: 'name', type: 'type', destination: 'destination', route: 'route', startDate: 'start_date', endDate: 'end_date' };
+  const colMap = { type: 'type', destination: 'destination', route: 'route', reference: 'reference', startDate: 'start_date', endDate: 'end_date' };
+  // Reference only belongs to private trips.
+  if (d.type === 'open') d.reference = '';
   for (const [key, col] of Object.entries(colMap)) {
     if (d[key] !== undefined) { fields.push(`${col} = $${i++}`); values.push(d[key] || null); }
   }
   if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
+  // Any change to what the name is made of rebuilds it from the final values.
+  if (['type', 'destination', 'route', 'reference', 'startDate'].some((k) => d[k] !== undefined)) {
+    const cur = (await query('SELECT type, destination, route, reference, start_date FROM trips WHERE id = $1', [req.params.id])).rows[0];
+    if (!cur) return res.status(404).json({ error: 'Trip not found' });
+    const nDest = d.destination !== undefined ? d.destination : cur.destination;
+    const nRoute = d.route !== undefined ? d.route : cur.route;
+    const next = {
+      type: d.type !== undefined ? d.type : cur.type,
+      destination: nDest,
+      route: await routeLabel(query, nDest, nRoute),
+      reference: d.reference !== undefined ? d.reference : cur.reference,
+      startDate: d.startDate !== undefined ? d.startDate : cur.start_date,
+    };
+    fields.push(`name = $${i++}`);
+    values.push(buildTripName(next));
+  }
 
   fields.push(`last_edited_by = $${i++}`);
   values.push(req.user.id);
@@ -332,7 +378,7 @@ router.post('/bulk-import', asyncHandler(async (req, res) => {
         const created = await client.query(
           `INSERT INTO trips (name, type, destination, route, status, history, created_by, last_edited_by, last_edited_at)
            VALUES ($1,$2,$3,$4,'Draft',$5,$6,$6,now()) RETURNING id`,
-          [g.route ? `${g.location} – ${g.route}` : g.location, g.type, g.location, g.route || null, history, req.user.id]
+          [buildTripName({ type: g.type, destination: g.location, route: await routeLabel((sql, args) => client.query(sql, args), g.location, g.route) }), g.type, g.location, g.route || null, history, req.user.id]
         );
         tripId = created.rows[0].id;
         createdTripCount += 1;
