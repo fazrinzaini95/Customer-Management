@@ -126,14 +126,14 @@
   .um-table td,.um-table th{padding:8px 8px;vertical-align:middle;} .um-in{width:100%;min-width:90px;border:1.5px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px;} .um-edit td{background:#FBF8EF;}
   .um-notice{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;background:#FFF4D6;border:1.5px solid #E5B93C;border-radius:10px;padding:10px 14px;margin:0 0 12px;font-size:13px;} .um-pw{font-family:var(--font-mono);background:#fff;padding:2px 8px;border-radius:6px;border:1px solid #E5B93C;user-select:all;}
   .stage-tabs{display:flex;gap:2px;border-bottom:1.5px solid var(--line);margin-bottom:12px;overflow-x:auto;white-space:nowrap;}
-  .stage-tab{border:0;background:none;padding:9px 12px;font:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);border-bottom:3px solid transparent;margin-bottom:-1.5px;cursor:pointer;}
+  .stage-tab{border:0;background:none;padding:9px 8px;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink-soft);border-bottom:3px solid transparent;margin-bottom:-1.5px;cursor:pointer;}
   .stage-tab:hover{color:var(--navy);} .stage-tab.on{color:var(--navy);border-bottom-color:#E2A82B;}
   .stage-tab .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;}
   .stage-tab b{background:#E7EAEE;border-radius:999px;padding:1px 7px;font-size:11px;margin-left:4px;color:var(--ink-soft);} .stage-tab.on b{background:#F3C969;color:#5a3e00;}
   .tl-bar{gap:6px;margin-bottom:14px;flex-wrap:wrap;} .tl-bar .search{flex:0 1 130px;min-width:110px;padding:8px 12px;font-size:13px;} .tl-bar .chip{padding:5px 10px;font-size:12px;} .tl-bar .chip-row{gap:4px;flex-wrap:nowrap;}
   .tl-lbl{font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--ink-soft);align-self:center;margin-right:2px;}
   .tl-sel{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:6px 8px;font:inherit;font-size:12px;font-weight:600;color:var(--ink);}
-  .tl-count{font-size:12.5px;color:var(--navy);margin-left:auto;white-space:nowrap;} .tl-count span{color:var(--ink-soft);font-weight:500;} .tl-count a{color:var(--navy);text-decoration:underline;font-weight:600;}
+  .tl-count{font-size:12.5px;color:var(--navy);margin-left:auto;white-space:nowrap;} .tl-count span{color:var(--ink-soft);font-weight:500;} .tl-hid{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;} .tl-hid:hover{color:var(--navy);} .tl-count a{color:var(--navy);text-decoration:underline;font-weight:600;}
   .trip-table .tl-lead{white-space:nowrap;} .lead-wrap{display:inline-flex;align-items:center;gap:7px;font-size:13px;}
   .av-ini{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--navy-deep,#10304f);color:#fff;font-size:10px;font-weight:700;align-items:center;justify-content:center;flex:none;} .av-ini.av-none{background:#C9D1D9;}
   .tcard.s-Draft{border-left-color:#9AA7B4;} .tcard.s-PendingPayment{border-left-color:#F4B93C;} .tcard.s-Paid{border-left-color:var(--green);} .tcard.s-Cancelled{border-left-color:var(--coral);}
@@ -2179,6 +2179,7 @@ function leadCellHTML(t){
 const STAGES = [
   { key:'Action',      label:'⚡ Needs action', dot:'',        hint:'Pending Payment, Pending Ops, Ongoing or On-hold' },
   { key:'Active',      label:'All active',      dot:'',        hint:'Everything except Completed (and Cancelled)' },
+  { key:'All',         label:'All trips',       dot:'',        hint:'Every trip, including Completed and Cancelled' },
   { key:'Pending Ops', label:'Pending Ops',     dot:'#D9483B', hint:'' },
   { key:'Ongoing',     label:'Ongoing',         dot:'#E2A82B', hint:'' },
   { key:'Ready',       label:'Ready',           dot:'#2E8B57', hint:'' },
@@ -2190,6 +2191,7 @@ function tripStage(){ return view.opsFilter && STAGES.some(x=>x.key===view.opsFi
 function tripInStage(t, key){
   const sub = isSubmittedTrip(t), ops = sub ? tripOpsStatus(t) : '';
   switch(key){
+    case 'All': return true;
     case 'Action': return needsOpsAction(t);
     case 'Active': return (tripMainStatus(t)==='Cancelled' ? view.statusFilter==='Cancelled' : ops!=='Completed');
     case 'Hold': return sub && (ops==='Onhold' || ops==='Rejected');
@@ -2228,7 +2230,7 @@ function listHTML(){
     </div>
     <select class="tl-sel" id="type-select" title="Trip type"><option value="All">Type: All</option><option value="open" ${view.typeFilter==='open'?'selected':''}>Open trips</option><option value="private" ${view.typeFilter==='private'?'selected':''}>Private trips</option></select>
     <select class="tl-sel" id="month-select" title="Month the trip starts"><option value="">Month: Any</option>${months.map(k=>`<option value="${k}" ${view.monthFilter===k?'selected':''}>${monthLabel(k)}</option>`).join('')}</select>
-    <span class="tl-count" id="tl-count" title="${hiddenDone?hiddenDone+' completed trip'+(hiddenDone===1?' is':'s are')+' hidden — open the Completed tab to see them':''}">Showing <b>${list.length}</b> of ${trips.length}${hiddenDone?` <span>· ${hiddenDone} completed hidden</span>`:''}${filtersAreDefault()?'':` <span>·</span> <a href="#" data-action="clear-trip-filters">Clear</a>`}</span>
+    <span class="tl-count" id="tl-count" title="${hiddenDone?hiddenDone+' completed trip'+(hiddenDone===1?' is':'s are')+' hidden — open the Completed tab to see them':''}">Showing <b>${list.length}</b> of ${trips.length}${hiddenDone?` <span>· <span class="tl-hid" data-filter-ops="Completed" title="Click to see the completed trips">${hiddenDone} completed hidden</span></span>`:''}${filtersAreDefault()?'':` <span>·</span> <a href="#" data-action="clear-trip-filters">Clear</a>`}</span>
     <div class="chip-row" id="layout-toggle">
       <button class="chip ${view.layout!=='list'?'active':''}" data-set-layout="grid" title="Grid view">▦ Grid</button>
       <button class="chip ${view.layout==='list'?'active':''}" data-set-layout="list" title="List view">☰ List</button>

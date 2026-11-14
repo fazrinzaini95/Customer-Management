@@ -968,7 +968,7 @@ New third tab, **Calendar**, a monthly calendar of trips by date (frontend only,
 
 ## #63 — Trips list: new filter bar + "Created by · Lead" column
 - Two lines: **stage tabs with counts** (Needs action, All active, Pending Ops, Ongoing, Ready, Departed, Completed, On-hold / Rejected) and a second line with search, **Payment** chips (All, Draft, Pending Payment, Paid, Cancelled), Type and Month dropdowns, a live "Showing x of y" count with **Clear**, and the Grid / List switch.
-- **All active** hides Completed (and Cancelled) trips; the Completed tab shows them, so removing or restoring Completed is one click. The count says how many completed trips are hidden.
+- **All active** hides Completed (and Cancelled) trips; **All trips** shows every trip, and the Completed tab shows only finished ones. The count says how many completed trips are hidden — click it to jump to them.
 - Tab counts follow the other filters (search, payment, type, month).
 - List view only: new column **Created by · Lead** — the creator's initials in a circle (hover shows the username) and the travel lead's first name from Supplier Readiness ("no lead yet" if empty). It sorts too. All other columns are unchanged; grid cards are unchanged.
 
