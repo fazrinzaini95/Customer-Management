@@ -123,6 +123,19 @@
   .trip-grid{grid-template-columns:repeat(auto-fill,minmax(262px,1fr));gap:12px;}
   .tcard{position:relative;background:#fff;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:12px;padding:11px 14px 12px;cursor:pointer;box-shadow:0 1px 2px rgba(15,44,76,.05);transition:transform .12s ease, box-shadow .12s ease;display:flex;flex-direction:column;gap:5px;min-width:0;}
   .tcard:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(15,44,76,.14);}
+  .um-table td,.um-table th{padding:8px 8px;vertical-align:middle;} .um-in{width:100%;min-width:90px;border:1.5px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px;} .um-edit td{background:#FBF8EF;}
+  .um-notice{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;background:#FFF4D6;border:1.5px solid #E5B93C;border-radius:10px;padding:10px 14px;margin:0 0 12px;font-size:13px;} .um-pw{font-family:var(--font-mono);background:#fff;padding:2px 8px;border-radius:6px;border:1px solid #E5B93C;user-select:all;}
+  .stage-tabs{display:flex;gap:2px;border-bottom:1.5px solid var(--line);margin-bottom:12px;overflow-x:auto;white-space:nowrap;}
+  .stage-tab{border:0;background:none;padding:9px 12px;font:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);border-bottom:3px solid transparent;margin-bottom:-1.5px;cursor:pointer;}
+  .stage-tab:hover{color:var(--navy);} .stage-tab.on{color:var(--navy);border-bottom-color:#E2A82B;}
+  .stage-tab .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;}
+  .stage-tab b{background:#E7EAEE;border-radius:999px;padding:1px 7px;font-size:11px;margin-left:4px;color:var(--ink-soft);} .stage-tab.on b{background:#F3C969;color:#5a3e00;}
+  .tl-bar{gap:6px;margin-bottom:14px;flex-wrap:wrap;} .tl-bar .search{flex:0 1 130px;min-width:110px;padding:8px 12px;font-size:13px;} .tl-bar .chip{padding:5px 10px;font-size:12px;} .tl-bar .chip-row{gap:4px;flex-wrap:nowrap;}
+  .tl-lbl{font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--ink-soft);align-self:center;margin-right:2px;}
+  .tl-sel{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:6px 8px;font:inherit;font-size:12px;font-weight:600;color:var(--ink);}
+  .tl-count{font-size:12.5px;color:var(--navy);margin-left:auto;white-space:nowrap;} .tl-count span{color:var(--ink-soft);font-weight:500;} .tl-count a{color:var(--navy);text-decoration:underline;font-weight:600;}
+  .trip-table .tl-lead{white-space:nowrap;} .lead-wrap{display:inline-flex;align-items:center;gap:7px;font-size:13px;}
+  .av-ini{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--navy-deep,#10304f);color:#fff;font-size:10px;font-weight:700;align-items:center;justify-content:center;flex:none;} .av-ini.av-none{background:#C9D1D9;}
   .tcard.s-Draft{border-left-color:#9AA7B4;} .tcard.s-PendingPayment{border-left-color:#F4B93C;} .tcard.s-Paid{border-left-color:var(--green);} .tcard.s-Cancelled{border-left-color:var(--coral);}
   .tc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
   .tc-pills{display:flex;flex-wrap:wrap;gap:4px;min-width:0;}
@@ -137,8 +150,8 @@
   .tc-bar{display:inline-block;width:38px;height:5px;border-radius:99px;background:rgba(15,44,76,.12);overflow:hidden;vertical-align:middle;}
   .tc-bar i{display:block;height:100%;background:var(--green);border-radius:99px;}
   .tc-bal{font-weight:700;font-size:12px;white-space:nowrap;} .tc-bal.owing{color:var(--coral);} .tc-bal.ok{color:var(--green);} .tc-bal.none{color:var(--ink-soft);font-weight:500;}
-  .trip-table td,.trip-table th{padding:9px 10px;}
-  .trip-table .tl-trip{min-width:240px;max-width:440px;} .trip-table .cust-name{white-space:normal;line-height:1.25;overflow-wrap:anywhere;}
+  .trip-table td,.trip-table th{padding:9px 8px;}
+  .trip-table .tl-trip{min-width:190px;max-width:380px;} .trip-table .cust-name{white-space:normal;line-height:1.25;overflow-wrap:anywhere;}
   .trip-table .tl-code{font-family:var(--font-mono);font-size:11px;color:var(--navy);}
   .trip-table .tl-dates{white-space:nowrap;font-size:13px;font-variant-numeric:tabular-nums;}
   .trip-table .tl-paid,.trip-table .tl-pax{white-space:nowrap;font-size:13px;} .trip-table .tl-pax{text-align:center;} .trip-table .tl-code{white-space:nowrap;font-weight:600;}
@@ -324,6 +337,11 @@
   .preview-det{padding:0 12px 10px;} .preview-det summary{cursor:pointer;font-size:12px;color:var(--ink-soft);padding:2px 0 6px;}
   .pv-dup td{opacity:.55;} .pv-dupt{font-style:italic;} .pv-notice.pv-info{background:#eff6ff;border-color:#bfdbfe;color:#1e40af;}
   .pv-warn{color:#b45309;font-weight:600;} .preview-table-wrap td .pv-warn{white-space:normal;display:inline-block;min-width:170px;} .pv-bad td{background:#fff7ed;}
+  .pv-warnbox{margin:0 0 10px;padding:10px 14px;border-radius:10px;background:#FFF4D6;border:1.5px solid #E5B93C;font-size:13px;color:#5b4300;}
+  .pv-fill{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .pv-in{border:1.5px solid #E08A7E;border-radius:7px;padding:4px 8px;font:inherit;font-size:13px;background:#fff;}
+  .pv-in:focus{outline:none;border-color:var(--navy);}
+  .pv-fix{margin-top:4px;font-size:12px;color:var(--ink-soft);}
   .pv-notice{margin-top:6px;padding:9px 12px;border-radius:9px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:12.5px;}
   .preview-table-wrap td.num,.preview-table-wrap th.num{text-align:right;}
   .preview-table-wrap{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:9px;}
@@ -365,6 +383,8 @@
   .cal-day .dn{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 4px;border-radius:11px;font-weight:600;}
   .cal-day.today .dn{background:var(--navy);color:#fff;}
   .cal-bar{position:absolute;height:21px;border:none;border-left:3px solid var(--ink-soft);background:rgba(90,107,122,0.14);color:var(--navy-deep);font:600 12px/21px var(--font-body);text-align:left;padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;border-radius:3px;z-index:1;}
+  .cal-bar.cal-hold,.cal-sw.cal-hold-sw{border-left:3px dashed #7A5AA6;background:repeating-linear-gradient(135deg,rgba(122,90,166,0.10) 0 6px,rgba(122,90,166,0.20) 6px 12px);color:#5a3f86;font-style:italic;}
+  .cal-sw.cal-hold-sw{border:1.5px dashed #7A5AA6;}
   .cal-bar.is-start{border-top-left-radius:6px;border-bottom-left-radius:6px;}
   .cal-bar.is-end{border-top-right-radius:6px;border-bottom-right-radius:6px;}
   .cal-bar:hover,.cal-bar:focus-visible{box-shadow:0 0 0 1.5px var(--navy);outline:none;}
@@ -431,15 +451,18 @@
   .pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap;line-height:1.3;}
   .pill i{font-style:normal;font-weight:500;opacity:.7;}
   .pill-row{display:flex;flex-wrap:wrap;gap:6px;padding:0 18px 12px;}
-  .pill.s-Draft,.pill.s-PendingOps{background:rgba(90,107,122,0.12);color:var(--ink-soft);}
-  .pill.s-PendingPayment{background:rgba(244,185,60,0.20);color:#8A6A10;}
-  .pill.s-Paid,.pill.s-Ready{background:rgba(46,139,87,0.13);color:var(--green);}
-  .pill.s-Cancelled,.pill.s-Rejected{background:rgba(225,85,84,0.11);color:var(--coral);}
-  .pill.s-Ongoing{background:rgba(43,108,176,0.13);color:#2B6CB0;}
+  /* Operations status colours: Pending Ops red · Ongoing amber · Ready green · Completed blue (Departed teal, On-hold purple, Rejected grey-brown) */
+  .pill.s-PendingOps{background:rgba(217,72,59,0.12);color:#B3392B;}
+  .pill.s-Ongoing{background:rgba(226,168,43,0.20);color:#8A5E00;}
+  .pill.s-Ready{background:rgba(46,139,87,0.14);color:#1F7A44;}
+  .pill.s-Completed{background:rgba(43,108,176,0.14);color:#1F5AA6;}
   .pill.s-Departed{background:rgba(14,124,134,0.14);color:#0E7C86;}
-  .bang{display:inline-flex;align-items:center;justify-content:center;min-width:15px;height:15px;border-radius:50%;background:var(--coral);color:#fff;font-size:10px;font-weight:800;line-height:1;vertical-align:middle;}
   .pill.s-Onhold{background:rgba(122,90,166,0.14);color:#6B4A9A;}
-  .pill.s-Completed{background:rgba(15,44,76,0.10);color:var(--navy);}
+  .pill.s-Rejected{background:rgba(94,74,62,0.16);color:#5E4A3E;}
+  .bang{display:inline-flex;align-items:center;justify-content:center;min-width:15px;height:15px;border-radius:50%;background:var(--coral);color:#fff;font-size:10px;font-weight:800;line-height:1;vertical-align:middle;}
+  /* Payment status pills are outlined so they never get mixed up with the filled Operations pills */
+  .pill.pay{background:#fff !important;border:1.5px solid currentColor;}
+  .pill.pay.s-Draft{color:#6B7B8B;} .pill.pay.s-PendingPayment{color:#9A6A00;} .pill.pay.s-Paid{color:#1F7A44;} .pill.pay.s-Cancelled{color:#C0443F;}
   .stub-bal b.owing{color:var(--coral);}
   .ops-panel{margin-bottom:18px;}
   .ops-body{padding:14px 20px 16px;}
@@ -750,6 +773,7 @@ function ensureDemoState(){
   }
   if(!demoState.activityLog) demoState.activityLog = []; // upgrade older saved demo data
   if(!demoState.lists) demoState.lists = [];
+  if(!demoState.holds) demoState.holds = [];
   return demoState;
 }
 function demoEnsureList(state, d){
@@ -770,7 +794,7 @@ function resetDemoData(){
 }
 function logDemoActivity(state, actor, action, entityType, entityId, entityLabel, details){
   state.activityLog.unshift({
-    id: demoId('log'), actorId: actor.id, actorName: actor.name, actorEmail: actor.email,
+    id: demoId('log'), actorId: actor.id, actorName: actor.username || String(actor.email||"").split("@")[0] || actor.name, actorEmail: actor.email,
     action, entityType, entityId: entityId ?? null, entityLabel: entityLabel ?? null,
     details: details || {}, createdAt: new Date().toISOString()
   });
@@ -800,36 +824,41 @@ async function demoFetchInner(path, options = {}){
   function fail(status, error){ const e = new Error(error); e.status = status; e.body = { error }; throw e; }
   function requireAuthed(){ if(!me) fail(401,'Missing or invalid Authorization header'); return me; }
   function requireRoleIn(...roles){ const u = requireAuthed(); if(!roles.includes(u.role)) fail(403,'You do not have permission to perform this action'); return u; }
-  function publicUser(u){ return { id:u.id, name:u.name, email:u.email, role:u.role, isTemp:!!u.isTemp, createdAt:u.createdAt }; }
+  function uname(u){ return u.username || String(u.email||'').split('@')[0] || u.name; }
+  function mkInitials(v){ const w = String(v||'').replace(/[^A-Za-z ]/g,' ').trim().split(/\s+/).filter(Boolean); return ((w[0]||'').charAt(0)+(w[1]||'').charAt(0)).toUpperCase() || String(v||'?').charAt(0).toUpperCase(); }
+  function publicUser(u){ return { id:u.id, name:uname(u), username:uname(u), fullName:u.name, initials:u.initials || mkInitials(u.name), email:u.email, role:u.role, isTemp:!!u.isTemp, mustChangePassword:!!u.mustChangePassword, createdAt:u.createdAt }; }
+  function badUsername(v){ return !/^[A-Za-z0-9._-]{2,}$/.test(String(v||'').trim()) ? 'Username must be at least 2 characters (letters, numbers, dot, dash, underscore)' : ''; }
+  function tempPw(){ return Math.random().toString(36).slice(2,10); }
   function adminCount(){ return state.users.filter(u=>u.role==='admin').length; }
   let m;
 
   // ---- Auth ----
+  if(path==='/auth/setup-status' && method==='GET'){ return { needsFirstAccount: state.users.length===0 }; }
   if(path==='/auth/signup' && method==='POST'){
-    const { name, email, password } = body;
-    if(!name || !email) fail(400,'Name and email are required');
+    if(state.users.length>0) fail(403,'Sign-up is closed. Please ask your admin to create an account for you.');
+    const { username, name, email, password } = body;
+    const bu = badUsername(username); if(bu) fail(400,bu);
+    if(!email || !isValidEmail(email)) fail(400,'Please enter a valid email');
     if(!password || password.length<6) fail(400,'Password must be at least 6 characters');
-    if(state.users.some(u=>u.email.toLowerCase()===String(email).toLowerCase())) fail(409,'An account with that email already exists');
-    const role = state.users.length===0 ? 'admin' : 'user';
-    const u = { id:demoId('user'), name, email, passwordHash: await demoHash(password), role, isTemp:false, createdAt:new Date().toISOString() };
+    const u = { id:demoId('user'), name:name||username, username:String(username).trim(), initials:mkInitials(name||username), email, passwordHash: await demoHash(password), role:'admin', isTemp:false, createdAt:new Date().toISOString() };
     state.users.push(u); persistDemo();
     return { token:u.id, user:publicUser(u) };
   }
   if(path==='/auth/login' && method==='POST'){
     const { email, password } = body;
-    const u = state.users.find(x=>x.email.toLowerCase()===String(email||'').toLowerCase());
-    if(!u) fail(401,'Incorrect email or password');
-    if(await demoHash(password||'') !== u.passwordHash) fail(401,'Incorrect email or password');
+    const key = String(email||'').trim().toLowerCase();
+    const u = state.users.find(x=>x.email.toLowerCase()===key || uname(x).toLowerCase()===key);
+    if(!u) fail(401,'Incorrect username or password');
+    if(await demoHash(password||'') !== u.passwordHash) fail(401,'Incorrect username or password');
     return { token:u.id, user:publicUser(u) };
   }
-  if(path==='/auth/temp-account' && method==='POST'){
-    const suffix = Math.random().toString(36).slice(2,10);
-    const email = `guest.${suffix}@temp.excapism`;
-    const password = Math.random().toString(36).slice(2,12);
-    const role = state.users.length===0 ? 'admin' : 'user';
-    const u = { id:demoId('user'), name:'Guest User', email, passwordHash: await demoHash(password), role, isTemp:true, createdAt:new Date().toISOString() };
-    state.users.push(u); persistDemo();
-    return { token:u.id, user:publicUser(u), tempPassword:password };
+  if(path==='/auth/change-password' && method==='POST'){
+    const u = requireAuthed();
+    if(await demoHash(body.currentPassword||'') !== u.passwordHash) fail(400,'Your current password is not correct');
+    if(!body.newPassword || body.newPassword.length<6) fail(400,'New password must be at least 6 characters');
+    if(body.newPassword===body.currentPassword) fail(400,'Please choose a different password from the current one');
+    u.passwordHash = await demoHash(body.newPassword); u.mustChangePassword = false; persistDemo();
+    return { user:publicUser(u) };
   }
   if(path==='/auth/me' && method==='GET'){
     return publicUser(requireAuthed());
@@ -843,6 +872,7 @@ async function demoFetchInner(path, options = {}){
       passengers: state.passengers.slice(),
       users: u.role==='admin' ? state.users.map(publicUser) : undefined,
       lists: (state.lists||[]).slice(),
+      holds: (state.holds||[]).slice(),
       settings: { ...state.settings, runningNumber: state.tripSeq, nextNumber: state.tripSeq+1 }
     };
   }
@@ -877,7 +907,7 @@ async function demoFetchInner(path, options = {}){
     const t = { id:demoId('trip'), seq:state.tripSeq, name:standardTripName(body.type||'open', body.destination, body.route, body.startDate, body.reference, state.lists), type:body.type||'open', destination:body.destination||null, route:(body.route||'').trim()||null, reference:(body.type==='private' ? (body.reference||'').trim() : '')||null,
       startDate:body.startDate||null, endDate:body.endDate||null, status:'Draft',
       opsStatus:'Pending Ops',
-      history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), createdByName:u.name, publicToken:demoId('tok') };
+      history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), createdByName:uname(u), createdByInitials:u.initials || mkInitials(u.name), publicToken:demoId('tok') };
     state.trips.push(t);
     if(t.route && t.destination) demoEnsureList(state, { kind:'route', country:t.destination, name:t.route });
     logDemoActivity(state, u, 'trip.created', 'trip', t.id, t.name, { type:t.type, destination:t.destination });
@@ -937,7 +967,7 @@ async function demoFetchInner(path, options = {}){
     if(['Draft','Cancelled','Declined'].includes(t.status)) fail(400,'Operations can only be changed once the trip has been submitted');
     const from = t.opsStatus || 'Pending Ops';
     t.opsStatus = body.opsStatus;
-    t.opsReason = manual ? String(body.reason).trim() : null; t.opsReasonBy = manual ? u.name : null; t.opsReasonAt = manual ? new Date().toISOString() : null;
+    t.opsReason = manual ? String(body.reason).trim() : null; t.opsReasonBy = manual ? uname(u) : null; t.opsReasonAt = manual ? new Date().toISOString() : null;
     logDemoActivity(state, u, 'trip.ops_status_changed', 'trip', t.id, t.name, { from, to:body.opsStatus, ...(manual?{reason:t.opsReason}:{}) });
     persistDemo();
     return t;
@@ -972,7 +1002,7 @@ async function demoFetchInner(path, options = {}){
       if(!t){
         state.tripSeq += 1;
         t = { id:demoId('trip'), seq:state.tripSeq, name:standardTripName(g.type, g.location, g.route, null, '', state.lists), type:g.type, destination:g.location, route:g.route||null, startDate:null, endDate:null,
-          status:'Draft', history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), createdByName:u.name, publicToken:demoId('tok') };
+          status:'Draft', history:[{status:'Draft',date:new Date().toISOString()}], createdAt:new Date().toISOString(), createdByName:uname(u), createdByInitials:u.initials || mkInitials(u.name), publicToken:demoId('tok') };
         state.trips.push(t); createdTripCount += 1;
       }
       tripIds.push(t.id);
@@ -1083,15 +1113,39 @@ async function demoFetchInner(path, options = {}){
   }
   if(path==='/users' && method==='POST'){
     const u = requireRoleIn('admin');
-    const { name, email, password, role } = body;
-    if(!name || !email) fail(400,'Name and email are required');
-    if(!password || password.length<6) fail(400,'Password must be at least 6 characters');
+    const { username, name, email, password, role, initials } = body;
+    const bu = badUsername(username); if(bu) fail(400,bu);
+    if(!email || !isValidEmail(email)) fail(400,'Please enter a valid email');
+    if(password && password.length<6) fail(400,'Password must be at least 6 characters');
     if(state.users.some(x=>x.email.toLowerCase()===String(email).toLowerCase())) fail(409,'That email is already registered');
-    const newUser = { id:demoId('user'), name, email, passwordHash: await demoHash(password), role: role||'user', isTemp:false, createdAt:new Date().toISOString() };
+    if(state.users.some(x=>uname(x).toLowerCase()===String(username).trim().toLowerCase())) fail(409,'That username is already taken');
+    const plain = password || tempPw();
+    const newUser = { id:demoId('user'), name:name||username, username:String(username).trim(), initials:(initials||mkInitials(name||username)).toUpperCase(), email, passwordHash: await demoHash(plain), role: role||'user', isTemp:false, mustChangePassword:true, createdAt:new Date().toISOString() };
     state.users.push(newUser);
-    logDemoActivity(state, u, 'user.created', 'user', newUser.id, newUser.email, { role:newUser.role });
+    logDemoActivity(state, u, 'user.created', 'user', newUser.id, newUser.username, { role:newUser.role });
     persistDemo();
-    return publicUser(newUser);
+    return { ...publicUser(newUser), tempPassword: plain };
+  }
+  if((m=path.match(/^\/users\/([^/]+)$/)) && method==='PATCH'){
+    const admin = requireRoleIn('admin');
+    const target = state.users.find(x=>x.id===m[1]); if(!target) fail(404,'User not found');
+    if(body.username!==undefined){ const bu = badUsername(body.username); if(bu) fail(400,bu); if(state.users.some(x=>x.id!==target.id && uname(x).toLowerCase()===String(body.username).trim().toLowerCase())) fail(409,'That username is already taken'); target.username = String(body.username).trim(); }
+    if(body.email!==undefined){ if(!isValidEmail(body.email)) fail(400,'Please enter a valid email'); if(state.users.some(x=>x.id!==target.id && x.email.toLowerCase()===String(body.email).toLowerCase())) fail(409,'That email is already registered'); target.email = body.email; }
+    if(body.name!==undefined){ if(!String(body.name).trim()) fail(400,'Name cannot be empty'); target.name = String(body.name).trim(); }
+    if(body.initials!==undefined){ const ini = String(body.initials).trim(); if(!ini) fail(400,'Initials cannot be empty'); if(ini.length>4) fail(400,'Initials: up to 4 letters'); target.initials = ini.toUpperCase(); }
+    logDemoActivity(state, admin, 'user.updated', 'user', target.id, uname(target), { fields:Object.keys(body) });
+    persistDemo();
+    return publicUser(target);
+  }
+  if((m=path.match(/^\/users\/([^/]+)\/reset-password$/)) && method==='POST'){
+    const admin = requireRoleIn('admin');
+    const target = state.users.find(x=>x.id===m[1]); if(!target) fail(404,'User not found');
+    if(body.password && body.password.length<6) fail(400,'Password must be at least 6 characters');
+    const plain = body.password || tempPw();
+    target.passwordHash = await demoHash(plain); target.mustChangePassword = true;
+    logDemoActivity(state, admin, 'user.password_reset', 'user', target.id, uname(target), {});
+    persistDemo();
+    return { tempPassword: plain };
   }
   if((m=path.match(/^\/users\/([^/]+)\/role$/)) && method==='PUT'){
     const u = requireRoleIn('admin');
@@ -1112,6 +1166,28 @@ async function demoFetchInner(path, options = {}){
     logDemoActivity(state, admin, 'user.deleted', 'user', target.id, target.email, { role:target.role });
     persistDemo();
     return null;
+  }
+
+  // ---- Calendar holds ----
+  function checkHold(b){
+    if(!String(b.title||'').trim()) fail(400,'Please give the hold a title');
+    const ok = v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||'')) && pvRealYmd(+String(v).slice(0,4), +String(v).slice(5,7), +String(v).slice(8,10));
+    if(!ok(b.startDate) || !ok(b.endDate)) fail(400,'Please use a valid date');
+    if(b.endDate < b.startDate) fail(400,'End date cannot be before the start date');
+  }
+  if(path==='/holds' && method==='GET'){ requireAuthed(); return (state.holds||[]).slice(); }
+  if(path==='/holds' && method==='POST'){
+    requireAuthed(); checkHold(body);
+    const h = { id:demoId('hold'), title:String(body.title).trim(), startDate:body.startDate, endDate:body.endDate, note:String(body.note||'').trim() };
+    state.holds.push(h); persistDemo(); return h;
+  }
+  if((m=path.match(/^\/holds\/([^/]+)$/)) && method==='PUT'){
+    requireAuthed(); checkHold(body);
+    const h = state.holds.find(x=>x.id===m[1]); if(!h) fail(404,'Hold not found');
+    Object.assign(h, { title:String(body.title).trim(), startDate:body.startDate, endDate:body.endDate, note:String(body.note||'').trim() }); persistDemo(); return h;
+  }
+  if((m=path.match(/^\/holds\/([^/]+)$/)) && method==='DELETE'){
+    requireAuthed(); const n = state.holds.length; state.holds = state.holds.filter(x=>x.id!==m[1]); if(state.holds.length===n) fail(404,'Hold not found'); persistDemo(); return null;
   }
 
   // ---- Settings ----
@@ -1193,6 +1269,9 @@ let currentUser = null; // {id, email, name, role, isTemp}
 let authView = 'loading'; // 'login' | 'signup' | 'app'
 let authError = '';
 let manageUsersError = '';
+let firstAccountNeeded = false;   // true only on a brand-new system (no users yet) — the one case where sign-up is open
+let chpwOpen = false, chpwError = '';
+let editingUserId = null, resetNotice = null;
 let tempCredentialsBanner = null; // {email, password} shown once after temp account creation
 let view = { mode:'list', tripId:null, search:'', statusFilter:'All', typeFilter:'All', layout:'grid' };
 let uploadCtx = { mode:'existing', targetTripId:null, parsedRows:[], fileName:'', groups:[], hasTripColumns:false };
@@ -1226,6 +1305,7 @@ async function loadBootstrap(){
     customers = data.passengers || [];
     users = data.users || [];
     opsLists = data.lists || [];
+    holds = data.holds || [];
     numberSettings = Object.assign({prefix:'EXC',includeYear:true,padding:3,runningNumber:0,nextNumber:1}, data.settings || {});
   }catch(e){
     showToast(e.message || 'Could not load data from the server');
@@ -1344,7 +1424,7 @@ function render(){
   if(API_NOT_CONFIGURED && !DEMO_MODE){ app.innerHTML = apiNotConfiguredHTML(); bindAuthEvents(); return; }
   if(authView==='signup'){ app.innerHTML = signupHTML(); bindAuthEvents(); return; }
   if(authView==='login'){ app.innerHTML = loginHTML(); bindAuthEvents(); return; }
-  app.innerHTML = headerHTML() + tempBannerHTML() + tabsHTML() + (view.mode==='detail' ? detailHTML() : view.mode==='dashboard' ? dashboardHTML() : view.mode==='calendar' ? calendarHTML() : listHTML()) + modalsHTML() + (isAdmin() ? manageUsersModalHTML() + settingsModalHTML() + listsModalHTML() + activityLogModalHTML() : '');
+  app.innerHTML = headerHTML() + tempBannerHTML() + tabsHTML() + (view.mode==='detail' ? detailHTML() : view.mode==='dashboard' ? dashboardHTML() : view.mode==='calendar' ? calendarHTML() : listHTML()) + modalsHTML() + changePasswordModalHTML() + (isAdmin() ? manageUsersModalHTML() + settingsModalHTML() + listsModalHTML() + activityLogModalHTML() : '');
   bindEvents();
 }
 
@@ -1377,28 +1457,20 @@ function apiNotConfiguredHTML(){
     </div>
   `);
 }
-function tempAccountPrompt(){
-  return `
-    <div style="text-align:center;margin-top:16px;padding-top:16px;border-top:1.5px dashed var(--line);">
-      <p class="hint" style="margin:0 0 10px;">Just trying things out?</p>
-      <button type="button" class="btn btn-ghost btn-sm" data-action="do-temp-account">Continue with a temporary account</button>
-    </div>`;
-}
 function signupHTML(){
-  const isBootstrap = users.length===0;
+  // Only reachable on a brand-new system: the first account becomes the admin. After that, accounts are created by an admin.
   return authShell(`
     ${DEMO_MODE ? `<div style="background:var(--paper-dim);border-radius:9px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:var(--navy-deep);font-weight:600;text-align:center;">🧪 Demo mode — nothing here leaves this browser</div>` : ''}
-    <h3 style="font-family:var(--font-display);font-size:18px;margin:0 0 4px;color:var(--navy-deep);">Create an account</h3>
-    <p style="font-size:13px;color:var(--ink-soft);margin:0 0 18px;">${isBootstrap ? "You're the first person here — this account will be the admin." : "New accounts start with basic User access; an admin can change your role later."}</p>
+    <h3 style="font-family:var(--font-display);font-size:18px;margin:0 0 4px;color:var(--navy-deep);">Create the admin account</h3>
+    <p style="font-size:13px;color:var(--ink-soft);margin:0 0 18px;">You're the first person here — this account will be the admin. Everyone else is added by you in Manage users.</p>
     ${authError ? `<p style="color:var(--coral);font-size:13px;margin:0 0 12px;font-weight:600;">${esc(authError)}</p>` : ''}
-    <div class="field"><label>Full name</label><input id="su-name" placeholder="Your name"></div>
+    <div class="field"><label>Username</label><input id="su-username" placeholder="e.g. fazrin" autocapitalize="none"></div>
+    <div class="field"><label>Full name <span style="font-weight:400;">(optional)</span></label><input id="su-name" placeholder="Your name"></div>
     <div class="field"><label>Email</label><input type="email" id="su-email" placeholder="you@example.com"></div>
     <div class="field"><label>Password</label><input type="password" id="su-password" placeholder="At least 6 characters"></div>
     <div class="field"><label>Confirm password</label><input type="password" id="su-password2"></div>
     <button class="btn btn-primary" style="width:100%;justify-content:center;" data-action="do-signup">Create account</button>
-    <p style="text-align:center;font-size:13px;margin:14px 0 0;">Already have an account? <button type="button" class="link-btn" data-action="show-login">Sign in</button></p>
-    ${tempAccountPrompt()}
-    <p class="hint" style="margin-top:14px;">Basic in-app accounts for internal workflow use — not intended for storing sensitive credentials.</p>
+    <p style="text-align:center;font-size:13px;margin:14px 0 0;"><button type="button" class="link-btn" data-action="show-login">Back to sign in</button></p>
   `);
 }
 function loginHTML(){
@@ -1407,11 +1479,11 @@ function loginHTML(){
     <h3 style="font-family:var(--font-display);font-size:18px;margin:0 0 4px;color:var(--navy-deep);">Sign in</h3>
     <p style="font-size:13px;color:var(--ink-soft);margin:0 0 18px;">Welcome back.</p>
     ${authError ? `<p style="color:var(--coral);font-size:13px;margin:0 0 12px;font-weight:600;">${esc(authError)}</p>` : ''}
-    <div class="field"><label>Email</label><input type="email" id="li-email" placeholder="you@example.com" autofocus></div>
-    <div class="field"><label>Password</label><input type="password" id="li-password" placeholder="Password"></div>
+    <div class="field"><label>Username or email</label><input id="li-email" placeholder="Username" autocapitalize="none" autocomplete="username" autofocus></div>
+    <div class="field"><label>Password</label><input type="password" id="li-password" placeholder="Password" autocomplete="current-password"></div>
     <button class="btn btn-primary" style="width:100%;justify-content:center;" data-action="do-login">Sign in</button>
-    <p style="text-align:center;font-size:13px;margin:14px 0 0;">New here? <button type="button" class="link-btn" data-action="show-signup">Create an account</button></p>
-    ${tempAccountPrompt()}
+    ${firstAccountNeeded ? `<p style="text-align:center;font-size:13px;margin:14px 0 0;">First time here? <button type="button" class="link-btn" data-action="show-signup">Create the admin account</button></p>`
+      : `<p class="hint" style="text-align:center;margin-top:16px;">No account yet? Ask your admin to create one for you.</p>`}
   `);
 }
 function tempBannerHTML(){
@@ -1449,6 +1521,7 @@ function headerHTML(){
       <button class="btn btn-ghost" data-action="open-upload">Bulk upload</button>
       <button class="btn btn-primary" data-action="open-new-trip">+ New trip</button>
       ${DEMO_MODE ? `<button class="btn btn-ghost" data-action="reset-demo-data" title="Clear all demo data and start over">Reset demo data</button>` : ''}
+      <button class="btn btn-ghost" data-action="open-chpw" title="Change your password">Password</button>
       <button class="btn btn-ghost" data-action="do-logout" title="Log out">Log out</button>
     </div>
   </div>`;
@@ -1908,6 +1981,8 @@ let calCursor = null;        // { y, m } with m = 0..11; null means "the current
 let calType = 'All';         // 'All' | 'open' | 'private'
 let calShowDead = false;     // declined / cancelled trips hidden unless switched on
 let calKeysBound = false;
+let holds = [];               // calendar holds: dates pencilled in without creating a trip
+let editingHoldId = null, convertingHoldId = null;
 const CAL_HEAD = 28, CAL_LANE = 24, CAL_MIN_WEEK = 92;
 const DOW_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
@@ -1930,6 +2005,12 @@ function calItems(){
       return { t, s, e };
     })
     .sort((a,b)=>a.s-b.s || (b.e-b.s)-(a.e-a.s) || (a.t.name||'').localeCompare(b.t.name||''));
+}
+function calHoldItems(){
+  return (holds||[]).filter(h=>ymd(h.startDate)).map(h=>{
+    const s = dayNum(ymd(h.startDate)); const e = Math.max(s, ymd(h.endDate) ? dayNum(ymd(h.endDate)) : s);
+    return { h, s, e };
+  });
 }
 function calWeekStarts(y, m){
   const first = Date.UTC(y, m, 1)/86400000;
@@ -1959,6 +2040,13 @@ function calWeekHTML(ws, y, m, items, todayN){
   }).join('');
 
   const bars = segs.map(sg=>{
+    if(sg.h){
+      const hh = sg.h, hs = sg.c1 - sg.c0 + 1;
+      const htip = `HOLD · ${hh.title}\n${fmtDate(dayYmd(sg.s))} → ${fmtDate(dayYmd(sg.e))}${hh.note?'\n'+hh.note:''}\n(Not a trip yet — click to edit or convert)`;
+      return `<button class="cal-bar cal-hold ${sg.startsHere?'is-start':''} ${sg.endsHere?'is-end':''}" data-cal-hold="${esc(hh.id)}"
+        style="left:calc(${sg.c0}/7*100% + 2px);width:calc(${hs}/7*100% - 4px);top:${CAL_HEAD + sg.lane*CAL_LANE}px;"
+        title="${esc(htip)}" aria-label="${esc(htip.replace(/\n/g,', '))}">${sg.startsHere?'':'◂ '}◌ ${esc(hh.title)}${sg.endsHere?'':' ▸'}</button>`;
+    }
     const t = sg.t, span = sg.c1 - sg.c0 + 1;
     const pax = custByTrip(t.id).length;
     const tip = `${tripCode(t)} · ${t.name}\n${fmtDate(dayYmd(sg.s))} → ${fmtDate(dayYmd(sg.e))}\n${tripMainStatus(t)}${isSubmittedTrip(t)?' · Ops: '+opsLabel(tripOpsStatus(t)):''} · ${pax} pax`;
@@ -1976,7 +2064,10 @@ function calendarHTML(){
   const items = calItems();
   const monthStart = Date.UTC(y, m, 1)/86400000, monthEnd = Date.UTC(y, m+1, 0)/86400000;
   const inMonth = items.filter(i=>i.s<=monthEnd && i.e>=monthStart);
-  const weeks = calWeekStarts(y, m).map(ws=>calWeekHTML(ws, y, m, items, todayN)).join('');
+  const holdItems = calHoldItems();
+  const allItems = items.concat(holdItems).sort((a,b)=>a.s-b.s || (b.e-b.s)-(a.e-a.s));
+  const holdsInMonth = holdItems.filter(i=>i.s<=monthEnd && i.e>=monthStart);
+  const weeks = calWeekStarts(y, m).map(ws=>calWeekHTML(ws, y, m, allItems, todayN)).join('');
 
   const yearSet = new Set([y, Number(today.slice(0,4))-1, Number(today.slice(0,4)), Number(today.slice(0,4))+1]);
   items.forEach(i=>yearSet.add(new Date(i.s*86400000).getUTCFullYear()));
@@ -1985,7 +2076,7 @@ function calendarHTML(){
   const chip = (attr, val, label, on) => `<button class="chip ${on?'active':''}" ${attr}="${esc(val)}">${esc(label)}</button>`;
 
   const legendStatuses = ['Draft','Pending Payment','Paid', ...(calShowDead ? ['Cancelled'] : [])];
-  const legend = `<div class="cal-legend" aria-label="Colour key">${legendStatuses.map(s=>`<span><span class="cal-sw st-${slugS(s)}"></span>${s}</span>`).join('')}</div>`;
+  const legend = `<div class="cal-legend" aria-label="Colour key">${legendStatuses.map(s=>`<span><span class="cal-sw st-${slugS(s)}"></span>${s}</span>`).join('')}<span><span class="cal-sw cal-hold-sw"></span>Hold (not a trip yet)</span></div>`;
 
   // Agenda for the month (also the easy way to read it on a phone)
   let agenda;
@@ -2010,7 +2101,8 @@ function calendarHTML(){
     <h2 class="cal-title" aria-live="polite">${MONTH_NAMES[m]} ${y}</h2>
     <button class="cal-arrow" data-cal-shift="1" aria-label="Next month" title="Next month (→)">›</button>
     <button class="btn btn-ghost" data-cal-today title="Back to this month (T)">Today</button>
-    <span class="cal-count">${inMonth.length} trip${inMonth.length===1?'':'s'} this month · tip: use ← → keys to change month</span>
+    <span class="cal-count">${inMonth.length} trip${inMonth.length===1?'':'s'}${holdsInMonth.length?` · ${holdsInMonth.length} hold${holdsInMonth.length===1?'':'s'}`:''} this month · tip: use ← → keys to change month</span>
+    <button class="btn btn-primary btn-sm" data-action="open-hold" title="Pencil in dates without creating a trip">＋ Add hold</button>
   </div>
   <div class="cal-tools">
     <select class="status-select" id="cal-month" aria-label="Month">${monthOpts}</select>
@@ -2023,7 +2115,13 @@ function calendarHTML(){
     <div class="cal-dow">${DOW_SHORT.map(d=>`<div>${d}</div>`).join('')}</div>
     ${weeks}
   </div>
-  <div class="panel"><div class="panel-head"><h3>Trips in ${MONTH_NAMES[m]} ${y}</h3><span class="dash-note" style="margin:0;">Click a trip to open it</span></div>${agenda}</div>`;
+  <div class="panel"><div class="panel-head"><h3>Trips in ${MONTH_NAMES[m]} ${y}</h3><span class="dash-note" style="margin:0;">Click a trip to open it</span></div>${agenda}</div>
+  <div class="panel" style="margin-top:16px;"><div class="panel-head"><h3>Holds in ${MONTH_NAMES[m]} ${y}</h3><span class="dash-note" style="margin:0;">Dates pencilled in — no trip created</span></div>
+    ${holdsInMonth.length ? `<div style="overflow-x:auto;"><table class="dash-table"><thead><tr><th>Dates</th><th>Hold</th><th></th></tr></thead><tbody>${holdsInMonth.map(i=>`<tr>
+      <td>${fmtDate(dayYmd(i.s))}${i.e>i.s?` → ${fmtDate(dayYmd(i.e))}`:''}</td>
+      <td><b>${esc(i.h.title)}</b>${i.h.note?`<div class="cust-sub">${esc(i.h.note)}</div>`:''}</td>
+      <td style="text-align:right;white-space:nowrap;"><button class="btn btn-sm btn-ghost" data-cal-hold="${esc(i.h.id)}">Edit</button> <button class="btn btn-sm btn-primary" data-hold-convert="${esc(i.h.id)}">Convert to trip</button></td></tr>`).join('')}</tbody></table></div>` : `<div class="cal-empty"><span>No holds this month. Use “+ Add hold” to pencil in dates without creating a trip.</span></div>`}
+  </div>`;
 }
 
 function bindCalendarEvents(app){
@@ -2052,6 +2150,10 @@ function bindCalendarEvents(app){
   app.querySelectorAll('[data-cal-jump]').forEach(el=>el.addEventListener('click', ()=>{
     const [yy, mm] = el.dataset.calJump.split('-').map(Number); calCursor = { y:yy, m:mm }; render();
   }));
+  app.querySelectorAll('[data-cal-hold]').forEach(el=>el.addEventListener('click', ()=>{ editingHoldId = el.dataset.calHold; render(); openOverlay('overlay-hold'); }));
+  app.querySelectorAll('[data-hold-convert]').forEach(el=>el.addEventListener('click', ()=>startConvertHold(el.dataset.holdConvert)));
+  const openHold = app.querySelector('[data-action="open-hold"]');
+  if(openHold) openHold.addEventListener('click', ()=>{ editingHoldId = 'new'; render(); openOverlay('overlay-hold'); });
   app.querySelectorAll('[data-cal-trip]').forEach(el=>el.addEventListener('click', ()=>{
     view.mode = 'detail'; view.tripId = el.dataset.calTrip; view.returnTo = 'calendar'; passengerFilterKeyword = ''; passengerStatusFilter='All'; render();
   }));
@@ -2060,28 +2162,74 @@ function bindCalendarEvents(app){
 /* =========================================================
    Render: list view
    ========================================================= */
-function listHTML(){
-  let list = trips.filter(t=>{
+// Creator (initials circle) + travel lead (first name from Supplier Readiness).
+function userInitialsFor(name, fallback){
+  if(fallback) return String(fallback).toUpperCase();
+  const u = (users||[]).find(x=>x.name===name || x.username===name);
+  if(u && u.initials) return String(u.initials).toUpperCase();
+  return String(name||'?').replace(/[^A-Za-z]/g,'').slice(0,2).toUpperCase() || '?';
+}
+function tripLeadFirst(t){ const n = String((((t.opsChecklist||{}).supplier)||{}).leadName||'').trim(); return n ? n.split(/\s+/)[0] : ''; }
+function leadCellHTML(t){
+  const lead = tripLeadFirst(t);
+  const av = t.createdByName ? `<span class="av-ini" title="Created by ${esc(t.createdByName)}">${esc(userInitialsFor(t.createdByName, t.createdByInitials))}</span>` : '<span class="av-ini av-none" title="Creator unknown">–</span>';
+  return `<span class="lead-wrap">${av}${lead ? `<b title="Travel lead">${esc(lead)}</b>` : '<span class="cust-sub" title="No travel lead entered yet in Supplier Readiness">no lead yet</span>'}</span>`;
+}
+// ---- Trips list: stage tabs (with counts) + payment chips + live "Showing x of y" ----
+const STAGES = [
+  { key:'Action',      label:'⚡ Needs action', dot:'',        hint:'Pending Payment, Pending Ops, Ongoing or On-hold' },
+  { key:'Active',      label:'All active',      dot:'',        hint:'Everything except Completed (and Cancelled)' },
+  { key:'Pending Ops', label:'Pending Ops',     dot:'#D9483B', hint:'' },
+  { key:'Ongoing',     label:'Ongoing',         dot:'#E2A82B', hint:'' },
+  { key:'Ready',       label:'Ready',           dot:'#2E8B57', hint:'' },
+  { key:'Departed',    label:'Departed',        dot:'#0E7C86', hint:'' },
+  { key:'Completed',   label:'Completed',       dot:'#2B6CB0', hint:'Finished trips' },
+  { key:'Hold',        label:'On-hold / Rejected', dot:'#6B4A9A', hint:'' },
+];
+function tripStage(){ return view.opsFilter && STAGES.some(x=>x.key===view.opsFilter) ? view.opsFilter : 'Active'; }
+function tripInStage(t, key){
+  const sub = isSubmittedTrip(t), ops = sub ? tripOpsStatus(t) : '';
+  switch(key){
+    case 'Action': return needsOpsAction(t);
+    case 'Active': return (tripMainStatus(t)==='Cancelled' ? view.statusFilter==='Cancelled' : ops!=='Completed');
+    case 'Hold': return sub && (ops==='Onhold' || ops==='Rejected');
+    default: return sub && ops===key;
+  }
+}
+function tripMonthKey(t){ return String(t.startDate||'').slice(0,7); }
+function tripListFilters(skipStage){
+  return trips.filter(t=>{
     const matchSearch = !view.search || (t.name+t.destination+tripCode(t)).toLowerCase().includes(view.search.toLowerCase());
-    const matchStatus = view.statusFilter==='All' || tripMainStatus(t)===view.statusFilter;
-    const matchOps = !view.opsFilter || view.opsFilter==='All' || (view.opsFilter==='Action' ? needsOpsAction(t) : (isSubmittedTrip(t) && tripOpsStatus(t)===view.opsFilter));
-    const matchType = view.typeFilter==='All' || t.type===view.typeFilter;
-    return matchSearch && matchStatus && matchOps && matchType;
-  }).sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
+    const matchStatus = !view.statusFilter || view.statusFilter==='All' || tripMainStatus(t)===view.statusFilter;
+    const matchType = !view.typeFilter || view.typeFilter==='All' || t.type===view.typeFilter;
+    const matchMonth = !view.monthFilter || tripMonthKey(t)===view.monthFilter;
+    return matchSearch && matchStatus && matchType && matchMonth && (skipStage || tripInStage(t, tripStage()));
+  });
+}
+function monthLabel(k){ const [y,m]=k.split('-').map(Number); return new Date(y,m-1,1).toLocaleDateString('en-GB',{month:'short',year:'numeric'}); }
+function filtersAreDefault(){ return !view.search && (!view.statusFilter||view.statusFilter==='All') && (!view.typeFilter||view.typeFilter==='All') && !view.monthFilter && tripStage()==='Active'; }
+function listHTML(){
+  const base = tripListFilters(true);
+  const stage = tripStage();
+  let list = base.filter(t=>tripInStage(t, stage)).sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
+  const counts = {}; STAGES.forEach(x=>{ counts[x.key] = base.filter(t=>tripInStage(t,x.key)).length; });
+  const months = [...new Set(trips.map(tripMonthKey).filter(Boolean))].sort().reverse();
+  if(view.monthFilter && !months.includes(view.monthFilter)) months.push(view.monthFilter);
+  const hiddenDone = stage==='Active' ? base.filter(t=>isSubmittedTrip(t) && tripOpsStatus(t)==='Completed').length : 0;
 
   const toolbar = `
-  <div class="toolbar">
-    <input class="search" id="search-input" placeholder="Search trips by name, destination or code…" value="${esc(view.search)}">
-    <div class="chip-row" id="status-chips">
-      ${['All',...MAIN_STATUSES].map(s=>`<button class="chip ${view.statusFilter===s?'active':''}" data-filter-status="${s}">${s}</button>`).join('')}
+  <div class="stage-tabs" id="stage-tabs">
+    ${STAGES.map(x=>`<button class="stage-tab ${stage===x.key?'on':''}" data-filter-ops="${x.key}" ${x.hint?`title="${esc(x.hint)}"`:''}>${x.dot?`<span class="dot" style="background:${x.dot}"></span>`:''}${x.label} <b>${counts[x.key]}</b></button>`).join('')}
+  </div>
+  <div class="toolbar tl-bar">
+    <input class="search" id="search-input" placeholder="Search trips…" value="${esc(view.search)}">
+    <div class="chip-row" id="status-chips"><span class="tl-lbl">Payment</span>
+      ${['All',...MAIN_STATUSES].map(s=>`<button class="chip ${(view.statusFilter||'All')===s?'active':''}" data-filter-status="${s}">${s}</button>`).join('')}
     </div>
-    <div class="chip-row" id="ops-chips">
-      ${['All','Action',...OPS_STATUSES].map(s=>`<button class="chip ${(view.opsFilter||'All')===s?'active':''}" data-filter-ops="${s}" title="${s==='Action'?'Pending Payment, Pending Ops, Ongoing or On-hold':'Operations status'}">${s==='All'?'All Ops':s==='Action'?'Actions needed':opsLabel(s)}</button>`).join('')}
-    </div>
-    <div class="chip-row" id="type-chips">
-      ${['All','open','private'].map(s=>`<button class="chip ${view.typeFilter===s?'active':''}" data-filter-type="${s}">${s==='All'?'All types':s.charAt(0).toUpperCase()+s.slice(1)+' trip'}</button>`).join('')}
-    </div>
-    <div class="chip-row" id="layout-toggle" style="margin-left:auto;">
+    <select class="tl-sel" id="type-select" title="Trip type"><option value="All">Type: All</option><option value="open" ${view.typeFilter==='open'?'selected':''}>Open trips</option><option value="private" ${view.typeFilter==='private'?'selected':''}>Private trips</option></select>
+    <select class="tl-sel" id="month-select" title="Month the trip starts"><option value="">Month: Any</option>${months.map(k=>`<option value="${k}" ${view.monthFilter===k?'selected':''}>${monthLabel(k)}</option>`).join('')}</select>
+    <span class="tl-count" id="tl-count" title="${hiddenDone?hiddenDone+' completed trip'+(hiddenDone===1?' is':'s are')+' hidden — open the Completed tab to see them':''}">Showing <b>${list.length}</b> of ${trips.length}${hiddenDone?` <span>· ${hiddenDone} completed hidden</span>`:''}${filtersAreDefault()?'':` <span>·</span> <a href="#" data-action="clear-trip-filters">Clear</a>`}</span>
+    <div class="chip-row" id="layout-toggle">
       <button class="chip ${view.layout!=='list'?'active':''}" data-set-layout="grid" title="Grid view">▦ Grid</button>
       <button class="chip ${view.layout==='list'?'active':''}" data-set-layout="list" title="List view">☰ List</button>
     </div>
@@ -2096,7 +2244,7 @@ function listHTML(){
     </div>`;
   }
   if(!list.length){
-    return toolbar + `<div class="empty"><h3>No trips match your filters</h3><p>Try clearing the search or filters.</p></div>`;
+    return toolbar + `<div class="empty"><h3>No trips match your filters</h3><p>Try another tab, or <a href="#" data-action="clear-trip-filters">clear the filters</a>.</p></div>`;
   }
 
   if(view.layout==='list'){
@@ -2111,6 +2259,7 @@ function listHTML(){
       paid: t=>custByTrip(t.id).filter(c=>paxStatus(c)==='Paid').length,
       opsStatus: t=>isSubmittedTrip(t) ? OPS_STATUSES.indexOf(tripOpsStatus(t)) : -1,
       balance: t=>tripMoney(t).balance,
+      lead: t=>(tripLeadFirst(t)||'~').toLowerCase()+'|'+(t.createdByName||'').toLowerCase(),
     };
     const sortedList = applySort(list, tripListSort, tripListExtractors);
     const rows = sortedList.map(t=>{
@@ -2130,6 +2279,7 @@ function listHTML(){
         <td class="tl-dates">${esc(fmtRange(t.startDate,t.endDate))}${durationCode(t.startDate,t.endDate)?` <span class="dur-chip">${durationCode(t.startDate,t.endDate)}</span>`:''}</td>
         <td>${statusPillHTML(t)}</td>
         <td>${opsPillHTML(t, true) || '<span class="cust-sub">—</span>'}</td>
+        <td class="tl-lead">${leadCellHTML(t)}</td>
         <td class="tl-pax"><b>${tm.pax}</b></td>
         <td class="tl-paid"><b>${paid}</b> ${paidBar(paid, tm.pax)}</td>
         <td class="bal-cell">${tripMoneyChip(tm, tripMainStatus(t)==='Cancelled')}${tm.amount>0 && tripMainStatus(t)!=='Cancelled' ?`<small>of ${fmtRM(tm.amount)}</small>`:''}</td>
@@ -2139,7 +2289,7 @@ function listHTML(){
     <div class="panel">
       <div style="overflow-x:auto;">
         <table class="trip-table">
-          <thead><tr>${sortHeader('Code','code',tripListSort)}${sortHeader('Year','year',tripListSort)}${sortHeader('Trip','trip',tripListSort)}${sortHeader('Type','type',tripListSort)}${sortHeader('Dates','dates',tripListSort)}${sortHeader('Payment','status',tripListSort)}${sortHeader('Operations','opsStatus',tripListSort)}${sortHeader('Pax','pax',tripListSort)}${sortHeader('Paid','paid',tripListSort)}${sortHeader('Balance','balance',tripListSort)}</tr></thead>
+          <thead><tr>${sortHeader('Code','code',tripListSort)}${sortHeader('Year','year',tripListSort)}${sortHeader('Trip','trip',tripListSort)}${sortHeader('Type','type',tripListSort)}${sortHeader('Dates','dates',tripListSort)}${sortHeader('Payment','status',tripListSort)}${sortHeader('Operations','opsStatus',tripListSort)}${sortHeader('Created by · Lead','lead',tripListSort)}${sortHeader('Pax','pax',tripListSort)}${sortHeader('Paid','paid',tripListSort)}${sortHeader('Balance','balance',tripListSort)}</tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -2350,7 +2500,7 @@ function detailHTML(){
    Modals
    ========================================================= */
 function modalsHTML(){
-  return tripModal() + customerModal() + paymentsModal() + addonsModal() + opsReasonModal() + uploadModal() + pricingModal();
+  return tripModal() + holdModal() + customerModal() + paymentsModal() + addonsModal() + opsReasonModal() + uploadModal() + pricingModal();
 }
 
 /* =========================================================
@@ -2547,6 +2697,10 @@ const ACTIVITY_LABELS = {
   'passenger.deleted': 'removed passenger',
   'user.created': 'created account for',
   'user.role_changed': 'changed role for',
+  'user.updated': 'edited account of',
+  'user.password_reset': 'reset the password of',
+  'hold.created': 'added a calendar hold',
+  'hold.deleted': 'deleted a calendar hold',
   'user.deleted': 'removed account',
   'settings.updated': 'updated numbering format',
   'trip_sequence.updated': 'set the next trip number',
@@ -2608,46 +2762,65 @@ function activityLogModalHTML(){
   </div>`;
 }
 
+function userInitialsOf(u){ return u.initials || userInitialsFor(u.name); }
 function manageUsersModalHTML(){
-  const rows = users.map(u=>`
-    <tr>
+  const rows = users.map(u=>{
+    const me = u.id===currentUser.id;
+    if(editingUserId===u.id){
+      return `<tr class="um-edit">
+        <td><input class="um-in" id="ue-username" value="${esc(u.username||u.name)}" placeholder="Username"><div class="cust-sub">Shown everywhere in the app</div></td>
+        <td><input class="um-in" id="ue-name" value="${esc(u.fullName||'')}" placeholder="Full name"></td>
+        <td><input class="um-in" id="ue-email" type="email" value="${esc(u.email)}" placeholder="Email"></td>
+        <td><input class="um-in" id="ue-initials" value="${esc(userInitialsOf(u))}" maxlength="4" style="width:58px;text-transform:uppercase;"></td>
+        <td>${roleLabel(u.role)}</td>
+        <td><div class="row-actions" style="gap:6px;"><button class="btn btn-sm btn-primary" data-save-user="${u.id}">Save</button><button class="btn btn-sm btn-ghost" data-cancel-user>Cancel</button></div></td>
+      </tr>`;
+    }
+    return `<tr>
+      <td><div class="cust-name">${esc(u.username||u.name)} ${me ? '<span class="cust-sub">(you)</span>' : ''}</div>${u.mustChangePassword ? '<div class="cust-sub" style="color:#9A6A00;">must set a new password at next sign-in</div>' : ''}</td>
+      <td><span class="cust-sub">${esc(u.fullName||'—')}</span></td>
+      <td><span class="cust-sub">${esc(u.email)}</span></td>
+      <td><span class="av-ini" title="Initials shown in the trips list">${esc(userInitialsOf(u))}</span></td>
       <td>
-        <div class="cust-name">${esc(u.name)} ${u.id===currentUser.id ? '<span class="cust-sub">(you)</span>' : ''}</div>
-        <div class="cust-sub">${esc(u.email)}${u.isTemp ? ' · temp' : ''}</div>
-      </td>
-      <td>
-        <select class="status-select" data-role-select="${u.id}" ${u.id===currentUser.id && adminCount()<=1 ? 'disabled title="At least one admin is required"' : ''}>
+        <select class="status-select" data-role-select="${u.id}" ${me && adminCount()<=1 ? 'disabled title="At least one admin is required"' : ''}>
           ${['user','approver','admin'].map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${roleLabel(r)}</option>`).join('')}
         </select>
       </td>
       <td>
-        <div class="row-actions">
-          <button class="icon-btn danger" data-del-user="${u.id}" title="Remove user" ${u.id===currentUser.id ? 'disabled' : ''}>✕</button>
+        <div class="row-actions" style="gap:6px;white-space:nowrap;">
+          <button class="btn btn-sm btn-ghost" data-edit-user="${u.id}" title="Edit username, name, email and initials">Edit</button>
+          <button class="btn btn-sm btn-ghost" data-reset-user="${u.id}" title="Give them a new temporary password" ${me?'disabled':''}>Reset password</button>
+          <button class="icon-btn danger" data-del-user="${u.id}" title="Remove user" ${me ? 'disabled' : ''}>✕</button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   return `
   <div class="overlay" id="overlay-users">
-    <div class="modal" style="max-width:640px;">
+    <div class="modal modal-wide" style="max-width:980px;">
       <div class="modal-head"><h3>Manage users</h3><button class="modal-close" data-close="overlay-users">✕</button></div>
       <div class="modal-body">
-        <p class="hint" style="margin:0 0 14px;">Users can create, edit, and remove passengers, and can create/edit trips. Approvers can also decline trips and route their Operations stage. Admins have full control, including deleting trips and managing accounts.</p>
+        <p class="hint" style="margin:0 0 14px;">Users can create, edit, and remove passengers, and can create/edit trips. Approvers can also decline trips and route their Operations stage. Admins have full control, including deleting trips and managing accounts. The <b>username</b> is what everyone sees in the app; <b>initials</b> appear in the trips list.</p>
+        ${resetNotice ? `<div class="um-notice"><div><b>${esc(resetNotice.title)}</b><br>Username: <b>${esc(resetNotice.username)}</b> &nbsp;·&nbsp; Temporary password: <b class="um-pw">${esc(resetNotice.password)}</b><div class="hint" style="margin:4px 0 0;">Shown once — send it to them. They will be asked to choose their own password at first sign-in.</div></div><button class="btn btn-sm btn-ghost" data-action="dismiss-reset-notice">Got it</button></div>` : ''}
+        ${manageUsersError ? `<p style="color:var(--coral);font-size:13px;margin:0 0 10px;font-weight:600;">${esc(manageUsersError)}</p>` : ''}
         <div style="overflow-x:auto;margin-bottom:20px;">
-          <table>
-            <thead><tr><th>Name</th><th>Role</th><th></th></tr></thead>
+          <table class="um-table">
+            <thead><tr><th>Username</th><th>Full name</th><th>Email</th><th>Initials</th><th>Role</th><th></th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>
         <div style="border-top:1.5px dashed var(--line);padding-top:16px;">
-          <h3 style="font-family:var(--font-display);font-size:15px;margin:0 0 12px;color:var(--navy-deep);">Add a user</h3>
-          ${manageUsersError ? `<p style="color:var(--coral);font-size:13px;margin:0 0 10px;font-weight:600;">${esc(manageUsersError)}</p>` : ''}
-          <div class="field-row">
-            <div class="field"><label>Full name</label><input id="nu-name" placeholder="Full name"></div>
-            <div class="field"><label>Email</label><input type="email" id="nu-email" placeholder="you@example.com"></div>
+          <h3 style="font-family:var(--font-display);font-size:15px;margin:0 0 4px;color:var(--navy-deep);">Add a user</h3>
+          <p class="hint" style="margin:0 0 12px;">Sign-up is closed — accounts are only created here. Leave the password empty to generate a temporary one.</p>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
+            <div class="field"><label>Username</label><input id="nu-username" placeholder="e.g. hafiz" autocapitalize="none"></div>
+            <div class="field"><label>Full name <span style="font-weight:400;">(optional)</span></label><input id="nu-name" placeholder="Full name"></div>
+            <div class="field"><label>Initials <span style="font-weight:400;">(auto)</span></label><input id="nu-initials" maxlength="4" placeholder="auto" style="text-transform:uppercase;"></div>
           </div>
-          <div class="field-row">
-            <div class="field"><label>Password</label><input type="password" id="nu-password" placeholder="At least 6 characters"></div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
+            <div class="field"><label>Email</label><input type="email" id="nu-email" placeholder="you@example.com"></div>
+            <div class="field"><label>Password <span style="font-weight:400;">(optional)</span></label><input type="text" id="nu-password" placeholder="blank = generate" autocomplete="off"></div>
             <div class="field"><label>Role</label>
               <select id="nu-role">
                 <option value="user">User</option>
@@ -2665,6 +2838,39 @@ function manageUsersModalHTML(){
       </div>
     </div>
   </div>`;
+}
+
+// Everyone can change their own password; after an admin reset it is required before anything else.
+function changePasswordModalHTML(){
+  if(!currentUser) return '';
+  const forced = !!currentUser.mustChangePassword;
+  if(!forced && !chpwOpen) return '';
+  return `
+  <div class="overlay show" id="overlay-chpw">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-head"><h3>${forced ? 'Choose a new password' : 'Change password'}</h3>${forced ? '' : '<button class="modal-close" data-action="close-chpw">✕</button>'}</div>
+      <div class="modal-body">
+        ${forced ? '<p class="hint" style="margin:0 0 12px;">Your password was set by an admin. Please choose your own before continuing.</p>' : ''}
+        ${chpwError ? `<p style="color:var(--coral);font-size:13px;margin:0 0 10px;font-weight:600;">${esc(chpwError)}</p>` : ''}
+        <div class="field"><label>${forced ? 'Temporary password' : 'Current password'}</label><input type="password" id="cp-current" autocomplete="current-password"></div>
+        <div class="field"><label>New password</label><input type="password" id="cp-new" placeholder="At least 6 characters" autocomplete="new-password"></div>
+        <div class="field"><label>Confirm new password</label><input type="password" id="cp-new2" autocomplete="new-password"></div>
+      </div>
+      <div class="modal-foot"><div></div><div style="display:flex;gap:10px;">${forced ? '<button class="btn btn-ghost" data-action="do-logout">Log out</button>' : '<button class="btn btn-ghost" data-action="close-chpw">Cancel</button>'}<button class="btn btn-primary" data-action="do-change-password">Save password</button></div></div>
+    </div>
+  </div>`;
+}
+async function handleChangePassword(){
+  const cur = document.getElementById('cp-current').value, nw = document.getElementById('cp-new').value, nw2 = document.getElementById('cp-new2').value;
+  if(!cur){ chpwError = 'Please enter your current password.'; render(); return; }
+  if(nw.length<6){ chpwError = 'New password must be at least 6 characters.'; render(); return; }
+  if(nw!==nw2){ chpwError = 'The new passwords do not match.'; render(); return; }
+  try{
+    const r = await apiFetch('/auth/change-password', { method:'POST', body: JSON.stringify({ currentPassword:cur, newPassword:nw }) });
+    currentUser = { ...currentUser, ...r.user }; saveSession();
+    chpwOpen = false; chpwError = ''; showToast('Password changed');
+  }catch(e){ chpwError = e.message || 'Could not change the password.'; }
+  render();
 }
 
 /* =========================================================
@@ -2907,7 +3113,7 @@ function hasLegacyTicketData(t){ return customers.some(c=>c.tripId===t.id && (c.
 function ticketColsTrip(t){ return ticketStageTrip(t) && hasLegacyTicketData(t); }
 function ticketStageTrip(t){ return isSubmittedTrip(t) && ['Ongoing','Ready','Departed','Completed'].includes(tripOpsStatus(t)); }
 function needsOpsAction(t){ return isSubmittedTrip(t) && !isCancelledTrip(t) && (tripMainStatus(t)==='Pending Payment' || ['Pending Ops','Ongoing','Onhold'].includes(tripOpsStatus(t))); }
-function statusPillHTML(t){ const m = tripMainStatus(t); return `<span class="pill s-${slugS(m)}">${esc(m)}</span>`; }
+function statusPillHTML(t){ const m = tripMainStatus(t); return `<span class="pill pay s-${slugS(m)}">${esc(m)}</span>`; }
 function stampHTML(t, attrs){ const m = tripMainStatus(t); return `<div class="stamp ${slugS(m)}" ${attrs||''}>${m}</div>`; }
 // Ongoing carries a red "!" until the Readiness Check (Supplier Readiness) has been ticked by hand.
 function opsNeedsBang(t){ return isSubmittedTrip(t) && tripOpsStatus(t)==='Ongoing' && !supReadyDone(t); }
@@ -3621,16 +3827,75 @@ function updateTripNamePreview(){
   if(e.target && e.target.closest && e.target.closest('#overlay-trip')) setTimeout(updateTripNamePreview, 40);
 }));
 
+function holdModal(){
+  const h = editingHoldId && editingHoldId!=='new' ? holds.find(x=>x.id===editingHoldId) : null;
+  const v = h || { title:'', startDate:'', endDate:'', note:'' };
+  return `
+  <div class="overlay" id="overlay-hold">
+    <div class="modal">
+      <div class="modal-head"><h3>${h?'Edit hold':'Add hold'}</h3><button class="modal-close" data-close="overlay-hold">✕</button></div>
+      <div class="modal-body">
+        <p class="hint" style="margin:0 0 12px;">A hold only pencils dates into the calendar — it is <b>not</b> a trip, has no passengers and isn't counted anywhere. When it is confirmed, use <b>Convert to trip</b>.</p>
+        <div class="field"><label>Title</label><input id="hd-title" placeholder="e.g. Japan group – maybe" value="${esc(v.title)}"></div>
+        <div class="form-grid">
+          <div class="field"><label>From</label><input type="date" id="hd-start" value="${esc(v.startDate)}"></div>
+          <div class="field"><label>To</label><input type="date" id="hd-end" value="${esc(v.endDate)}"></div>
+        </div>
+        <div class="field"><label>Note <span style="font-weight:400;">(optional)</span></label><input id="hd-note" placeholder="e.g. waiting for client reply" value="${esc(v.note||'')}"></div>
+      </div>
+      <div class="modal-foot">
+        <div>${h?`<button class="btn btn-sm btn-danger" data-action="delete-hold">Delete hold</button>`:''}</div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-ghost" data-close="overlay-hold">Cancel</button>
+          ${h?`<button class="btn btn-ghost" data-action="convert-hold">Convert to trip</button>`:''}
+          <button class="btn btn-primary" data-action="save-hold">${h?'Save':'Add hold'}</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function startConvertHold(id){
+  const h = holds.find(x=>x.id===id); if(!h) return;
+  convertingHoldId = id; editingTripId = null; editingHoldId = null;
+  view.mode = 'list'; render(); openOverlay('overlay-trip');
+}
+async function handleSaveHold(){
+  const body = { title:document.getElementById('hd-title').value.trim(), startDate:document.getElementById('hd-start').value, endDate:document.getElementById('hd-end').value, note:document.getElementById('hd-note').value.trim() };
+  if(!body.title){ showToast('Please give the hold a title'); return; }
+  if(!body.startDate){ showToast('Please choose the start date'); return; }
+  if(!body.endDate) body.endDate = body.startDate;
+  if(body.endDate < body.startDate){ showToast('End date cannot be before the start date'); return; }
+  try{
+    if(editingHoldId && editingHoldId!=='new'){
+      const upd = await apiFetch('/holds/'+editingHoldId, { method:'PUT', body: JSON.stringify(body) });
+      holds = holds.map(x=>x.id===upd.id ? upd : x); showToast('Hold updated');
+    } else {
+      const created = await apiFetch('/holds', { method:'POST', body: JSON.stringify(body) });
+      holds.push(created); showToast('Hold added to the calendar');
+      const ds = dayNum(created.startDate); calCursor = { y:new Date(ds*86400000).getUTCFullYear(), m:new Date(ds*86400000).getUTCMonth() };
+    }
+    editingHoldId = null; closeOverlay('overlay-hold');
+  }catch(e){ showToast(e.message || 'Could not save the hold'); }
+  render();
+}
+async function handleDeleteHold(){
+  if(!editingHoldId || editingHoldId==='new') return;
+  if(!confirm('Delete this hold?')) return;
+  try{ await apiFetch('/holds/'+editingHoldId, { method:'DELETE' }); holds = holds.filter(x=>x.id!==editingHoldId); editingHoldId=null; closeOverlay('overlay-hold'); showToast('Hold deleted'); }
+  catch(e){ showToast(e.message || 'Could not delete the hold'); }
+  render();
+}
 function tripModal(){
   const editing = editingTripId ? trips.find(t=>t.id===editingTripId) : null;
+  const convHold = !editing && convertingHoldId ? holds.find(x=>x.id===convertingHoldId) : null;
   const v = {
     name: editing ? editing.name : '',
     ref: editing ? (editing.reference||'') : '',
     type: editing ? editing.type : 'open',
     dest: editing ? editing.destination : '',
     route: editing ? (editing.route||'') : '',
-    start: editing ? editing.startDate : '',
-    end: editing ? editing.endDate : ''
+    start: editing ? editing.startDate : (convHold ? convHold.startDate : ''),
+    end: editing ? editing.endDate : (convHold ? convHold.endDate : '')
   };
   rpInit(v.start, v.end);
   return `
@@ -3681,6 +3946,7 @@ function tripModal(){
           <div class="hint">Click the start date, then the end date, all in one calendar — or drag from start to end.</div>
           <div class="hint dur-line" id="tr-duration">${v.start && v.end ? 'Duration: <b>'+durationCode(v.start, v.end)+'</b>' : ''}</div>
         </div>
+        ${convHold ? `<p class="hint" style="margin:4px 0 8px;background:#F3EEFA;border-radius:8px;padding:8px 10px;">Converting hold <b>${esc(convHold.title)}</b> — its dates are filled in. The hold is removed from the calendar once the trip is created.</p>` : ''}
         ${!editing ? `<p class="hint" style="margin:4px 0 0;">New trips start as <b>Draft</b>. When everything is filled in, open the trip and click <b>Submit</b>.</p>` : ''}
       </div>
       <div class="modal-foot">
@@ -4010,6 +4276,38 @@ function pricingModal(){
     </div>
   </div>`;
 }
+// One preview row: amount / deposit / dates that need fixing become inputs right in the table.
+function pvInput(r,f,val,ph,w){ return `<input class="pv-in" data-pv-edit="${r.uid}:${f}" value="${esc(val)}" placeholder="${ph}" ${f==='amount'||f==='deposit'?'inputmode="decimal"':''} style="width:${w||88}px">`; }
+function pvRowHTML(r){
+  const pr = rowProblems(r), has = f=>pr.some(p=>p.f===f);
+  const amountCell = r.dup ? (r.amount?fmtNum(r.amount):'—') : (has('amount') ? pvInput(r,'amount',r.amount>0?r.amount:'','RM') : (r.amount?fmtNum(r.amount):'—'));
+  const depositCell = r.dup ? (r.deposit?fmtNum(r.deposit):'—') : (has('deposit') ? pvInput(r,'deposit',r.deposit>0?r.deposit:'','RM') : (r.deposit?fmtNum(r.deposit):'—'));
+  let status;
+  if(r.dup) status = `<span class="pv-dupt">Skip – ${esc(r.dup.toLowerCase())}</span>`;
+  else if(pr.length){
+    const dateFix = ['dob','passportExpiry'].filter(has).map(f=>`<div class="pv-fix">${f==='dob'?'Date of birth':'Passport expiry'}: ${pvInput(r,f,f==='dob'?r.dobBad:r.passportExpiryBad,'DD/MM/YYYY',104)}</div>`).join('');
+    status = `<span class="pv-warn">${pr.map(p=>esc(p.msg)).join(' · ')}</span>${dateFix}`;
+  } else status = payStatusFor(r.amount,r.deposit);
+  return `<tr class="${r.dup?'pv-dup':pr.length?'pv-bad':''}"><td>${r.dup?'':pr.length?'⚠ ':''}${esc(r.name)}</td><td>${esc(r.idNumber||r.passportNumber||'')}</td><td class="num">${amountCell}</td><td class="num">${depositCell}</td><td>${status}</td></tr>`;
+}
+function pvBannerHTML(){
+  const bad = uploadProblemRows();
+  const noName = uploadCtx.skippedNoName||0;
+  let out = '';
+  if(bad.length){
+    const cnt = f=>bad.filter(r=>rowProblems(r).some(p=>p.f===f)).length;
+    const parts = [];
+    if(cnt('amount')) parts.push(`${cnt('amount')} with no valid package amount`);
+    if(cnt('deposit')) parts.push(`${cnt('deposit')} with a deposit problem`);
+    const dts = cnt('dob')+cnt('passportExpiry');
+    if(dts) parts.push(`${dts} with a date we can't read`);
+    out += `<div class="pv-warnbox"><b>⚠ ${bad.length} row${bad.length===1?'':'s'} need${bad.length===1?'s':''} attention before you can import.</b> ${parts.join(' · ')}. Fix them in the table below — no need to re-upload the Excel.
+      ${cnt('amount') ? `<div class="pv-fill">Same package amount for all blanks: <input class="pv-in" id="pv-fill" inputmode="decimal" placeholder="RM" style="width:90px"> <button type="button" class="btn btn-sm btn-ghost" data-action="pv-fill">Apply to blanks</button></div>` : ''}
+    </div>`;
+  }
+  if(noName) out += `<div class="pv-notice">${noName} row${noName===1?'':'s'} in the sheet ${noName===1?'has':'have'} no name and will be skipped.</div>`;
+  return out;
+}
 function uploadModal(){
   const tripOptions = trips.map(t=>`<option value="${t.id}">${tripCode(t)} — ${esc(t.name)}</option>`).join('');
 
@@ -4017,6 +4315,7 @@ function uploadModal(){
   if(uploadCtx.parsedRows.length){
     if(uploadCtx.groups.length){
       previewBlock = `
+        ${pvBannerHTML()}
         <p class="preview-note"><b>${uploadCtx.parsedRows.length}</b> passenger(s) detected across <b>${uploadCtx.groups.length}</b> trip(s), grouped by Trip Type + Country + Route:</p>
         ${uploadCtx.groups.map(g=>`
           <div class="preview-group">
@@ -4025,26 +4324,22 @@ function uploadModal(){
               <span>${g.rows.length-g.dups} to import${g.dups?` · ${g.dups} skipped`:''}</span>
             </div>
             <div class="preview-sums">Package <b>${fmtRM(g.sumAmount)}</b> · Deposit <b>${fmtRM(g.sumDeposit)}</b> · Balance <b>${fmtRM(Math.max(0,g.sumAmount-g.sumDeposit))}</b>${g.issues?` · <span class="pv-warn">⚠ ${g.issues} to check</span>`:''}</div>
-            <details class="preview-det" ${(g.issues||g.dups)?'open':''}><summary>${g.issues?'Passengers':'Show passengers'}</summary>
+            <details class="preview-det" ${(g.issues||g.dups||uploadCtx.touched)?'open':''}><summary>${g.issues?'Passengers':'Show passengers'}</summary>
               <div class="preview-table-wrap"><table>
                 <thead><tr><th>Name</th><th>IC/Passport</th><th class="num">Package</th><th class="num">Deposit</th><th>Status</th></tr></thead>
-                <tbody>${g.rows.map(r=>`<tr class="${r.dup?'pv-dup':r.payIssue?'pv-bad':''}"><td>${r.dup?'':r.payIssue?'⚠ ':''}${esc(r.name)}</td><td>${esc(r.idNumber||r.passportNumber||'')}</td><td class="num">${r.amount?fmtNum(r.amount):'—'}</td><td class="num">${r.deposit?fmtNum(r.deposit):'—'}</td><td>${r.dup?`<span class="pv-dupt">Skip – ${esc(r.dup.toLowerCase())}</span>`:r.payIssue?`<span class="pv-warn">${esc(r.payIssue)}</span>`:payStatusFor(r.amount,r.deposit)}</td></tr>`).join('')}</tbody>
+                <tbody>${g.rows.map(pvRowHTML).join('')}</tbody>
               </table></div>
             </details>
           </div>`).join('')}
-        ${uploadCtx.groups.some(g=>g.dups) ? `<div class="pv-notice pv-info">${uploadCtx.groups.reduce((n,g)=>n+g.dups,0)} passenger(s) are already in the trip (or repeated in the file) and will be skipped, so nobody is added twice.</div>` : ''}
-        ${uploadCtx.groups.some(g=>g.issues) ? `<div class="pv-notice">⚠ ${uploadCtx.groups.reduce((n,g)=>n+g.issues,0)} row(s) need attention. They will be imported with the problem figure left at RM 0 unless you fix the sheet and re-upload.</div>` : ''}`;
+        ${uploadCtx.groups.some(g=>g.dups) ? `<div class="pv-notice pv-info">${uploadCtx.groups.reduce((n,g)=>n+g.dups,0)} passenger(s) are already in the trip (or repeated in the file) and will be skipped, so nobody is added twice.</div>` : ''}`;
     } else {
       previewBlock = `
+        ${pvBannerHTML()}
         <p class="preview-note"><b>${uploadCtx.parsedRows.length}</b> row(s) detected — preview:</p>
         <div class="preview-table-wrap">
           <table>
-            <thead><tr><th>Name</th><th>DOB</th><th>Contact</th><th>Location</th></tr></thead>
-            <tbody>
-              ${uploadCtx.parsedRows.slice(0,8).map(r=>`
-                <tr><td>${esc(r.name)}</td><td>${esc(r.dob)}</td><td>${esc(r.phone)}</td><td>${esc(r.location)}</td></tr>
-              `).join('')}
-            </tbody>
+            <thead><tr><th>Name</th><th>IC/Passport</th><th class="num">Package</th><th class="num">Deposit</th><th>Status</th></tr></thead>
+            <tbody>${uploadCtx.parsedRows.map(pvRowHTML).join('')}</tbody>
           </table>
         </div>`;
     }
@@ -4054,7 +4349,7 @@ function uploadModal(){
 
   return `
   <div class="overlay" id="overlay-upload">
-    <div class="modal">
+    <div class="modal ${uploadCtx.parsedRows.length?'modal-wide':''}">
       <div class="modal-head"><h3>Bulk upload passengers</h3><button class="modal-close" data-close="overlay-upload">✕</button></div>
       <div class="modal-body">
 
@@ -4107,9 +4402,9 @@ function uploadModal(){
         <div></div>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-ghost" data-close="overlay-upload">Cancel</button>
-          ${uploadCtx.groups.some(g=>g.issues) ? '<button class="btn btn-ghost" data-action="reupload">Fix &amp; re-upload</button>' : ''}
-          <button class="btn btn-primary" data-action="confirm-upload" ${uploadImportCount() ? '' : 'disabled'}>
-            Import ${uploadImportCount() || ''} passenger${uploadImportCount()===1?'':'s'}
+          ${uploadProblemRows().length ? '<button class="btn btn-ghost" data-action="reupload">Choose another file</button>' : ''}
+          <button class="btn btn-primary" data-action="confirm-upload" ${uploadImportCount() && !uploadProblemRows().length ? '' : 'disabled'}>
+            ${uploadProblemRows().length ? 'Fix '+uploadProblemRows().length+' row'+(uploadProblemRows().length===1?'':'s')+' first' : 'Import '+(uploadImportCount()||'')+' passenger'+(uploadImportCount()===1?'':'s')}
           </button>
         </div>
       </div>
@@ -4268,6 +4563,41 @@ function excelDateToStr(v){
   if(!isNaN(dt) && /\d{4}/.test(s)) return dt.toISOString().slice(0,10);
   return s;
 }
+// Dates typed or pasted by people: read DAY-first (25/12/1990 = 25 Dec) and only accept real calendar dates.
+// Returns { iso:'YYYY-MM-DD' or '', bad:'' or the text that could not be read }.
+const PV_MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+function pvRealYmd(y,m,d){
+  if(!(y>=1900 && y<=2100 && m>=1 && m<=12 && d>=1 && d<=31)) return false;
+  const dt = new Date(Date.UTC(y,m-1,d));
+  return dt.getUTCFullYear()===y && dt.getUTCMonth()===m-1 && dt.getUTCDate()===d;
+}
+function parseDateCell(v){
+  if(v==null || String(v).trim()==='') return { iso:'', bad:'' };
+  const mk = (y,m,d,raw)=> pvRealYmd(y,m,d) ? { iso:`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`, bad:'' } : { iso:'', bad:String(raw) };
+  if(typeof v==='number'){
+    const p = (typeof XLSX!=='undefined') ? XLSX.SSF.parse_date_code(v) : null;
+    return p ? mk(p.y,p.m,p.d,v) : { iso:'', bad:String(v) };
+  }
+  const s = String(v).trim();
+  let m;
+  if((m=/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})(?:[T\s].*)?$/.exec(s))) return mk(+m[1],+m[2],+m[3],s);
+  if((m=/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/.exec(s))) return mk(+m[3],+m[2],+m[1],s);
+  if((m=/^(\d{1,2})[\s-]+([A-Za-z]{3,9})\.?[\s,-]+(\d{4})$/.exec(s))){ const mi = PV_MONTHS.indexOf(m[2].slice(0,3).toLowerCase()); if(mi>=0) return mk(+m[3],mi+1,+m[1],s); }
+  if((m=/^([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})$/.exec(s))){ const mi = PV_MONTHS.indexOf(m[1].slice(0,3).toLowerCase()); if(mi>=0) return mk(+m[3],mi+1,+m[2],s); }
+  return { iso:'', bad:s };
+}
+// Everything that must be fixed before this row can be imported.
+function rowProblems(r){
+  const p = [];
+  if(r.amountBad) p.push({ f:'amount', msg:'Package amount is not a number' });
+  else if(!(r.amount>0)) p.push({ f:'amount', msg:'Package amount missing' });
+  if(r.depositBad) p.push({ f:'deposit', msg:'Deposit is not a number' });
+  else if(r.amount>0 && r.deposit>r.amount) p.push({ f:'deposit', msg:'Deposit is more than the package amount' });
+  if(r.dobBad) p.push({ f:'dob', msg:'Date of birth "'+r.dobBad+'" is not a valid date' });
+  if(r.passportExpiryBad) p.push({ f:'passportExpiry', msg:'Passport expiry "'+r.passportExpiryBad+'" is not a valid date' });
+  return p;
+}
+function uploadProblemRows(){ return uploadCtx.parsedRows.filter(r=>!r.dup && rowProblems(r).length); }
 function parseWorkbookFile(file){
   return new Promise((resolve,reject)=>{
     const reader = new FileReader();
@@ -4277,7 +4607,7 @@ function parseWorkbookFile(file){
         const wb = XLSX.read(data, {type:'array', cellDates:false});
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet, {header:1, raw:true, defval:''});
-        if(!rows.length){ resolve({rows:[], hasTripColumns:false}); return; }
+        if(!rows.length){ resolve({rows:[], hasTripColumns:false, skippedNoName:0}); return; }
         // The header row is not always row 1 (the template has a title and instructions above it),
         // so look through the first rows for the one that holds the "Full Name" column.
         let hi = 0, map = mapHeaders(rows[0]);
@@ -4286,24 +4616,22 @@ function parseWorkbookFile(file){
         }
         const hasTripColumns = map.tripType!==undefined && map.location!==undefined;
         const out = [];
+        let skippedNoName = 0;
         for(let i=hi+1;i<rows.length;i++){
           const r = rows[i];
           if(!r || r.every(cell=>cell==='' || cell==null)) continue;
           const name = map.name!==undefined ? r[map.name] : '';
-          if(!name) continue;
-          if(/^\s*[↑*#]/.test(String(name))) continue;            // note lines such as "↑ Sample row shown for format only"
+          if(!name){ skippedNoName++; continue; }
+          if(/^\s*[↑*#]/.test(String(name))){ continue; }            // note lines such as "↑ Sample row shown for format only"
           const loc = normalizeLocation(map.location!==undefined ? String(r[map.location]||'').trim() : '');
           const routeCell = map.route!==undefined ? String(r[map.route]||'').trim() : '';
           const am = parseMoney(map.amount!==undefined ? r[map.amount] : ''), dp = parseMoney(map.deposit!==undefined ? r[map.deposit] : '');
-          let amount = am.n, deposit = dp.n, payIssue = '';
-          if(am.bad){ payIssue = 'Package amount is not a number'; amount = 0; }
-          if(dp.bad){ payIssue = payIssue ? payIssue+'; deposit is not a number' : 'Deposit is not a number'; deposit = 0; }
-          if(!payIssue && amount>0 && deposit>amount){ payIssue = 'Deposit is more than the package amount'; deposit = 0; }
+          const dobP = parseDateCell(map.dob!==undefined ? r[map.dob] : ''), ppP = parseDateCell(map.passportExpiry!==undefined ? r[map.passportExpiry] : '');
           out.push({
-            amount, deposit, payIssue,
+            uid: 'r'+i, amount: am.n, deposit: dp.n, amountBad: am.bad, depositBad: dp.bad,
             timestamp: map.timestamp!==undefined ? excelDateToStr(r[map.timestamp]) : '',
             name: String(name).trim(),
-            dob: map.dob!==undefined ? excelDateToStr(r[map.dob]) : '',
+            dob: dobP.iso, dobBad: dobP.bad,
             phone: map.phone!==undefined ? String(r[map.phone]||'').replace(/\D+/g,'') : '',
             tripType: map.tripType!==undefined ? String(r[map.tripType]||'').trim() : 'Open',
             location: loc.country,
@@ -4311,12 +4639,12 @@ function parseWorkbookFile(file){
             ticketPurchaser: map.ticketPurchaser!==undefined ? normTicketPurchaser(r[map.ticketPurchaser]) : '',
             medicalCondition: map.medicalCondition!==undefined ? String(r[map.medicalCondition]||'').trim() : '',
             passportNumber: map.passportNumber!==undefined ? String(r[map.passportNumber]||'').trim() : '',
-            passportExpiry: map.passportExpiry!==undefined ? excelDateToStr(r[map.passportExpiry]) : '',
+            passportExpiry: ppP.iso, passportExpiryBad: ppP.bad,
             idNumber: map.idNumber!==undefined ? String(r[map.idNumber]||'').trim() : '',
             notes: map.notes!==undefined ? String(r[map.notes]||'').trim() : ''
           });
         }
-        resolve({rows: out, hasTripColumns});
+        resolve({rows: out, hasTripColumns, skippedNoName});
       }catch(err){ reject(err); }
     };
     reader.onerror = reject;
@@ -4349,7 +4677,7 @@ function buildGroups(rows){
     g.dups = g.rows.length - fresh.length;
     g.sumAmount = fresh.reduce((n,r)=>n+(r.amount||0),0);
     g.sumDeposit = fresh.reduce((n,r)=>n+(r.deposit||0),0);
-    g.issues = fresh.filter(r=>r.payIssue).length;
+    g.issues = fresh.filter(r=>rowProblems(r).length).length;
   });
   return groups;
 }
@@ -4369,8 +4697,6 @@ function bindAuthEvents(){
   const doLogin = app.querySelector('[data-action="do-login"]');
   if(doLogin) doLogin.addEventListener('click', handleLogin);
 
-  const doTemp = app.querySelector('[data-action="do-temp-account"]');
-  if(doTemp) doTemp.addEventListener('click', handleUseTempAccount);
 
   const showSignup = app.querySelector('[data-action="show-signup"]');
   if(showSignup) showSignup.addEventListener('click', ()=>{ authError=''; authView='signup'; render(); });
@@ -4378,7 +4704,7 @@ function bindAuthEvents(){
   if(showLogin) showLogin.addEventListener('click', ()=>{ authError=''; authView='login'; render(); });
 
   const enterDemo = app.querySelector('[data-action="enter-demo-mode"]');
-  if(enterDemo) enterDemo.addEventListener('click', ()=>{ DEMO_MODE = true; authView='login'; render(); });
+  if(enterDemo) enterDemo.addEventListener('click', async ()=>{ DEMO_MODE = true; authView='login'; try{ const st = await apiFetch('/auth/setup-status'); firstAccountNeeded = !!st.needsFirstAccount; }catch(e){} render(); });
 
   app.querySelectorAll('input').forEach(inp=>{
     inp.addEventListener('keydown', (e)=>{
@@ -4393,31 +4719,33 @@ function bindAuthEvents(){
 function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
 
 async function handleSignup(){
+  const username = document.getElementById('su-username').value.trim();
   const name = document.getElementById('su-name').value.trim();
   const email = document.getElementById('su-email').value.trim().toLowerCase();
   const password = document.getElementById('su-password').value;
   const password2 = document.getElementById('su-password2').value;
-  if(!name || !email){ authError = 'Name and email are required.'; render(); return; }
+  if(!username || !email){ authError = 'Username and email are required.'; render(); return; }
+  if(!/^[A-Za-z0-9._-]{2,}$/.test(username)){ authError = 'Username: at least 2 characters — letters, numbers, dot, dash or underscore.'; render(); return; }
   if(!isValidEmail(email)){ authError = 'Enter a valid email address.'; render(); return; }
   if(password.length < 6){ authError = 'Password must be at least 6 characters.'; render(); return; }
   if(password !== password2){ authError = 'Passwords do not match.'; render(); return; }
 
   try{
-    const data = await apiFetch('/auth/signup', { method:'POST', body: JSON.stringify({ name, email, password }) });
+    const data = await apiFetch('/auth/signup', { method:'POST', body: JSON.stringify({ username, name, email, password }) });
     authToken = data.token;
     currentUser = data.user;
     saveSession();
     authError = '';
     authView = 'app';
+    firstAccountNeeded = false;
     view = { mode:'list', tripId:null, search:'', statusFilter:'All', typeFilter:'All', layout:'grid' };
     await loadBootstrap();
-    showToast(currentUser.role==='admin' ? 'Admin account created — welcome!' : 'Account created — welcome!');
+    showToast('Admin account created — welcome!');
   }catch(e){
     authError = e.message || 'Could not create the account.';
   }
   render();
 }
-
 async function handleLogin(){
   const email = document.getElementById('li-email').value.trim().toLowerCase();
   const password = document.getElementById('li-password').value;
@@ -4430,27 +4758,9 @@ async function handleLogin(){
     authView = 'app';
     view = { mode:'list', tripId:null, search:'', statusFilter:'All', typeFilter:'All', layout:'grid' };
     await loadBootstrap();
-    showToast(`Welcome back, ${currentUser.name.split(' ')[0]}`);
+    showToast(`Welcome back, ${currentUser.name}`);
   }catch(e){
-    authError = e.message || 'Incorrect email or password.';
-  }
-  render();
-}
-
-async function handleUseTempAccount(){
-  try{
-    const data = await apiFetch('/auth/temp-account', { method:'POST' });
-    authToken = data.token;
-    currentUser = data.user;
-    saveSession();
-    tempCredentialsBanner = { email: currentUser.email, password: data.tempPassword };
-    authError = '';
-    authView = 'app';
-    view = { mode:'list', tripId:null, search:'', statusFilter:'All', typeFilter:'All', layout:'grid' };
-    await loadBootstrap();
-    showToast('Signed in with a temporary account');
-  }catch(e){
-    authError = e.message || 'Could not create a temporary account.';
+    authError = e.message || 'Incorrect username or password.';
   }
   render();
 }
@@ -4467,24 +4777,60 @@ function handleLogout(){
 }
 
 async function handleAddUser(){
+  const username = document.getElementById('nu-username').value.trim();
   const name = document.getElementById('nu-name').value.trim();
   const email = document.getElementById('nu-email').value.trim().toLowerCase();
   const password = document.getElementById('nu-password').value;
+  const initials = document.getElementById('nu-initials').value.trim();
   const role = document.getElementById('nu-role').value;
-  if(!name || !email){ manageUsersError = 'Name and email are required.'; render(); openOverlay('overlay-users'); return; }
-  if(!isValidEmail(email)){ manageUsersError = 'Enter a valid email address.'; render(); openOverlay('overlay-users'); return; }
-  if(password.length < 6){ manageUsersError = 'Password must be at least 6 characters.'; render(); openOverlay('overlay-users'); return; }
-
+  const again = ()=>{ render(); openOverlay('overlay-users'); };
+  if(!username || !email){ manageUsersError = 'Username and email are required.'; again(); return; }
+  if(!/^[A-Za-z0-9._-]{2,}$/.test(username)){ manageUsersError = 'Username: at least 2 characters — letters, numbers, dot, dash or underscore.'; again(); return; }
+  if(!isValidEmail(email)){ manageUsersError = 'Enter a valid email address.'; again(); return; }
+  if(password && password.length < 6){ manageUsersError = 'Password must be at least 6 characters (or leave it empty to generate one).'; again(); return; }
   try{
-    const newUser = await apiFetch('/users', { method:'POST', body: JSON.stringify({ name, email, password, role }) });
-    users.push(newUser);
+    const newUser = await apiFetch('/users', { method:'POST', body: JSON.stringify({ username, name, email, password: password||undefined, initials: initials||undefined, role }) });
+    const { tempPassword, ...pub } = newUser;
+    users.push(pub);
     manageUsersError = '';
+    resetNotice = { title:'User added', username: pub.username||pub.name, password: tempPassword };
     showToast('User added');
   }catch(e){
     manageUsersError = e.message || 'Could not add that user.';
   }
-  render();
-  openOverlay('overlay-users');
+  again();
+}
+async function handleSaveUserEdit(id){
+  const body = {
+    username: document.getElementById('ue-username').value.trim(),
+    name: document.getElementById('ue-name').value.trim() || undefined,
+    email: document.getElementById('ue-email').value.trim().toLowerCase(),
+    initials: document.getElementById('ue-initials').value.trim(),
+  };
+  const again = ()=>{ render(); openOverlay('overlay-users'); };
+  if(!/^[A-Za-z0-9._-]{2,}$/.test(body.username)){ manageUsersError = 'Username: at least 2 characters — letters, numbers, dot, dash or underscore.'; again(); return; }
+  if(!isValidEmail(body.email)){ manageUsersError = 'Enter a valid email address.'; again(); return; }
+  if(!body.initials){ manageUsersError = 'Initials cannot be empty.'; again(); return; }
+  try{
+    const upd = await apiFetch('/users/'+id, { method:'PATCH', body: JSON.stringify(body) });
+    users = users.map(u=>u.id===id ? { ...u, ...upd } : u);
+    if(currentUser && currentUser.id===id){ currentUser = { ...currentUser, ...upd }; saveSession(); }
+    // trips already loaded keep the old creator name until reload — refresh so the list shows the new username
+    await loadBootstrap();
+    editingUserId = null; manageUsersError = ''; showToast('User updated');
+  }catch(e){ manageUsersError = e.message || 'Could not save the changes.'; }
+  again();
+}
+async function handleResetUserPassword(id){
+  const u = users.find(x=>x.id===id); if(!u) return;
+  if(!confirm(`Reset the password for ${u.username||u.name}? Their current password stops working straight away.`)) return;
+  try{
+    const r = await apiFetch('/users/'+id+'/reset-password', { method:'POST', body: JSON.stringify({}) });
+    users = users.map(x=>x.id===id ? { ...x, mustChangePassword:true } : x);
+    resetNotice = { title:'Password reset', username: u.username||u.name, password: r.tempPassword };
+    manageUsersError = '';
+  }catch(e){ manageUsersError = e.message || 'Could not reset the password.'; }
+  render(); openOverlay('overlay-users');
 }
 
 async function handleSaveNumberSettings(){
@@ -4538,7 +4884,7 @@ async function handleChangeRole(userId, newRole){
 async function handleDeleteUser(userId){
   const u = users.find(x=>x.id===userId);
   if(!u || u.id===currentUser.id) return;
-  if(!confirm(`Remove ${u.name}'s account?`)) return;
+  if(!confirm(`Remove ${u.username||u.name}'s account?`)) return;
   try{
     await apiFetch(`/users/${userId}`, { method:'DELETE' });
     users = users.filter(x=>x.id!==userId);
@@ -4577,12 +4923,20 @@ function bindEvents(){
   });
 
   const openManageUsers = app.querySelector('[data-action="open-manage-users"]');
-  if(openManageUsers) openManageUsers.addEventListener('click', ()=>{ manageUsersError=''; render(); openOverlay('overlay-users'); });
+  if(openManageUsers) openManageUsers.addEventListener('click', ()=>{ manageUsersError=''; editingUserId=null; resetNotice=null; render(); openOverlay('overlay-users'); });
   const addUserBtn = app.querySelector('[data-action="add-user"]');
   if(addUserBtn) addUserBtn.addEventListener('click', handleAddUser);
   app.querySelectorAll('[data-role-select]').forEach(el=>{
     el.addEventListener('change', ()=>handleChangeRole(el.dataset.roleSelect, el.value));
   });
+  app.querySelectorAll('[data-edit-user]').forEach(el=>el.addEventListener('click', ()=>{ editingUserId = el.dataset.editUser; manageUsersError=''; render(); openOverlay('overlay-users'); }));
+  app.querySelectorAll('[data-cancel-user]').forEach(el=>el.addEventListener('click', ()=>{ editingUserId = null; manageUsersError=''; render(); openOverlay('overlay-users'); }));
+  app.querySelectorAll('[data-save-user]').forEach(el=>el.addEventListener('click', ()=>handleSaveUserEdit(el.dataset.saveUser)));
+  app.querySelectorAll('[data-reset-user]').forEach(el=>el.addEventListener('click', ()=>handleResetUserPassword(el.dataset.resetUser)));
+  const dismissReset = app.querySelector('[data-action="dismiss-reset-notice"]'); if(dismissReset) dismissReset.addEventListener('click', ()=>{ resetNotice=null; render(); openOverlay('overlay-users'); });
+  const openChpw = app.querySelector('[data-action="open-chpw"]'); if(openChpw) openChpw.addEventListener('click', ()=>{ chpwOpen=true; chpwError=''; render(); });
+  app.querySelectorAll('[data-action="close-chpw"]').forEach(el=>el.addEventListener('click', ()=>{ chpwOpen=false; chpwError=''; render(); }));
+  const doChpw = app.querySelector('[data-action="do-change-password"]'); if(doChpw) doChpw.addEventListener('click', handleChangePassword);
   app.querySelectorAll('[data-del-user]').forEach(el=>{
     el.addEventListener('click', ()=>handleDeleteUser(el.dataset.delUser));
   });
@@ -4625,6 +4979,11 @@ function bindEvents(){
   app.querySelectorAll('[data-filter-status]').forEach(el=>{
     el.addEventListener('click', ()=>{ view.statusFilter = el.dataset.filterStatus; render(); });
   });
+  const typeSel = app.querySelector('#type-select'); if(typeSel) typeSel.addEventListener('change', ()=>{ view.typeFilter = typeSel.value; render(); });
+  const monthSel = app.querySelector('#month-select'); if(monthSel) monthSel.addEventListener('change', ()=>{ view.monthFilter = monthSel.value; render(); });
+  app.querySelectorAll('[data-action="clear-trip-filters"]').forEach(el=>el.addEventListener('click', e=>{
+    e.preventDefault(); view.search=''; view.statusFilter='All'; view.typeFilter='All'; view.monthFilter=''; view.opsFilter='Active'; render();
+  }));
   app.querySelectorAll('[data-filter-type]').forEach(el=>{
     el.addEventListener('click', ()=>{ view.typeFilter = el.dataset.filterType; render(); });
   });
@@ -4642,7 +5001,7 @@ function bindEvents(){
   });
 
   const openNewTripBtns = app.querySelectorAll('[data-action="open-new-trip"]');
-  openNewTripBtns.forEach(btn=>btn.addEventListener('click', ()=>{ editingTripId=null; render(); openOverlay('overlay-trip'); }));
+  openNewTripBtns.forEach(btn=>btn.addEventListener('click', ()=>{ editingTripId=null; convertingHoldId=null; render(); openOverlay('overlay-trip'); }));
   const openEditTrip = app.querySelector('[data-action="open-edit-trip"]');
   if(openEditTrip) openEditTrip.addEventListener('click', ()=>{ editingTripId=view.tripId; render(); openOverlay('overlay-trip'); });
 
@@ -4669,6 +5028,9 @@ function bindEvents(){
 
   bindCountryCombo();
   bindRangePicker();
+  const saveHoldBtn = app.querySelector('[data-action="save-hold"]'); if(saveHoldBtn) saveHoldBtn.addEventListener('click', handleSaveHold);
+  const delHoldBtn = app.querySelector('[data-action="delete-hold"]'); if(delHoldBtn) delHoldBtn.addEventListener('click', handleDeleteHold);
+  const convHoldBtn = app.querySelector('[data-action="convert-hold"]'); if(convHoldBtn) convHoldBtn.addEventListener('click', ()=>{ const id = editingHoldId; closeOverlay('overlay-hold'); startConvertHold(id); });
   const saveTripBtn = app.querySelector('[data-action="save-trip"]');
   if(saveTripBtn) saveTripBtn.addEventListener('click', handleSaveTrip);
   const delTripBtn = app.querySelector('[data-action="delete-trip"]');
@@ -4772,6 +5134,24 @@ function bindEvents(){
   });
   const applyPricing = app.querySelector('[data-action="apply-pricing"]');
   if(applyPricing) applyPricing.addEventListener('click', handleApplyPricing);
+  // Bulk-upload preview: fix amounts / dates in place, or fill every blank package amount at once.
+  app.querySelectorAll('[data-pv-edit]').forEach(el=>{
+    el.addEventListener('change', ()=>{
+      const [uid,f] = el.dataset.pvEdit.split(':');
+      const r = uploadCtx.parsedRows.find(x=>x.uid===uid); if(!r) return;
+      if(f==='amount' || f==='deposit'){ const m = parseMoney(el.value); r[f] = m.n; r[f+'Bad'] = m.bad; }
+      else { const p = parseDateCell(el.value); r[f] = p.iso; r[f+'Bad'] = p.bad; }
+      refreshUploadPreview();
+    });
+    el.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } });
+  });
+  const pvFill = app.querySelector('[data-action="pv-fill"]');
+  if(pvFill) pvFill.addEventListener('click', ()=>{
+    const m = parseMoney((document.getElementById('pv-fill')||{}).value);
+    if(m.bad || !(m.n>0)){ showToast('Type the package amount first, e.g. 2890'); return; }
+    uploadCtx.parsedRows.forEach(r=>{ if(!r.dup && (r.amountBad || !(r.amount>0))){ r.amount = m.n; r.amountBad = false; } });
+    refreshUploadPreview();
+  });
   const reupload = app.querySelector('[data-action="reupload"]');
   if(reupload) reupload.addEventListener('click', ()=>{ uploadCtx.parsedRows=[]; uploadCtx.groups=[]; uploadCtx.fileName=''; render(); openOverlay('overlay-upload'); });
   const confirmUpload = app.querySelector('[data-action="confirm-upload"]');
@@ -4925,6 +5305,7 @@ async function handleSaveTrip(){
       const t = await apiFetch('/trips', { method:'POST', body: JSON.stringify(payload) });
       trips.push({ ...t, passengerCount: 0 });
       closeOverlay('overlay-trip'); refreshLists();
+      if(convertingHoldId){ const hid = convertingHoldId; convertingHoldId = null; try{ await apiFetch('/holds/'+hid, { method:'DELETE' }); }catch(e){} holds = holds.filter(x=>x.id!==hid); }
       showToast('Trip created');
       view.mode='detail'; view.tripId=t.id;
     }catch(e){
@@ -5025,7 +5406,8 @@ async function handleDeleteCustomer(id, fromModal){
 async function handleFile(file){
   uploadCtx.fileName = file.name;
   try{
-    const {rows, hasTripColumns} = await parseWorkbookFile(file);
+    const {rows, hasTripColumns, skippedNoName} = await parseWorkbookFile(file);
+    uploadCtx.skippedNoName = skippedNoName||0; uploadCtx.touched = false;
     if(!rows.length){
       showToast('No passenger rows detected — check the file has a Name column');
       uploadCtx.parsedRows = [];
@@ -5060,9 +5442,17 @@ async function handleApplyPricing(){
   }catch(e){ showToast(e.message || 'Could not set prices'); return; }
   render();
 }
+function refreshUploadPreview(){
+  const sc = document.querySelector('#overlay-upload .modal-body'); const top = sc ? sc.scrollTop : 0;
+  uploadCtx.touched = true;
+  if(uploadCtx.groups.length) uploadCtx.groups = buildGroups(uploadCtx.parsedRows);
+  render(); openOverlay('overlay-upload');
+  const sc2 = document.querySelector('#overlay-upload .modal-body'); if(sc2) sc2.scrollTop = top;
+}
 function uploadImportCount(){ return uploadCtx.groups.length ? uploadCtx.groups.reduce((n,g)=>n+g.rows.length-(g.dups||0),0) : uploadCtx.parsedRows.length; }
 let uploadBusy = false;   // stops a double-click from importing the same file twice
 async function handleConfirmUpload(){
+  if(uploadProblemRows().length){ showToast("Please fix the highlighted rows first"); return; }
   if(uploadBusy) return;
   uploadBusy = true;
   const btn = document.querySelector('[data-action="confirm-upload"]');
@@ -5404,7 +5794,7 @@ function bindPublicRegistrationEvents(token){
     return;
   }
   const restored = await restoreSession();
-  if(!restored) authView = 'login';
+  if(!restored){ try{ const st = await apiFetch('/auth/setup-status'); firstAccountNeeded = !!(st && st.needsFirstAccount); }catch(e){ firstAccountNeeded = false; } authView = 'login'; }
   render();
 })();
 </script>

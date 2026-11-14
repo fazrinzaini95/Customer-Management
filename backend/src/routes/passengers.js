@@ -58,7 +58,7 @@ const passengerSchema = z.object({
 
 router.get('/trips/:tripId/passengers', asyncHandler(async (req, res) => {
   const { rows } = await query(`
-    SELECT p.*, pic.name AS pic_name
+    SELECT p.*, COALESCE(pic.username, pic.name) AS pic_name
     FROM passengers p
     LEFT JOIN users pic ON pic.id = p.pic_id
     WHERE p.trip_id = $1
@@ -112,7 +112,7 @@ router.put('/passengers/:id', asyncHandler(async (req, res) => {
   values.push(req.params.id);
   const { rows } = await query(
     `WITH updated AS (UPDATE passengers SET ${fields.join(', ')} WHERE id = $${i} RETURNING *)
-     SELECT updated.*, pic.name AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
+     SELECT updated.*, COALESCE(pic.username, pic.name) AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
     values
   );
   if (!rows[0]) return res.status(404).json({ error: 'Passenger not found' });
@@ -131,7 +131,7 @@ router.put('/passengers/:id/payment-status', asyncHandler(async (req, res) => {
 
   const { rows } = await query(
     `WITH updated AS (UPDATE passengers SET payment_status = $1 WHERE id = $2 RETURNING *)
-     SELECT updated.*, pic.name AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
+     SELECT updated.*, COALESCE(pic.username, pic.name) AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
     [paymentStatus, req.params.id]
   );
   res.json(mapPassenger(rows[0]));
@@ -176,7 +176,7 @@ router.put('/passengers/:id/payments', asyncHandler(async (req, res) => {
   }
   const { rows } = await query(
     `WITH updated AS (UPDATE passengers SET payments = $1, balance_paid = $2, payment_status = $3 WHERE id = $4 RETURNING *)
-     SELECT updated.*, pic.name AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
+     SELECT updated.*, COALESCE(pic.username, pic.name) AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
     [JSON.stringify(clean), total, status, req.params.id]
   );
   res.json(mapPassenger(rows[0]));
@@ -213,7 +213,7 @@ router.put('/passengers/:id/addons', asyncHandler(async (req, res) => {
                                 ELSE 'Pending' END)::payment_status
        FROM n WHERE p.id = n.id RETURNING p.*
      )
-     SELECT updated.*, pic.name AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
+     SELECT updated.*, COALESCE(pic.username, pic.name) AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
     [req.params.id, total, JSON.stringify(clean)]
   );
   if (!rows[0]) return res.status(404).json({ error: 'Passenger not found' });
@@ -244,7 +244,7 @@ router.put('/trips/:tripId/pricing', asyncHandler(async (req, res) => {
                                 ELSE 'Pending' END)::payment_status
        FROM n WHERE p.id = n.id RETURNING p.*
      )
-     SELECT updated.*, pic.name AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
+     SELECT updated.*, COALESCE(pic.username, pic.name) AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
     [req.params.tripId, d.amount ?? null, d.depositAmount ?? null, d.ids]
   );
   res.json(rows.map(mapPassenger));
@@ -261,7 +261,7 @@ router.put('/passengers/:id/ticket-status', asyncHandler(async (req, res) => {
 
   const { rows } = await query(
     `WITH updated AS (UPDATE passengers SET ticket_status = $1 WHERE id = $2 RETURNING *)
-     SELECT updated.*, pic.name AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
+     SELECT updated.*, COALESCE(pic.username, pic.name) AS pic_name FROM updated LEFT JOIN users pic ON pic.id = updated.pic_id`,
     [ticketStatus, req.params.id]
   );
   res.json(mapPassenger(rows[0]));

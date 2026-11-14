@@ -13,18 +13,18 @@ router.use(requireAuth);
 router.get('/', asyncHandler(async (req, res) => {
   const isAdmin = req.user.role === 'admin';
 
-  const [tripsRes, passengersRes, settingsRes, seqRes, usersRes, listsRes] = await Promise.all([
+  const [tripsRes, passengersRes, settingsRes, seqRes, usersRes, listsRes, holdsRes] = await Promise.all([
     query(`
-      SELECT t.*, COUNT(p.id) AS passenger_count, u.name AS creator_name, le.name AS editor_name
+      SELECT t.*, COUNT(p.id) AS passenger_count, COALESCE(u.username, u.name) AS creator_name, u.initials AS creator_initials, COALESCE(le.username, le.name) AS editor_name
       FROM trips t
       LEFT JOIN passengers p ON p.trip_id = t.id
       LEFT JOIN users u ON u.id = t.created_by
       LEFT JOIN users le ON le.id = t.last_edited_by
-      GROUP BY t.id, u.name, le.name
+      GROUP BY t.id, u.username, u.name, u.initials, le.username, le.name
       ORDER BY t.created_at DESC
     `),
     query(`
-      SELECT p.*, pic.name AS pic_name
+      SELECT p.*, COALESCE(pic.username, pic.name) AS pic_name
       FROM passengers p
       LEFT JOIN users pic ON pic.id = p.pic_id
       ORDER BY p.added_at DESC
@@ -35,6 +35,7 @@ router.get('/', asyncHandler(async (req, res) => {
       ? query('SELECT * FROM users WHERE is_active = true ORDER BY created_at')
       : Promise.resolve({ rows: [] }),
     query('SELECT * FROM list_items ORDER BY kind, lower(country), lower(name)'),
+    query("SELECT id, title, to_char(start_date,'YYYY-MM-DD') AS start_date, to_char(end_date,'YYYY-MM-DD') AS end_date, note FROM calendar_holds ORDER BY start_date"),
   ]);
 
   const { last_value, is_called } = seqRes.rows[0];
@@ -44,7 +45,7 @@ router.get('/', asyncHandler(async (req, res) => {
     trips: tripsRes.rows.map((r) => ({
       id: r.id, seq: r.seq, name: r.name, type: r.type, destination: r.destination, route: r.route || '', reference: r.reference || '',
       startDate: r.start_date, endDate: r.end_date, status: r.status, history: r.history,
-      createdAt: r.created_at, createdByName: r.creator_name || null,
+      createdAt: r.created_at, createdByName: r.creator_name || null, createdByInitials: r.creator_initials || null,
       lastEditedByName: r.editor_name || null, lastEditedAt: r.last_edited_at || null,
       passengerCount: Number(r.passenger_count), publicToken: r.public_token,
       opsStatus: r.ops_status || 'Pending Ops',
@@ -58,10 +59,11 @@ router.get('/', asyncHandler(async (req, res) => {
       ticketPurchaser: r.ticket_purchaser, ticketStatus: r.ticket_status, airline: r.airline, bookingReference: r.booking_reference,
       picName: r.pic_name || null, notes: r.notes, submittedAt: r.submitted_at, addedAt: r.added_at,
     })),
+    holds: holdsRes.rows.map((h) => ({ id: h.id, title: h.title, startDate: h.start_date, endDate: h.end_date, note: h.note || '' })),
     lists: listsRes.rows.map((r) => ({ id: r.id, kind: r.kind, country: r.country, name: r.name, city: r.city, shortName: r.short_name || '' })),
     settings: { ...(settingsRes.rows[0]?.data || {}), runningNumber: is_called ? Number(last_value) : 0, nextNumber },
     users: isAdmin
-      ? usersRes.rows.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, isTemp: u.is_temp, createdAt: u.created_at }))
+      ? usersRes.rows.map((u) => ({ id: u.id, name: u.username || u.name, username: u.username || null, fullName: u.name, initials: u.initials || null, email: u.email, role: u.role, isTemp: u.is_temp, mustChangePassword: !!u.must_change_password, createdAt: u.created_at }))
       : undefined,
   });
 }));

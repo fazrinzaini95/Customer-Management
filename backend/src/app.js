@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 
 const authRoutes = require('./routes/auth');
 const usersRoutes = require('./routes/users');
+const holdsRoutes = require('./routes/holds');
 const tripsRoutes = require('./routes/trips');
 const passengersRoutes = require('./routes/passengers');
 const settingsRoutes = require('./routes/settings');
@@ -41,7 +42,6 @@ app.use(express.json({ limit: '1mb' }));
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20 });
 app.use('/auth/login', authLimiter);
 app.use('/auth/signup', authLimiter);
-app.use('/auth/temp-account', authLimiter);
 // /public has no login to brute-force, but it's the one surface reachable
 // by anyone with a link and no account at all — a tighter, dedicated
 // limit keeps it from being a spam vector without affecting staff traffic.
@@ -61,6 +61,7 @@ app.use('/public', publicRoutes);
 
 app.use('/auth', authRoutes);
 app.use('/users', usersRoutes);
+app.use('/holds', holdsRoutes);
 app.use('/trips', tripsRoutes);
 app.use('/', passengersRoutes);   // owns /trips/:tripId/passengers and /passengers/:id
 app.use('/settings', settingsRoutes);

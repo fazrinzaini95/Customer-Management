@@ -955,3 +955,36 @@ New third tab, **Calendar**, a monthly calendar of trips by date (frontend only,
 - "Add-ons" column renamed **Remarks**, shown only in full screen (no tick box any more). Room type removed from the table and the bulk bar.
 - Selection: "N of M selected" counter; Shift+click selects a range, drag across names, Shift+↑/↓ from the keyboard.
 - **Export Excel** button: Passengers sheet (selected passengers, or everything the filters show) + Supplier Readiness sheet.
+
+## #61 — Bulk upload: check first, fix in place
+- Dates in the sheet are read day-first (25/12/1990 = 25 Dec 1990) and only real calendar dates are accepted. A date like 31/02/1990 used to reach the database and come back as "Something went wrong"; it is now caught in the preview.
+- The preview lists every row that needs attention (no package amount, amount/deposit not a number, deposit above the package, a date that can't be read) with a plain-words message. Amounts and dates are fixed right in the table, and "Apply to blanks" fills one package amount into every blank row.
+- **Import stays off until every row is fixed** ("Fix 3 rows first"). Rows with no name are skipped and the count is shown.
+- Server: each row is checked and a bad one is answered with a clear message ("Row 3 (Siti Noor): date of birth "31/02/1990" is not a valid date…") instead of a 500. Database format errors now return 400 with a readable sentence; "Required" / "Invalid input" messages name the field.
+
+## #62 — Operations colours
+- Pending Ops red · Ongoing amber · Ready green · Completed blue · Departed teal · On-hold purple · Rejected grey-brown.
+- Payment status pills (Draft / Pending Payment / Paid / Cancelled) are now outlined so they are never confused with the filled Operations pills.
+
+## #63 — Trips list: new filter bar + "Created by · Lead" column
+- Two lines: **stage tabs with counts** (Needs action, All active, Pending Ops, Ongoing, Ready, Departed, Completed, On-hold / Rejected) and a second line with search, **Payment** chips (All, Draft, Pending Payment, Paid, Cancelled), Type and Month dropdowns, a live "Showing x of y" count with **Clear**, and the Grid / List switch.
+- **All active** hides Completed (and Cancelled) trips; the Completed tab shows them, so removing or restoring Completed is one click. The count says how many completed trips are hidden.
+- Tab counts follow the other filters (search, payment, type, month).
+- List view only: new column **Created by · Lead** — the creator's initials in a circle (hover shows the username) and the travel lead's first name from Supplier Readiness ("no lead yet" if empty). It sorts too. All other columns are unchanged; grid cards are unchanged.
+
+## #64 — Calendar holds
+- "＋ Add hold" pencils dates into the calendar without creating a trip: dashed purple bars, a "Holds in <month>" list under the trips list, and a legend entry. Holds are not trips — no passengers, not counted anywhere.
+- Click a hold to edit or delete it. **Convert to trip** opens the New trip form with the hold's dates filled in; once the trip is created the hold is removed. Real trips still open the trip page when clicked.
+- New SQL: `calendar_holds` table. Backend: `GET/POST /holds`, `PUT/DELETE /holds/:id`; holds also come with `/bootstrap`.
+
+## #65 — Users: username everywhere, initials, admin edit and password reset
+- The **username** is shown everywhere (header, "created by", PIC, activity log, Ops reasons). Full name is kept as an optional particular in Manage users. Sign in with username **or** email.
+- Manage users: columns Username, Full name, Email, Initials, Role. **Edit** changes username / full name / email / initials (initials are filled in automatically from the name and can be edited). **Reset password** gives a temporary password (shown once); the person must choose their own at next sign-in. New users can also get a generated temporary password.
+- Everyone gets a **Password** button to change their own password.
+- Existing accounts are filled in automatically by the SQL (username from the email before the @, initials from the name) — edit them afterwards in Manage users.
+- New SQL: `users.username`, `users.initials`, `users.must_change_password`. Backend: `PATCH /users/:id`, `POST /users/:id/reset-password`, `POST /auth/change-password`, `GET /auth/setup-status`.
+
+## #66 — Sign-up closed
+- Open sign-up and "temporary account" are gone from the login screen and the API (`/auth/temp-account` removed). Accounts are created by an admin only (Manage users).
+- The one exception is a brand-new empty system: the first account created becomes the admin so the app can be set up.
+- Anyone already signed in keeps their old session until they sign in again (their token still carries the old name).

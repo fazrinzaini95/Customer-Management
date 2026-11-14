@@ -45,7 +45,7 @@ function mapTrip(row, passengerCount) {
     status: row.status,
     history: row.history,
     createdAt: row.created_at,
-    createdByName: row.creator_name || null,
+    createdByName: row.creator_name || null, createdByInitials: row.creator_initials || null,
     lastEditedByName: row.editor_name || null,
     lastEditedAt: row.last_edited_at || null,
     publicToken: row.public_token,
@@ -74,12 +74,12 @@ const TRANSITIONS = {
 
 router.get('/', asyncHandler(async (req, res) => {
   const { rows } = await query(`
-    SELECT t.*, COUNT(p.id) AS passenger_count, u.name AS creator_name, le.name AS editor_name
+    SELECT t.*, COUNT(p.id) AS passenger_count, COALESCE(u.username, u.name) AS creator_name, u.initials AS creator_initials, COALESCE(le.username, le.name) AS editor_name
     FROM trips t
     LEFT JOIN passengers p ON p.trip_id = t.id
     LEFT JOIN users u ON u.id = t.created_by
     LEFT JOIN users le ON le.id = t.last_edited_by
-    GROUP BY t.id, u.name, le.name
+    GROUP BY t.id, u.username, u.name, u.initials, le.username, le.name
     ORDER BY t.created_at DESC
   `);
   res.json(rows.map((r) => mapTrip(r, r.passenger_count)));
@@ -87,7 +87,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
 router.get('/:id', asyncHandler(async (req, res) => {
   const { rows } = await query(`
-    SELECT t.*, u.name AS creator_name, le.name AS editor_name
+    SELECT t.*, COALESCE(u.username, u.name) AS creator_name, u.initials AS creator_initials, COALESCE(le.username, le.name) AS editor_name
     FROM trips t
     LEFT JOIN users u ON u.id = t.created_by
     LEFT JOIN users le ON le.id = t.last_edited_by
@@ -170,7 +170,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
   values.push(req.params.id);
   const { rows } = await query(
     `WITH updated AS (UPDATE trips SET ${fields.join(', ')} WHERE id = $${i} RETURNING *)
-     SELECT updated.*, u.name AS creator_name, le.name AS editor_name
+     SELECT updated.*, COALESCE(u.username, u.name) AS creator_name, u.initials AS creator_initials, COALESCE(le.username, le.name) AS editor_name
      FROM updated
      LEFT JOIN users u ON u.id = updated.created_by
      LEFT JOIN users le ON le.id = updated.last_edited_by`,
@@ -216,7 +216,7 @@ router.post('/:id/status', asyncHandler(async (req, res) => {
          ${newStatus === 'Pending' ? ", ops_status = 'Pending Ops'" : ''}  -- submitting always starts Operations at Pending Ops
        WHERE id = $4 RETURNING *
      )
-     SELECT updated.*, u.name AS creator_name, le.name AS editor_name
+     SELECT updated.*, COALESCE(u.username, u.name) AS creator_name, u.initials AS creator_initials, COALESCE(le.username, le.name) AS editor_name
      FROM updated
      LEFT JOIN users u ON u.id = updated.created_by
      LEFT JOIN users le ON le.id = updated.last_edited_by`,
@@ -254,7 +254,7 @@ router.post('/:id/ops-status', requireRole('approver', 'admin'), asyncHandler(as
          last_edited_by = $4, last_edited_at = now()
        WHERE id = $5 RETURNING *
      )
-     SELECT updated.*, u.name AS creator_name, le.name AS editor_name
+     SELECT updated.*, COALESCE(u.username, u.name) AS creator_name, u.initials AS creator_initials, COALESCE(le.username, le.name) AS editor_name
      FROM updated
      LEFT JOIN users u ON u.id = updated.created_by
      LEFT JOIN users le ON le.id = updated.last_edited_by`,
@@ -334,7 +334,7 @@ router.patch('/:id/ops-checklist', requireRole('approver', 'admin'), asyncHandle
 // passenger created this way gets pic_id set to whoever ran the import.
 // ---------------------------------------------------------------
 const importRowSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1, 'it is required'),
   dob: z.string().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   idNumber: z.string().optional().or(z.literal('')),
@@ -350,7 +350,16 @@ const importRowSchema = z.object({
   route: z.string().max(200).optional().or(z.literal('')),
   ticketPurchaser: z.enum(['Self Purchase', 'Excapism']).optional().or(z.literal('')),
 });
-const importSchema = z.object({ rows: z.array(importRowSchema).min(1) });
+const importSchema = z.object({ rows: z.array(importRowSchema).min(1, 'There are no rows to import') });
+
+// Real calendar date in YYYY-MM-DD? (rejects 1990-02-31 etc. that Postgres would answer with a 500)
+function isRealYmd(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
+  if (!m) return false;
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return d.getUTCFullYear() === +m[1] && d.getUTCMonth() === +m[2] - 1 && d.getUTCDate() === +m[3];
+}
+const FIELD_LABEL = { name: 'name', amount: 'package amount', deposit: 'deposit', dob: 'date of birth', passportExpiry: 'passport expiry', ticketPurchaser: 'ticket purchaser' };
 
 // Same person already in the trip? Same name, unless both sides have an IC/passport and they differ.
 const normName = (v) => String(v || '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -358,7 +367,26 @@ const normId = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 const isSamePerson = (a, b) => a.name === b.name && !(a.id && b.id && a.id !== b.id);
 
 router.post('/bulk-import', asyncHandler(async (req, res) => {
-  const { rows } = importSchema.parse(req.body);
+  const parsed = importSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const issue = parsed.error.errors[0];
+    const idx = issue.path[0] === 'rows' && typeof issue.path[1] === 'number' ? issue.path[1] + 1 : null;
+    const field = FIELD_LABEL[issue.path[2]] || issue.path[2];
+    if (idx && (issue.message === 'Required' || issue.message === 'it is required')) return res.status(400).json({ error: `Row ${idx}: the ${field || 'data'} is missing.` });
+    return res.status(400).json({ error: idx ? `Row ${idx}: the ${field || 'data'} is not valid (${issue.message.toLowerCase()}).` : issue.message });
+  }
+  const { rows } = parsed.data;
+  // Dates must be real calendar dates (YYYY-MM-DD) — say which row is wrong instead of failing inside the database.
+  for (let i = 0; i < rows.length; i++) {
+    for (const f of ['dob', 'passportExpiry']) {
+      const v = (rows[i][f] || '').trim();
+      if (v && !isRealYmd(v)) return res.status(400).json({ error: `Row ${i + 1} (${rows[i].name}): ${FIELD_LABEL[f]} "${v}" is not a valid date. Please correct it and try again.` });
+      rows[i][f] = v;
+    }
+    if (rows[i].timestamp && Number.isNaN(Date.parse(rows[i].timestamp))) rows[i].timestamp = '';
+    rows[i].name = rows[i].name.trim();
+    if (!rows[i].name) return res.status(400).json({ error: `Row ${i + 1}: the name is missing.` });
+  }
 
   const groups = new Map();
   for (const r of rows) {
