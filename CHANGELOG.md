@@ -988,3 +988,9 @@ New third tab, **Calendar**, a monthly calendar of trips by date (frontend only,
 - Open sign-up and "temporary account" are gone from the login screen and the API (`/auth/temp-account` removed). Accounts are created by an admin only (Manage users).
 - The one exception is a brand-new empty system: the first account created becomes the admin so the app can be set up.
 - Anyone already signed in keeps their old session until they sign in again (their token still carries the old name).
+
+## #67 — Calendar: Malaysian holidays (KL + Selangor) and school holidays
+- The calendar now shows, with no switches to set: **public holidays** (red outlined flag), **KL / Selangor holidays** (amber outlined flag — Thaipusam, Federal Territory Day, Nuzul Al-Quran, Sultan of Selangor's Birthday) and **school holidays** (light blue tint on the days, small "School holiday" label on the first day; Group B, which covers KL and Selangor).
+- Flags are small outline-only labels so they never look like trips (filled bars) or holds (dashed bars). Hover a flag for the full name. They are information only — not counted anywhere.
+- Dates are built in and fixed: public + KL/Selangor holidays for 2026 and 2027, school holidays for 2026 and 2027 (Group B). Dates announced late by the government can still change.
+- Legend updated. No SQL or backend change — only `index.html`.
