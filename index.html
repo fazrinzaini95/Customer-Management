@@ -646,6 +646,63 @@
   .bal-cell{white-space:nowrap;font-variant-numeric:tabular-nums;}
   .bal-cell small{display:block;color:var(--ink-soft);font-size:11px;}
 
+
+  /* ---------- Library & Quotations ---------- */
+  .lib-sub{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+  .lib-pill{border:none;background:rgba(15,44,76,0.07);color:var(--ink-soft);font-weight:600;font-size:13px;padding:6px 14px;border-radius:999px;}
+  .lib-pill.on{background:var(--navy);color:#fff;}
+  .lib-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+  .lib-bar .search{flex:0 1 240px;min-width:150px;padding:8px 12px;font-size:13px;}
+  .lib-chip{border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);font-weight:600;font-size:12px;padding:4px 10px;border-radius:999px;white-space:nowrap;}
+  .lib-chip b{font-weight:600;opacity:.6;margin-left:3px;}
+  .lib-chip.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .lib-count{font-size:12px;color:var(--ink-soft);margin:0 0 6px;}
+  .lib-cn{margin:16px 0 2px;font-family:var(--font-display);font-size:16px;color:var(--navy-deep);} .lib-cn small{font-family:var(--font-body);font-size:12px;color:var(--ink-soft);font-weight:500;margin-left:6px;}
+  .lib-pl{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--ink-soft);margin:8px 0 6px;}
+  .lib-places{display:flex;flex-wrap:wrap;gap:4px 26px;} .lib-pblock{min-width:0;}
+  .lib-grid{display:flex;flex-wrap:wrap;gap:10px;} .lib-grid .lib-tile{width:172px;}
+  .lib-tile{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px 10px;box-shadow:var(--shadow);cursor:pointer;display:flex;flex-direction:column;}
+  .lib-tile:hover{border-color:var(--navy);}
+  .lib-th{height:68px;border-radius:8px;margin-bottom:7px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:22px;color:rgba(255,255,255,.9);}
+  .lib-tt{font-weight:700;font-size:12.5px;line-height:1.3;}
+  .lib-meta{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+  .lib-price{font-weight:700;color:var(--navy-deep);font-size:13px;margin-top:3px;}
+  .lib-acts{margin-top:auto;padding-top:7px;}
+  .lib-tbl{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .lib-tbl th{text-align:left;font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-soft);background:var(--paper-dim);padding:8px 10px;}
+  .lib-tbl td{padding:8px 10px;border-top:1px solid var(--line);vertical-align:middle;}
+  .lib-tbl tr.grp td{background:rgba(15,44,76,0.04);font-weight:700;color:var(--navy-deep);}
+  .lib-tbl tr.pk{cursor:pointer;} .lib-tbl tr.pk:hover td{background:rgba(244,185,60,0.10);}
+  .lib-tbl .pr{font-weight:700;color:var(--navy-deep);white-space:nowrap;}
+  .lib-thumbs{display:flex;gap:6px;flex-wrap:wrap;}
+  .lib-thumb{width:84px;height:60px;border-radius:8px;background:var(--paper-dim) center/cover;border:1px solid var(--line);position:relative;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;}
+  .lib-thumb .x{position:absolute;top:-6px;right:-6px;background:var(--coral);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;line-height:18px;padding:0;}
+  .lib-msg{border:1.5px solid var(--line);border-radius:10px;background:#fff;padding:10px 12px;margin-bottom:10px;}
+  .lib-msg pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:var(--font-body);font-size:13px;line-height:1.5;}
+  .lib-msg textarea{width:100%;min-height:120px;font-size:13px;line-height:1.5;}
+  .lib-ph{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0 2px;font-size:12px;color:var(--ink-soft);}
+  .lib-ph input{width:110px;padding:4px 8px;font-size:12px;background:#FFF9DB;border:1.5px solid var(--gold);border-radius:6px;}
+  .lib-badge{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:2px 9px;background:rgba(15,44,76,0.08);color:var(--ink-soft);}
+  .lib-badge.g{background:#E3F4E8;color:#1E7A3B;} .lib-badge.a{background:#FFF1D6;color:#9A6200;} .lib-badge.r{background:#FBE2E0;color:#B3261E;}
+  .q-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start;}
+  @media(max-width:900px){.q-wrap{grid-template-columns:1fr;}}
+  .q-sec{font-size:11px;font-weight:700;color:var(--navy-deep);letter-spacing:.4px;text-transform:uppercase;border-top:1.5px dashed var(--line);padding-top:12px;margin:14px 0 8px;}
+  .q-sec:first-child{border-top:0;margin-top:0;padding-top:0;}
+  .q-g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;} .q-g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;} .q-g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media(max-width:700px){.q-g3,.q-g4,.q-g2{grid-template-columns:1fr 1fr;}}
+  .q-lines{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .q-lines th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-soft);padding:5px 4px;background:var(--paper-dim);}
+  .q-lines td{padding:4px;border-top:1px solid var(--line);}
+  .q-lines input{width:100%;padding:6px 8px;font-size:12.5px;}
+  .q-sum{background:rgba(244,185,60,0.12);border-radius:12px;padding:12px 14px;font-size:13px;}
+  .q-sum div{display:flex;justify-content:space-between;margin:4px 0;}
+  .q-sum .tot{border-top:1.5px solid var(--line);padding-top:8px;margin-top:8px;font-weight:700;font-size:15px;color:var(--navy-deep);}
+  .q-trow{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:8px 0;border-top:1px solid var(--line);align-items:start;}
+  .q-hl{background:#FFF9DB;border-bottom:1.5px solid var(--navy);font-weight:700;color:var(--navy);padding:0 4px;}
+  .q-trow textarea{width:100%;min-height:60px;font-size:12.5px;}
+  .q-presets{background:#FFF8E6;border:1.5px solid var(--gold);border-radius:10px;padding:9px 12px;margin-bottom:12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px;}
+  .qprev-frame{width:100%;height:68vh;border:1px solid var(--line);border-radius:10px;background:#d9dde3;}
+  .modal.modal-xl{max-width:900px;width:min(900px,96vw);}
 </style>
 </head>
 <body>
@@ -1173,6 +1230,64 @@ async function demoFetchInner(path, options = {}){
     return null;
   }
 
+  // ---- Library & quotations (demo mirror of backend/src/routes/library.js and quotes.js) ----
+  if(path.startsWith('/library') || path.startsWith('/quotes')){
+    requireAuthed();
+    state.libPacks = state.libPacks || []; state.libFiles = state.libFiles || []; state.quoteDrafts = state.quoteDrafts || [];
+    if(!state.quoteSettings) state.quoteSettings = JSON.parse(JSON.stringify(DEMO_QUOTE_DEFAULTS));
+    if(!state.quoteNext) state.quoteNext = 10001;
+    const needAdmin = ()=>{ if(me.role!=='admin') fail(403,'You do not have permission to perform this action'); };
+    const now = ()=>new Date().toISOString();
+    const uname = ()=>me.username || me.name || '';
+    const packOut = p=>({ id:p.id, country:p.country, place:p.place, title:p.title, tripType:p.tripType, price:p.price, tags:p.tags, archived:!!p.archived, messages:p.messages||[], updatedAt:p.updatedAt, updatedBy:p.updatedBy||'', files: state.libFiles.filter(f=>f.packId===p.id).map(f=>({id:f.id,name:f.name,mime:f.mime,size:f.size,thumb:f.thumb})) });
+    const packIn = b=>{
+      const country = String(b.country||'').trim(), title = String(b.title||'').trim();
+      if(!country) fail(400,'Please enter the country'); if(!title) fail(400,'Please enter a title');
+      return { country, place:String(b.place||'').trim(), title, tripType:String(b.tripType||'').trim(), price: b.price==null?null:Number(b.price), tags:String(b.tags||'').trim(), archived:!!b.archived, messages:(b.messages||[]).slice(0,20).map((x,i)=>({ id:x.id||('m'+Date.now().toString(36)+i), label:String(x.label||''), text:String(x.text||'') })) };
+    };
+    const KEEP = 14*86400000;
+    const purge = ()=>{ state.quoteDrafts = state.quoteDrafts.filter(d=>Date.now()-new Date(d.updatedAt).getTime() <= KEEP); };
+    const dOut = (d, withData)=>{ const o = { id:d.id, number:d.number, customer:d.customer, package:d.package, total:d.total, createdByName:d.createdByName||'', createdAt:d.createdAt, updatedAt:d.updatedAt, expiresAt:new Date(new Date(d.updatedAt).getTime()+KEEP).toISOString() }; if(withData) o.data = d.data; return o; };
+    const dTotal = data=>Math.round((data.lines||[]).reduce((s,l)=>s+(Number(l.price)||0)*(Number(l.qty)||0),0)*100)/100;
+    let lm;
+    if(path==='/library' && method==='GET') return state.libPacks.slice().sort((a,b)=>(a.country+a.place+a.title).toLowerCase().localeCompare((b.country+b.place+b.title).toLowerCase())).map(packOut);
+    if(path==='/library' && method==='POST'){ needAdmin(); const p = { id:demoId('pk'), ...packIn(body), updatedAt:now(), updatedBy:uname() }; state.libPacks.push(p); persistDemo(); return packOut(p); }
+    if((lm=path.match(/^\/library\/files\/([^/]+)$/))){
+      const f = state.libFiles.find(x=>x.id===lm[1]); if(!f) fail(404,'File not found');
+      if(method==='GET') return { id:f.id, name:f.name, mime:f.mime, dataUrl:f.data };
+      if(method==='DELETE'){ needAdmin(); state.libFiles = state.libFiles.filter(x=>x.id!==f.id); persistDemo(); return null; }
+    }
+    if((lm=path.match(/^\/library\/([^/]+)\/files$/)) && method==='POST'){
+      needAdmin(); const p = state.libPacks.find(x=>x.id===lm[1]); if(!p) fail(404,'Pack not found');
+      if(!/^(image\/(png|jpeg|webp)|application\/pdf)$/.test(body.mime||'')) fail(400,'Only PNG, JPG, WEBP or PDF files can be uploaded');
+      if(String(body.data||'').length > 4800000) fail(400,'That file is too large (limit about 3 MB)');
+      if(state.libFiles.filter(f=>f.packId===p.id).length >= 10) fail(400,'A pack can hold up to 10 files');
+      const f = { id:demoId('lf'), packId:p.id, name:body.name, mime:body.mime, size:body.size||0, thumb:body.thumb||'', data:body.data };
+      state.libFiles.push(f); p.updatedAt = now(); p.updatedBy = uname(); persistDemo(); return { id:f.id, name:f.name, mime:f.mime, size:f.size, thumb:f.thumb };
+    }
+    if((lm=path.match(/^\/library\/([^/]+)$/))){
+      const p = state.libPacks.find(x=>x.id===lm[1]); if(!p) fail(404,'Pack not found');
+      if(method==='PUT'){ needAdmin(); Object.assign(p, packIn(body), { updatedAt:now(), updatedBy:uname() }); persistDemo(); return packOut(p); }
+      if(method==='DELETE'){ needAdmin(); state.libPacks = state.libPacks.filter(x=>x.id!==p.id); state.libFiles = state.libFiles.filter(f=>f.packId!==p.id); persistDemo(); return null; }
+    }
+    if(path==='/quotes/bundle' && method==='GET'){ purge(); persistDemo(); return { settings:state.quoteSettings, nextNumber:state.quoteNext, drafts:state.quoteDrafts.slice().sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)).map(d=>dOut(d,false)) }; }
+    if(path==='/quotes/settings' && method==='PUT'){
+      needAdmin(); const { nextNumber, ...rest } = body; const codes = new Set();
+      for(const it of (rest.items||[])){ const k = String(it.code||'').toLowerCase(); if(!k) fail(400,'Every item needs a code'); if(codes.has(k)) fail(400,`Item code ${it.code} appears twice`); codes.add(k); }
+      state.quoteSettings = rest; if(nextNumber!=null) state.quoteNext = nextNumber; persistDemo(); return state.quoteSettings;
+    }
+    if(path==='/quotes/drafts' && method==='POST'){
+      const n = state.quoteNext++; const d = { id:demoId('qd'), number:(state.quoteSettings.defaults.prefix||'QT-')+n, customer:(body.customer&&body.customer.name)||'', package:body.tripName||'', total:dTotal(body), data:body, createdByName:uname(), createdAt:now(), updatedAt:now() };
+      state.quoteDrafts.push(d); persistDemo(); return dOut(d,true);
+    }
+    if((lm=path.match(/^\/quotes\/drafts\/([^/]+)$/))){
+      purge(); const d = state.quoteDrafts.find(x=>x.id===lm[1]); if(!d) fail(404,'This draft was not found — drafts are removed 14 days after the last save');
+      if(method==='GET') return dOut(d,true);
+      if(method==='PUT'){ Object.assign(d, { customer:(body.customer&&body.customer.name)||'', package:body.tripName||'', total:dTotal(body), data:body, updatedAt:now() }); persistDemo(); return dOut(d,true); }
+      if(method==='DELETE'){ state.quoteDrafts = state.quoteDrafts.filter(x=>x.id!==d.id); persistDemo(); return null; }
+    }
+  }
+
   // ---- Calendar holds ----
   function checkHold(b){
     if(!String(b.title||'').trim()) fail(400,'Please give the hold a title');
@@ -1429,8 +1544,9 @@ function render(){
   if(API_NOT_CONFIGURED && !DEMO_MODE){ app.innerHTML = apiNotConfiguredHTML(); bindAuthEvents(); return; }
   if(authView==='signup'){ app.innerHTML = signupHTML(); bindAuthEvents(); return; }
   if(authView==='login'){ app.innerHTML = loginHTML(); bindAuthEvents(); return; }
-  app.innerHTML = headerHTML() + tempBannerHTML() + tabsHTML() + (view.mode==='detail' ? detailHTML() : view.mode==='dashboard' ? dashboardHTML() : view.mode==='calendar' ? calendarHTML() : listHTML()) + modalsHTML() + changePasswordModalHTML() + (isAdmin() ? manageUsersModalHTML() + settingsModalHTML() + listsModalHTML() + activityLogModalHTML() : '');
+  app.innerHTML = headerHTML() + tempBannerHTML() + tabsHTML() + (view.mode==='detail' ? detailHTML() : view.mode==='dashboard' ? dashboardHTML() : view.mode==='calendar' ? calendarHTML() : view.mode==='library' ? libraryHTML() : view.mode==='quote' ? quoteEditorHTML() : listHTML()) + modalsHTML() + packModalHTML() + qModalsHTML() + quotePreviewModalHTML() + (isAdmin() && qBundle ? companyModalHTML() : '') + changePasswordModalHTML() + (isAdmin() ? manageUsersModalHTML() + settingsModalHTML() + listsModalHTML() + activityLogModalHTML() : '');
   bindEvents();
+  bindLibraryEvents(app);
 }
 
 /* =========================================================
@@ -1522,7 +1638,7 @@ function headerHTML(){
         ${DEMO_MODE ? `<span class="badge" style="background:rgba(244,185,60,0.25);color:#9C7A16;">🧪 Demo</span>` : ''}
       </div>
       ${isApproverOrAdmin() ? `<button class="btn ${pendingCount>0?'btn-primary':'btn-ghost'}" data-action="open-approvals" title="Trips that are Pending Payment, Pending Ops, Ongoing or On-hold">Actions needed${pendingCount>0 ? ` <span class="badge" style="background:#fff;color:var(--navy);margin-left:4px;">${pendingCount}</span>` : ''}</button>` : ''}
-      ${isAdmin() ? `<button class="btn btn-ghost" data-action="open-manage-users">Manage users</button><button class="btn btn-ghost" data-action="open-settings">Settings</button><button class="btn btn-ghost" data-action="open-lists" title="Routes, hotels and airlines used across trips and operations">Operations lists</button><button class="btn btn-ghost" data-action="open-activity-log">Activity log</button>` : ''}
+      ${isAdmin() ? `<button class="btn btn-ghost" data-action="open-manage-users">Manage users</button><button class="btn btn-ghost" data-action="open-settings">Settings</button><button class="btn btn-ghost" data-action="open-company" title="Company name, address, bank details and quotation defaults">Company details</button><button class="btn btn-ghost" data-action="open-lists" title="Routes, hotels and airlines used across trips and operations">Operations lists</button><button class="btn btn-ghost" data-action="open-activity-log">Activity log</button>` : ''}
       <button class="btn btn-ghost" data-action="open-upload">Bulk upload</button>
       <button class="btn btn-primary" data-action="open-new-trip">+ New trip</button>
       ${DEMO_MODE ? `<button class="btn btn-ghost" data-action="reset-demo-data" title="Clear all demo data and start over">Reset demo data</button>` : ''}
@@ -1920,11 +2036,11 @@ function columnChartSVG(buckets, metric){
 }
 
 function tabsHTML(){
-  if(view.mode==='detail') return '';
+  if(view.mode==='detail' || view.mode==='quote') return '';
   const m = view.mode;
   const t = (id,label)=>`<button class="tab ${m===id?'active':''}" role="tab" aria-selected="${m===id}" data-view-mode="${id}">${label}</button>`;
   return `<div class="tabs" role="tablist">
-    ${t('list','Trips')}${t('dashboard','Dashboard')}${t('calendar','Calendar')}
+    ${t('list','Trips')}${t('dashboard','Dashboard')}${t('calendar','Calendar')}${t('library','Library')}
   </div>`;
 }
 
@@ -1934,7 +2050,7 @@ function bindDashboardEvents(app){
   tip.style.display = 'none';
 
   app.querySelectorAll('[data-view-mode]').forEach(el=>{
-    el.addEventListener('click', ()=>{ view.mode = el.dataset.viewMode; view.returnTo = null; render(); });
+    el.addEventListener('click', ()=>{ view.mode = el.dataset.viewMode; view.returnTo = null; render(); if(view.mode==='library') loadLibraryData(); });
   });
   if(view.mode!=='dashboard') return;
 
@@ -5841,6 +5957,823 @@ function bindPublicRegistrationEvents(token){
   const confirmBtn = app.querySelector('[data-action="confirm-public-registration"]');
   if(confirmBtn) confirmBtn.addEventListener('click', ()=>handlePublicRegistrationSubmit(token));
 }
+
+
+/* =========================================================
+   Library (Trip References) + Quotations
+   Everyone can view the Library and make quotations. Only admins edit
+   packs, posters, presets, prices, terms wording and company details.
+   Quotations are standalone (not linked to trips) and drafts are kept
+   14 days from the last save, then removed automatically.
+   ========================================================= */
+const DEFAULT_LOGO = 'data:image/png;base64,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';
+const DEMO_QUOTE_DEFAULTS = {"company":{"name":"EXCAPISM MY VENTURES","address":"NO. 13 JALAN SG 6/2\nTAMAN SERI GOMBAK\n68100, BATU CAVES\nMALAYSIA","email":"excapism.my@gmail.com","phone":"+601153265523","bank":"MAYBANK","accountNo":"564324778322","accountName":"EXCAPISM MY VENTURES","logo":""},"defaults":{"prefix":"QT-","validDays":14,"depositPerPax":100,"balanceDays":30,"footer":"This is a computer-generated quotation. No signature is required."},"terms":{"topics":[{"id":"payment","title":"Payment","short":"A deposit of RM {deposit} per pax is needed to confirm. Balance due {days} days before departure.","full":"A booking is confirmed when the deposit is received (RM {deposit} per pax). The balance is due {days} days before departure. Late payment may lead to the booking being released without notice."},{"id":"validity","title":"Prices & validity","short":"Prices valid until {valid}; subject to availability.","full":"Prices are in Malaysian Ringgit and valid until {valid}. They depend on availability and on supplier, airline and exchange-rate changes until paid in full. Flight fares are guaranteed only once ticketed."},{"id":"cancel","title":"Cancellation & refund","short":"Per airline/supplier terms; assessed case by case.","full":"Cancellations must be made in writing. Charges depend on the airline and supplier terms at the time. Non-refundable portions (e.g. air tickets already issued) cannot be recovered. Any refund is assessed case by case."},{"id":"flights","title":"Flights & airline changes","short":"Schedules and baggage rules are set by the airline and may change.","full":"Flight times, routes, aircraft and baggage allowance are set by the airline and may change. We will inform you as soon as we are told, but are not liable for airline-caused delay, rescheduling or cancellation. Name and date changes follow the airline’s rules and fees."},{"id":"weather","title":"Weather & force majeure","short":"Itinerary may be adjusted for safety or weather.","full":"Activities may be changed, shortened or cancelled for safety or weather. We are not liable for events beyond our control (natural disaster, strike, epidemic, government action, etc.). We will try to offer a suitable alternative."},{"id":"itinerary","title":"Itinerary & supplier changes","short":"Hotels, transport or activities may be replaced with similar standard.","full":"We may replace hotels, transport or activities with a similar standard if necessary."},{"id":"documents","title":"Travel documents & visa","short":"Passport (6 months validity) and visa are the traveller’s responsibility.","full":"Passport must be valid at least 6 months after the return date. Visas, entry rules and health requirements are the traveller’s responsibility."},{"id":"insurance","title":"Travel insurance","short":"Travel insurance is strongly recommended.","full":"Travellers are strongly advised to buy travel insurance. We are not responsible for loss, injury or illness during the trip."},{"id":"conduct","title":"Conduct & health","short":"Travellers must follow guide and local instructions.","full":"Travellers must follow guide and local instructions. We may refuse service to anyone whose conduct endangers others, without refund."},{"id":"media","title":"Media coverage","short":"Photos/videos may be used for promotion; tell us in writing if you object.","full":"Photos and videos taken during the trip may be used in our promotion. Tell us in writing before departure if you do not agree."},{"id":"pdpa","title":"Personal data (PDPA)","short":"Data is used only for this booking and service updates.","full":"Your personal data is collected for this booking and related service updates, and shared only with airlines, hotels and suppliers needed to deliver the trip, in line with the Personal Data Protection Act 2010."}],"templates":[{"id":"standard","name":"Standard","on":["payment","validity","cancel","flights","weather","documents","insurance","media","pdpa"]},{"id":"overseas","name":"Overseas flight trip","on":["payment","validity","cancel","flights","weather","itinerary","documents","insurance","conduct","media","pdpa"]},{"id":"ground","name":"Ground only","on":["payment","validity","cancel","weather","itinerary","documents","insurance","conduct","media","pdpa"]},{"id":"corporate","name":"Corporate","on":["payment","validity","cancel","flights","weather","itinerary","documents","insurance","pdpa"]}]},"items":[{"code":"GRD-0001","description":"Ground package","price":null,"per":"pax"},{"code":"ALL-0001","description":"All-in package","price":null,"per":"pax"},{"code":"GEN-0001","description":"Flight ticket","price":null,"per":"pax"},{"code":"ADD-0001","description":"Add-on: luggage 20kg (return)","price":null,"per":"qty"},{"code":"ADD-0002","description":"Add-on: room request / single supplement","price":null,"per":"qty"},{"code":"ADD-0003","description":"Travel insurance","price":null,"per":"pax"},{"code":"ADD-0004","description":"Visa assistance","price":null,"per":"pax"},{"code":"ADD-0005","description":"Airport transfer","price":null,"per":"qty"},{"code":"ADD-0006","description":"SIM / eSIM","price":null,"per":"pax"},{"code":"ADD-0007","description":"Tour guide","price":null,"per":"qty"},{"code":"ADD-0008","description":"Entrance tickets / activities","price":null,"per":"pax"},{"code":"DISC","description":"Discount","price":null,"per":"qty"}],"presets":[]};
+let libPacks = [], libLoaded = false, libLoading = false;
+let qBundle = null; // { settings, nextNumber, drafts }
+function libPref(k, d){ try{ return localStorage.getItem('excapism_'+k) || d; }catch(e){ return d; } }
+function libSetPref(k, v){ try{ localStorage.setItem('excapism_'+k, v); }catch(e){} }
+let libUI = { sub:'refs', layout: libPref('lib_layout','tiles'), search:'', country:'All', archived:false, qsub:'drafts', tplId:'', open:{}, fill:{} };
+let packEdit = null;   // { id:'new'|uuid, d:{...fields}, files:[], pending:[] }
+let qe = null;         // quotation editor state { id, number, d, dirty, termsOpen }
+let qPrevHTML = '';
+let qModal = null;     // { kind:'item'|'preset', index:-1|n, draft:{} }
+
+function fmt2(n){ return (Number(n)||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function numOrNull(v){ const s = String(v==null?'':v).trim(); if(s==='') return null; const n = Number(s.replace(/,/g,'')); return Number.isFinite(n) ? n : null; }
+function addDaysYmd(ymdStr, n){ const d = new Date(ymdStr+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+function longDate(s){ if(!s) return ''; const d = new Date(String(s).slice(0,10)+'T00:00:00Z'); if(isNaN(d)) return s; return d.getUTCDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()]+' '+d.getUTCFullYear(); }
+function copyToClipboard(text){
+  return (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : Promise.reject()).catch(()=>{
+    const ta = document.createElement('textarea'); ta.value = text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){} document.body.removeChild(ta);
+  });
+}
+function qSettings(){ return (qBundle && qBundle.settings) || DEMO_QUOTE_DEFAULTS; }
+
+async function loadLibraryData(force){
+  if(libLoading) return;
+  if(libLoaded && !force) return;
+  libLoading = true; render();
+  try{
+    const [p, b] = await Promise.all([apiFetch('/library'), apiFetch('/quotes/bundle')]);
+    libPacks = p; qBundle = b; libLoaded = true;
+  }catch(e){ showToast(e.message || 'Could not load the Library'); }
+  libLoading = false; render();
+}
+async function refreshQuoteBundle(){
+  try{ qBundle = await apiFetch('/quotes/bundle'); }catch(e){ /* keep what we have */ }
+}
+async function saveQuoteSettings(mut, extra){
+  const s = JSON.parse(JSON.stringify(qSettings())); mut(s);
+  const body = { ...s }; if(extra && extra.nextNumber!=null) body.nextNumber = extra.nextNumber;
+  try{
+    const r = await apiFetch('/quotes/settings', { method:'PUT', body: JSON.stringify(body) });
+    qBundle.settings = r; if(extra && extra.nextNumber!=null) qBundle.nextNumber = extra.nextNumber;
+    return true;
+  }catch(e){ showToast(e.message || 'Could not save'); return false; }
+}
+
+/* ---------- files: compress images, open / download ---------- */
+function readFileAsDataURL(file){ return new Promise((res,rej)=>{ const r = new FileReader(); r.onload = ()=>res(r.result); r.onerror = rej; r.readAsDataURL(file); }); }
+function loadImg(src){ return new Promise((res,rej)=>{ const i = new Image(); i.onload = ()=>res(i); i.onerror = rej; i.src = src; }); }
+function drawScaled(img, max, type, q){
+  const k = Math.min(1, max/Math.max(img.width, img.height));
+  const c = document.createElement('canvas'); c.width = Math.max(1,Math.round(img.width*k)); c.height = Math.max(1,Math.round(img.height*k));
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height);
+  return c.toDataURL(type, q);
+}
+async function prepareUpload(file){
+  if(file.type==='application/pdf'){
+    if(file.size > 3*1024*1024) throw new Error('"'+file.name+'" is too large — PDFs can be up to 3 MB');
+    return { name:file.name, mime:file.type, size:file.size, thumb:'', data: await readFileAsDataURL(file) };
+  }
+  if(!/^image\/(png|jpeg|webp)$/.test(file.type)) throw new Error('"'+file.name+'": only PNG, JPG, WEBP or PDF files can be uploaded');
+  const img = await loadImg(await readFileAsDataURL(file));
+  let data = drawScaled(img,1600,'image/jpeg',0.85);
+  if(data.length > 3.9e6) data = drawScaled(img,1200,'image/jpeg',0.72);
+  return { name:file.name.replace(/\.\w+$/,'')+'.jpg', mime:'image/jpeg', size:Math.round(data.length*0.75), thumb: drawScaled(img,240,'image/jpeg',0.7), data };
+}
+function dataUrlToBlob(u){
+  const m = /^data:([^;,]+)?(;base64)?,(.*)$/s.exec(u); if(!m) return null;
+  const bin = atob(m[3]); const arr = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: m[1] || 'application/octet-stream' });
+}
+async function openLibFile(fid, download){
+  try{
+    const f = await apiFetch('/library/files/'+fid);
+    const blob = dataUrlToBlob(f.dataUrl); if(!blob) throw new Error('Could not read the file');
+    const url = URL.createObjectURL(blob);
+    if(download){ const a = document.createElement('a'); a.href = url; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); }
+    else window.open(url, '_blank');
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }catch(e){ showToast(e.message || 'Could not open the file'); }
+}
+
+/* ---------- placeholders in WhatsApp messages: {dates} {price} … ---------- */
+function msgPlaceholders(text){ const out = []; String(text||'').replace(/\{([A-Za-z_ ]{1,20})\}/g, (m,k)=>{ if(!out.includes(k)) out.push(k); return m; }); return out; }
+function fillMessage(text, fill){ return String(text||'').replace(/\{([A-Za-z_ ]{1,20})\}/g, (m,k)=> (fill && fill[k]) ? fill[k] : m); }
+function packFillDefaults(pack){
+  const f = Object.assign({}, libUI.fill);
+  if(pack && pack.price!=null && !f.price) f.price = Number(pack.price).toLocaleString('en-MY');
+  return f;
+}
+function libHue(s){ let h = 0; for(const c of String(s)) h = (h*31 + c.charCodeAt(0)) % 360; return h; }
+function libTileBg(p){
+  const th = (p.files||[]).find(f=>f.thumb);
+  if(th) return `background-image:url('${esc(th.thumb)}')`;
+  const h = libHue(p.country+p.place);
+  return `background:linear-gradient(135deg,hsl(${h},45%,38%),hsl(${(h+40)%360},55%,64%))`;
+}
+function libVisible(){
+  const q = libUI.search.trim().toLowerCase();
+  return libPacks.filter(p=>{
+    if(!!p.archived !== libUI.archived) return false;
+    if(libUI.country!=='All' && p.country!==libUI.country) return false;
+    if(!q) return true;
+    const hay = [p.title,p.place,p.country,p.tags,p.tripType].concat((p.messages||[]).map(m=>(m.label||'')+' '+(m.text||''))).join(' ').toLowerCase();
+    return q.split(/\s+/).every(w=>hay.includes(w));
+  });
+}
+
+/* ---------- Library: Trip References ---------- */
+function libraryHTML(){
+  if(!libLoaded) return `<div class="empty"><p>${libLoading ? 'Loading the Library…' : 'The Library could not be loaded.'}</p>${libLoading?'':'<button class="btn btn-primary" data-action="lib-retry">Try again</button>'}</div>`;
+  return `<div class="lib-sub">
+    <button class="lib-pill ${libUI.sub==='refs'?'on':''}" data-lib-sub="refs">Trip References</button>
+    <button class="lib-pill ${libUI.sub==='quotes'?'on':''}" data-lib-sub="quotes">Quotations</button>
+  </div>` + (libUI.sub==='refs' ? libRefsHTML() : libQuotesHTML());
+}
+function libRefsHTML(){
+  const base = libPacks.filter(p=>!!p.archived===libUI.archived);
+  const countries = [...new Set(base.map(p=>p.country))].sort((a,b)=>a.localeCompare(b));
+  const archivedCount = libPacks.filter(p=>p.archived).length;
+  return `
+  <div class="lib-bar">
+    <input class="search" id="lib-search" placeholder="Search packs, places, messages…" value="${esc(libUI.search)}">
+    <button class="lib-chip ${libUI.country==='All'?'on':''}" data-lib-country="All">All</button>
+    ${countries.map(c=>`<button class="lib-chip ${libUI.country===c?'on':''}" data-lib-country="${esc(c)}">${esc(c)}<b>${base.filter(p=>p.country===c).length}</b></button>`).join('')}
+    <button class="lib-chip ${libUI.archived?'on':''}" data-action="lib-toggle-archived">Archived${archivedCount?`<b>${archivedCount}</b>`:''}</button>
+    <span style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+      <button class="lib-chip ${libUI.layout==='table'?'on':''}" data-lib-layout="table" title="Table view">☰ Table</button>
+      <button class="lib-chip ${libUI.layout==='tiles'?'on':''}" data-lib-layout="tiles" title="Tile view">▦ Tiles</button>
+      ${isAdmin() ? `<button class="btn btn-primary btn-sm" data-action="lib-add-pack">＋ Add pack</button>` : ''}
+    </span>
+  </div>
+  <div id="lib-results">${libResultsHTML()}</div>`;
+}
+function libResultsHTML(){
+  const vis = libVisible();
+  if(!vis.length){
+    return `<div class="empty"><p>${libPacks.length ? 'No packs match your search.' : 'No trip references yet.'}${!libPacks.length && isAdmin() ? ' Use “＋ Add pack” to add your first poster and WhatsApp message.' : ''}</p></div>`;
+  }
+  const byC = {};
+  vis.forEach(p=>{ ((byC[p.country] = byC[p.country] || {})[p.place||''] = (byC[p.country][p.place||''] || [])).push(p); });
+  const countries = Object.keys(byC).sort((a,b)=>a.localeCompare(b));
+  const head = `<p class="lib-count">${vis.length} pack${vis.length===1?'':'s'}${libUI.search.trim()?' · searching titles, places, tags and the words inside the messages':''}</p>`;
+  if(libUI.layout==='table'){
+    let rows = '';
+    countries.forEach(c=>{
+      const n = Object.values(byC[c]).reduce((s,a)=>s+a.length,0);
+      rows += `<tr class="grp"><td colspan="4">${esc(c)} · ${n} pack${n===1?'':'s'}</td></tr>`;
+      Object.keys(byC[c]).sort((a,b)=>a.localeCompare(b)).forEach(pl=>byC[c][pl].forEach(p=>{
+        const open = !!libUI.open[p.id];
+        const imgs = (p.files||[]).length, msgs = (p.messages||[]).length;
+        rows += `<tr class="pk" data-pack-toggle="${esc(p.id)}"><td><b>${esc(p.title)}</b> <span style="color:var(--ink-soft);font-size:12px;">${esc([pl,p.tripType].filter(Boolean).join(' · '))}</span></td>
+          <td class="pr">${p.price!=null?esc(Number(p.price).toLocaleString('en-MY')):'—'}</td>
+          <td style="color:var(--ink-soft);font-size:12px;">🖼 ${imgs} · 💬 ${msgs}</td>
+          <td style="text-align:right;white-space:nowrap;"><button class="btn btn-sm btn-ghost" data-pack-copy="${esc(p.id)}">Copy message</button> <button class="btn btn-sm btn-ghost" data-pack-open="${esc(p.id)}">Open</button></td></tr>`;
+        if(open){
+          const m = (p.messages||[])[0];
+          rows += `<tr><td colspan="4" style="background:rgba(15,44,76,0.03);"><div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
+            <div class="lib-thumbs">${(p.files||[]).map(f=>`<div class="lib-thumb" data-file-open="${esc(f.id)}" style="${f.thumb?`background-image:url('${esc(f.thumb)}')`:''}" title="${esc(f.name)}">${f.thumb?'':'📄'}</div>`).join('') || '<span style="font-size:12px;color:var(--ink-soft);">No poster uploaded</span>'}</div>
+            <div style="flex:1;min-width:220px;font-size:12.5px;white-space:pre-wrap;max-height:110px;overflow:hidden;">${m ? esc(m.text) : '<span style="color:var(--ink-soft);">No message</span>'}</div></div></td></tr>`;
+        }
+      }));
+    });
+    return head + `<table class="lib-tbl"><thead><tr><th>Pack</th><th style="width:120px;">Price (RM/pax)</th><th style="width:130px;">Files</th><th style="width:210px;"></th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  let out = head;
+  countries.forEach(c=>{
+    const n = Object.values(byC[c]).reduce((s,a)=>s+a.length,0);
+    out += `<h4 class="lib-cn">${esc(c)}<small>${n} pack${n===1?'':'s'}</small></h4><div class="lib-places">`;
+    Object.keys(byC[c]).sort((a,b)=>a.localeCompare(b)).forEach(pl=>{
+      out += `<div class="lib-pblock">${pl?`<div class="lib-pl">${esc(pl)}</div>`:'<div class="lib-pl">&nbsp;</div>'}<div class="lib-grid">` + byC[c][pl].map(p=>{
+        const imgs = (p.files||[]).length, msgs = (p.messages||[]).length;
+        return `<div class="lib-tile" data-pack-open="${esc(p.id)}">
+          <div class="lib-th" style="${libTileBg(p)}">${(p.files||[]).some(f=>f.thumb)?'':'🖼'}</div>
+          <div class="lib-tt">${esc(p.title)}</div>
+          <div class="lib-meta">${esc(p.tripType||'')}${p.tripType?' · ':''}🖼 ${imgs} · 💬 ${msgs}</div>
+          ${p.price!=null?`<div class="lib-price">RM ${esc(Number(p.price).toLocaleString('en-MY'))}<span style="font-weight:500;font-size:11px;color:var(--ink-soft);"> /pax</span></div>`:''}
+          <div class="lib-acts"><button class="btn btn-sm btn-ghost" data-pack-copy="${esc(p.id)}">Copy message</button></div></div>`;
+      }).join('') + `</div></div>`;
+    });
+    out += `</div>`;
+  });
+  return out;
+}
+function libRefreshResults(){
+  const el = document.getElementById('lib-results'); if(!el) return;
+  el.innerHTML = libResultsHTML(); bindLibResults(el);
+}
+function packMsgBlock(i, m, p, ed){
+  const phs = msgPlaceholders(m.text); const fill = packFillDefaults(p);
+  return `<div class="lib-msg" data-msg-i="${i}">
+    ${ed ? `<div style="display:flex;gap:8px;margin-bottom:6px;"><input id="pk-ml-${i}" value="${esc(m.label||'')}" placeholder="Label (e.g. Main message)" style="flex:1;"><button class="btn btn-sm btn-ghost" data-pack-msg-del="${i}">Remove</button></div><textarea id="pk-mt-${i}" placeholder="Type the WhatsApp message. Use {dates}, {price}, {contact} for blanks you fill in when copying.">${esc(m.text)}</textarea>`
+         : `${m.label?`<div style="font-weight:700;font-size:12px;margin-bottom:4px;">${esc(m.label)}</div>`:''}<pre>${esc(m.text)}</pre>`}
+    <div class="lib-ph" id="pk-ph-${i}">${packPhHTML(phs, fill)}</div>
+    <div style="margin-top:6px;"><button class="btn btn-sm btn-primary" data-pack-msg-copy="${i}">Copy message</button></div>
+  </div>`;
+}
+function packPhHTML(phs, fill){ return phs.length ? 'Fill in:' + phs.map(k=>`<label>{${esc(k)}} <input data-fill="${esc(k)}" value="${esc(fill[k]||'')}" placeholder="${esc(k)}"></label>`).join('') : ''; }
+function packModalHTML(){
+  if(!packEdit) return `<div class="overlay" id="overlay-pack"></div>`;
+  const ed = isAdmin(); const d = packEdit.d; const isNew = packEdit.id==='new';
+  const countries = [...new Set(libPacks.map(p=>p.country))], places = [...new Set(libPacks.filter(p=>!d.country || p.country===d.country).map(p=>p.place).filter(Boolean))];
+  const files = packEdit.files || [];
+  const pend = packEdit.pending || [];
+  return `
+  <div class="overlay" id="overlay-pack">
+    <div class="modal modal-xl">
+      <div class="modal-head"><h3>${ed ? (isNew ? 'Add pack' : 'Edit pack') : esc(d.title)}</h3><button class="modal-close" data-close="overlay-pack">✕</button></div>
+      <div class="modal-body">
+        ${ed ? `
+        <div class="form-grid">
+          <div class="field"><label>Country</label><input id="pk-country" list="pk-countries" value="${esc(d.country)}" placeholder="e.g. Indonesia"><datalist id="pk-countries">${countries.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
+          <div class="field"><label>Place <span style="font-weight:400;">(optional)</span></label><input id="pk-place" list="pk-places" value="${esc(d.place)}" placeholder="e.g. Bromo"><datalist id="pk-places">${places.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
+        </div>
+        <div class="field"><label>Title</label><input id="pk-title" value="${esc(d.title)}" placeholder="e.g. Bromo–Malang 4D3N"></div>
+        <div class="form-grid">
+          <div class="field"><label>Trip type <span style="font-weight:400;">(optional)</span></label><input id="pk-type" list="pk-types" value="${esc(d.tripType)}" placeholder="Open trip / Private"><datalist id="pk-types"><option value="Open trip"><option value="Private"><option value="Ground"><option value="All-in"></datalist></div>
+          <div class="field"><label>Price from (RM per pax) <span style="font-weight:400;">(optional)</span></label><input id="pk-price" inputmode="decimal" value="${d.price==null?'':esc(d.price)}" placeholder="e.g. 889"></div>
+        </div>
+        <div class="field"><label>Tags <span style="font-weight:400;">(comma separated — helps searching)</span></label><input id="pk-tags" value="${esc(d.tags)}" placeholder="e.g. volcano, sunrise, malang"></div>
+        ` : `<p style="margin:0 0 10px;color:var(--ink-soft);font-size:13px;">${esc([d.country,d.place,d.tripType].filter(Boolean).join(' · '))}${d.price!=null?` · <b style="color:var(--navy-deep);">RM ${esc(Number(d.price).toLocaleString('en-MY'))} /pax</b>`:''}${d.tags?` · ${esc(d.tags)}`:''}</p>`}
+
+        <div class="q-sec" style="margin-top:6px;">Posters &amp; files</div>
+        <div class="lib-thumbs" style="margin-bottom:8px;">
+          ${files.map(f=>`<div class="lib-thumb" data-file-open="${esc(f.id)}" style="${f.thumb?`background-image:url('${esc(f.thumb)}')`:''}" title="${esc(f.name)} — click to open">${f.thumb?'':'📄'}${ed?`<button class="x" data-file-del="${esc(f.id)}" title="Remove">✕</button>`:''}</div>`).join('')}
+          ${pend.map((f,i)=>`<div class="lib-thumb" style="${f.thumb?`background-image:url('${esc(f.thumb)}')`:''}" title="${esc(f.name)} — will upload when you save">${f.thumb?'':'📄'}<button class="x" data-pend-del="${i}" title="Remove">✕</button></div>`).join('')}
+          ${!files.length && !pend.length ? `<span style="font-size:12.5px;color:var(--ink-soft);">No poster uploaded yet.</span>` : ''}
+        </div>
+        ${files.length ? `<div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Click a poster to open it · <a href="#" data-file-dl-first="1">download</a> uses the first poster.</div>` : ''}
+        ${ed ? `<input type="file" id="pk-file" accept="image/png,image/jpeg,image/webp,application/pdf" multiple style="display:none;"><button class="btn btn-sm btn-ghost" data-action="pk-pick-file">＋ Upload poster / PDF</button> <span class="hint" style="font-size:12px;">PNG, JPG, WEBP or PDF · up to 10 files · images are shrunk automatically</span>` : ''}
+
+        <div class="q-sec">WhatsApp messages</div>
+        ${(d.messages||[]).map((m,i)=>packMsgBlock(i,m,d,ed)).join('') || `<p style="font-size:12.5px;color:var(--ink-soft);">No message yet.</p>`}
+        ${ed ? `<button class="btn btn-sm btn-ghost" data-action="pk-add-msg">＋ Add message</button>` : ''}
+        ${!isNew && d.updatedAt ? `<p class="hint" style="margin-top:14px;font-size:12px;">Last edited ${esc(String(d.updatedAt).slice(0,10))}${d.updatedBy?` by ${esc(d.updatedBy)}`:''}</p>` : ''}
+      </div>
+      <div class="modal-foot">
+        <div>${ed && !isNew ? `<button class="btn btn-sm btn-ghost" data-action="pk-archive">${d.archived?'Restore from archive':'Archive'}</button> <button class="btn btn-sm btn-danger" data-action="pk-delete">Delete</button>` : ''}</div>
+        <div style="display:flex;gap:10px;"><button class="btn btn-ghost" data-close="overlay-pack">${ed?'Cancel':'Close'}</button>${ed?`<button class="btn btn-primary" data-action="pk-save">${isNew?'Add pack':'Save'}</button>`:''}</div>
+      </div>
+    </div>
+  </div>`;
+}
+function syncPackDraft(){
+  if(!packEdit || !isAdmin()) return;
+  const g = id=>{ const el = document.getElementById(id); return el ? el.value : null; };
+  const d = packEdit.d;
+  if(g('pk-country')!=null){ d.country = g('pk-country').trim(); d.place = (g('pk-place')||'').trim(); d.title = (g('pk-title')||'').trim(); d.tripType = (g('pk-type')||'').trim(); d.price = numOrNull(g('pk-price')); d.tags = (g('pk-tags')||'').trim(); }
+  d.messages = (d.messages||[]).map((m,i)=>({ id:m.id, label: g('pk-ml-'+i)!=null ? g('pk-ml-'+i) : m.label, text: g('pk-mt-'+i)!=null ? g('pk-mt-'+i) : m.text }));
+}
+function openPack(id){
+  libUI.fill = {};
+  if(id==='new') packEdit = { id:'new', d:{ country: libUI.country!=='All'?libUI.country:'', place:'', title:'', tripType:'', price:null, tags:'', archived:false, messages:[{id:'',label:'Main message',text:''}] }, files:[], pending:[] };
+  else { const p = libPacks.find(x=>x.id===id); if(!p) return; packEdit = { id, d: JSON.parse(JSON.stringify(p)), files: (p.files||[]).slice(), pending:[] }; }
+  render(); openOverlay('overlay-pack');
+}
+function reopenPack(){ render(); openOverlay('overlay-pack'); }
+async function packCopyMessage(i){
+  const d = packEdit.d; let text;
+  const ta = document.getElementById('pk-mt-'+i);
+  text = ta ? ta.value : (d.messages[i] && d.messages[i].text) || '';
+  const fill = {}; document.querySelectorAll(`[data-msg-i="${i}"] [data-fill]`).forEach(inp=>{ fill[inp.dataset.fill] = inp.value; });
+  Object.assign(libUI.fill, fill);
+  await copyToClipboard(fillMessage(text, Object.assign(packFillDefaults(d), fill)));
+  showToast('Message copied — paste it into WhatsApp');
+}
+async function handlePackSave(){
+  syncPackDraft(); const d = packEdit.d;
+  if(!d.country){ showToast('Please enter the country'); return; }
+  if(!d.title){ showToast('Please enter a title'); return; }
+  const body = { country:d.country, place:d.place, title:d.title, tripType:d.tripType, price:d.price, tags:d.tags, archived:!!d.archived, messages:(d.messages||[]).filter(m=>m.text.trim()||m.label.trim()).map(m=>({id:m.id||undefined,label:m.label,text:m.text})) };
+  try{
+    let saved;
+    if(packEdit.id==='new'){
+      saved = await apiFetch('/library', { method:'POST', body: JSON.stringify(body) });
+      for(const f of packEdit.pending){ try{ const meta = await apiFetch(`/library/${saved.id}/files`, { method:'POST', body: JSON.stringify(f) }); saved.files.push(meta); }catch(e){ showToast(e.message || 'A file could not be uploaded'); } }
+      libPacks.push(saved);
+    } else {
+      saved = await apiFetch('/library/'+packEdit.id, { method:'PUT', body: JSON.stringify(body) });
+      libPacks = libPacks.map(p=>p.id===saved.id ? saved : p);
+    }
+    packEdit = null; closeOverlay('overlay-pack'); showToast('Pack saved');
+  }catch(e){ showToast(e.message || 'Could not save the pack'); return; }
+  render();
+}
+async function handlePackFiles(fileList){
+  syncPackDraft();
+  for(const file of Array.from(fileList)){
+    if((packEdit.files.length + packEdit.pending.length) >= 10){ showToast('A pack can hold up to 10 files'); break; }
+    let prepared;
+    try{ prepared = await prepareUpload(file); }catch(e){ showToast(e.message || 'Could not read that file'); continue; }
+    if(packEdit.id==='new'){ packEdit.pending.push(prepared); }
+    else {
+      try{ const meta = await apiFetch(`/library/${packEdit.id}/files`, { method:'POST', body: JSON.stringify(prepared) }); packEdit.files.push(meta); const p = libPacks.find(x=>x.id===packEdit.id); if(p) p.files = (p.files||[]).concat([meta]); }
+      catch(e){ showToast(e.message || 'Could not upload the file'); }
+    }
+  }
+  reopenPack();
+}
+
+/* ---------- Quotations: drafts, presets & prices, terms templates ---------- */
+function daysLeft(d){ return Math.ceil((new Date(d.expiresAt).getTime() - Date.now())/86400000); }
+function libQuotesHTML(){
+  const s = qSettings(); const q = libUI.qsub;
+  const pill = (id,l)=>`<button class="lib-chip ${q===id?'on':''}" data-lib-qsub="${id}">${l}${id==='drafts'?`<b>${qBundle.drafts.length}</b>`:''}</button>`;
+  return `<div class="lib-bar">${pill('drafts','Drafts')}${pill('presets','Presets &amp; prices')}${pill('terms','Terms templates')}
+    ${!isAdmin() && q!=='drafts' ? `<span style="margin-left:auto;font-size:12px;color:var(--ink-soft);">View only — an admin edits this page</span>` : ''}</div>`
+    + (q==='drafts' ? qDraftsHTML() : q==='presets' ? qPresetsHTML(s) : qTermsHTML(s));
+}
+function qDraftsHTML(){
+  const rows = qBundle.drafts.map(d=>{
+    const n = daysLeft(d);
+    const cls = n>7 ? 'g' : n>1 ? 'a' : 'r';
+    const txt = n<=0 ? 'Expires today' : n===1 ? 'Expires tomorrow' : n+' days left';
+    return `<tr><td><b>${esc(d.number)}</b></td><td>${esc(d.customer||'—')}</td><td>${esc(d.package||'—')}</td><td style="font-weight:700;color:var(--navy-deep);white-space:nowrap;">${fmt2(d.total)}</td><td>${esc(d.createdByName||'')}</td><td><span class="lib-badge ${cls}">${txt}</span></td>
+      <td style="text-align:right;white-space:nowrap;"><button class="btn btn-sm btn-ghost" data-q-open="${esc(d.id)}">Open</button> <button class="btn btn-sm btn-ghost" data-q-dup="${esc(d.id)}">Duplicate</button> <button class="btn btn-sm btn-ghost" data-q-del="${esc(d.id)}">Delete</button></td></tr>`;
+  }).join('');
+  return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;"><button class="btn btn-primary" data-action="q-new">＋ New quotation</button><span style="font-size:12.5px;color:var(--ink-soft);">Drafts are kept 14 days from the last save, then removed automatically. “Duplicate” makes a fresh copy (14 days again).</span></div>`
+    + (qBundle.drafts.length ? `<table class="lib-tbl"><thead><tr><th>Quote no.</th><th>Customer</th><th>Package</th><th>Total (RM)</th><th>By</th><th>Expires in</th><th></th></tr></thead><tbody>${rows}</tbody></table>` : `<div class="empty"><p>No saved quotations. Start one with “＋ New quotation”.</p></div>`);
+}
+function presetPerPax(p){ return (p.lines||[]).filter(l=>l.per==='pax' && l.price!=null).reduce((s,l)=>s+Number(l.price),0); }
+function qPresetsHTML(s){
+  const ed = isAdmin();
+  const tn = id=>((s.terms.templates.find(t=>t.id===id)||{}).name||'—');
+  return `
+  <div class="q-sec" style="border:0;margin-top:0;padding-top:0;">Package presets — one click fills a whole quotation</div>
+  ${s.presets.length ? `<table class="lib-tbl"><thead><tr><th>Preset</th><th>Includes</th><th>Price / pax</th><th>Terms</th><th></th></tr></thead><tbody>${s.presets.map((p,i)=>`<tr><td><b>${esc(p.name)}</b></td><td style="font-size:12px;color:var(--ink-soft);">${esc(p.lines.map(l=>l.code||l.description).join(' + '))}</td><td class="pr">${presetPerPax(p)?fmt2(presetPerPax(p)):'—'}</td><td>${esc(tn(p.termsId))}</td><td style="text-align:right;white-space:nowrap;">${ed?`<button class="btn btn-sm btn-ghost" data-preset-edit="${i}">Edit</button> <button class="btn btn-sm btn-ghost" data-preset-dup="${i}">Duplicate</button> <button class="btn btn-sm btn-ghost" data-preset-del="${i}">Delete</button>`:''}</td></tr>`).join('')}</tbody></table>` : `<p style="font-size:13px;color:var(--ink-soft);">No presets yet.${ed?' Use “＋ New preset”.':''}</p>`}
+  ${ed?`<div style="margin:8px 0 0;"><button class="btn btn-primary btn-sm" data-action="preset-new">＋ New preset</button> <span style="font-size:12px;color:var(--ink-soft);">Prices are starting values — still editable on each quotation.</span></div>`:''}
+  <div class="q-sec" style="margin-top:22px;">Item list — the lines you pick from</div>
+  <table class="lib-tbl"><thead><tr><th style="width:110px;">Code</th><th>Description</th><th style="width:120px;">Default price</th><th style="width:70px;">Per</th><th></th></tr></thead><tbody>${s.items.map((it,i)=>`<tr><td>${esc(it.code)}</td><td>${esc(it.description)}</td><td class="pr">${it.price!=null?fmt2(it.price):'—'}</td><td>${it.per}</td><td style="text-align:right;">${ed?`<button class="btn btn-sm btn-ghost" data-item-edit="${i}">Edit</button>`:''}</td></tr>`).join('')}</tbody></table>
+  ${ed?`<div style="margin:8px 0 0;"><button class="btn btn-ghost btn-sm" data-action="item-new">＋ New item</button></div>`:''}`;
+}
+function qTermsHTML(s){
+  const ed = isAdmin(); const tp = s.terms; if(!libUI.tplId || !tp.templates.some(t=>t.id===libUI.tplId)) libUI.tplId = tp.templates[0] ? tp.templates[0].id : '';
+  const tpl = tp.templates.find(t=>t.id===libUI.tplId) || { on:[] };
+  return `
+  <div class="q-wrap" style="grid-template-columns:230px 1fr;">
+    <div class="panel" style="padding:12px;">
+      <div class="q-sec" style="border:0;margin:0 0 6px;padding:0;">Templates</div>
+      ${tp.templates.map(t=>`<button class="lib-chip ${t.id===libUI.tplId?'on':''}" style="display:block;width:100%;text-align:left;margin-bottom:5px;border-radius:8px;" data-tpl-pick="${esc(t.id)}">${esc(t.name)}</button>`).join('')}
+      ${ed?`<button class="btn btn-sm btn-ghost" data-action="tpl-new" style="margin-top:6px;">＋ New template</button>
+      ${tp.templates.length>1?`<div style="margin-top:8px;"><button class="btn btn-sm btn-ghost" data-action="tpl-rename">Rename</button> <button class="btn btn-sm btn-ghost" data-action="tpl-del">Delete</button></div>`:''}`:''}
+    </div>
+    <div class="panel" style="padding:14px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><b style="font-size:14px;color:var(--navy-deep);">Topics</b><span style="font-size:12px;color:var(--ink-soft);">The “On” tick decides what a new quotation starts with when this template is chosen.</span>${ed?`<button class="btn btn-primary btn-sm" style="margin-left:auto;" data-action="terms-save">Save</button>`:''}</div>
+      <table class="lib-tbl" id="terms-tbl"><thead><tr><th style="width:160px;">Topic</th><th>Short line (page 1 box)</th><th style="width:70px;">Full text</th><th style="width:44px;">On</th>${ed?'<th></th>':''}</tr></thead><tbody>
+        ${tp.topics.map((t,i)=>`<tr><td><b>${esc(t.title)}</b></td><td>${ed?`<input data-tshort="${i}" value="${esc(t.short)}" style="width:100%;font-size:12.5px;padding:6px 8px;">`:esc(t.short)}</td><td><button class="btn btn-sm btn-ghost" data-topic-edit="${i}">${ed?'Edit':'View'}</button></td><td style="text-align:center;"><input type="checkbox" data-ton="${esc(t.id)}" ${tpl.on.includes(t.id)?'checked':''} ${ed?'':'disabled'}></td>${ed?`<td><button class="icon-btn danger" data-topic-del="${i}" title="Delete topic">✕</button></td>`:''}</tr>`).join('')}
+      </tbody></table>
+      ${ed?`<div style="margin-top:8px;"><button class="btn btn-ghost btn-sm" data-action="topic-new">＋ New topic</button></div>`:''}
+      <p class="hint" style="margin-top:10px;font-size:12px;">Blanks you can use in the wording: <b>{deposit}</b> (RM per pax), <b>{days}</b> (balance due, days before departure), <b>{valid}</b> (price validity date). They are filled in from each quotation.</p>
+    </div>
+  </div>`;
+}
+function qModalsHTML(){
+  const m = qModal; const s = qSettings();
+  let inner = '';
+  if(m && m.kind==='item'){
+    const v = m.draft;
+    inner = `<div class="modal-head"><h3>${m.index<0?'New item':'Edit item'}</h3><button class="modal-close" data-close="overlay-qmodal">✕</button></div><div class="modal-body">
+      <div class="form-grid"><div class="field"><label>Code</label><input id="qm-code" value="${esc(v.code)}" placeholder="e.g. IND-0010"></div><div class="field"><label>Charged per</label><select id="qm-per"><option value="pax" ${v.per==='pax'?'selected':''}>pax (one per traveller)</option><option value="qty" ${v.per==='qty'?'selected':''}>qty (a number you type)</option></select></div></div>
+      <div class="field"><label>Description</label><input id="qm-desc" value="${esc(v.description)}"></div>
+      <div class="field"><label>Default price (RM) <span style="font-weight:400;">(optional)</span></label><input id="qm-price" inputmode="decimal" value="${v.price==null?'':esc(v.price)}"></div></div>
+      <div class="modal-foot"><div>${m.index>=0?`<button class="btn btn-sm btn-danger" data-action="item-del">Delete</button>`:''}</div><div style="display:flex;gap:10px;"><button class="btn btn-ghost" data-close="overlay-qmodal">Cancel</button><button class="btn btn-primary" data-action="item-save">Save</button></div></div>`;
+  } else if(m && m.kind==='preset'){
+    const v = m.draft;
+    inner = `<div class="modal-head"><h3>${m.index<0?'New preset':'Edit preset'}</h3><button class="modal-close" data-close="overlay-qmodal">✕</button></div><div class="modal-body">
+      <div class="field"><label>Preset name</label><input id="qm-name" value="${esc(v.name)}" placeholder="e.g. Bromo–Malang 4D3N · Private"></div>
+      <div class="form-grid"><div class="field"><label>Terms template</label><select id="qm-terms">${s.terms.templates.map(t=>`<option value="${esc(t.id)}" ${v.termsId===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></div><div></div></div>
+      <div class="field"><label>Remarks <span style="font-weight:400;">(optional)</span></label><input id="qm-remarks" value="${esc(v.remarks||'')}"></div>
+      <div class="q-sec">Lines</div>
+      <table class="q-lines"><thead><tr><th style="width:90px;">Code</th><th>Description</th><th style="width:90px;">Price</th><th style="width:80px;">Per</th><th style="width:60px;">Qty</th><th style="width:26px;"></th></tr></thead><tbody>
+      ${v.lines.map((l,i)=>`<tr><td><input data-pl="${i}:code" value="${esc(l.code||'')}"></td><td><input data-pl="${i}:description" value="${esc(l.description||'')}"></td><td><input data-pl="${i}:price" inputmode="decimal" value="${l.price==null?'':esc(l.price)}"></td><td><select data-pl="${i}:per"><option value="pax" ${l.per!=='qty'?'selected':''}>pax</option><option value="qty" ${l.per==='qty'?'selected':''}>qty</option></select></td><td><input data-pl="${i}:qty" inputmode="numeric" value="${l.per==='qty'?esc(l.qty==null?1:l.qty):''}" ${l.per==='qty'?'':'disabled'}></td><td><button class="icon-btn danger" data-pl-del="${i}">✕</button></td></tr>`).join('')}
+      </tbody></table>
+      <div style="margin-top:8px;display:flex;gap:8px;"><select id="qm-additem" style="max-width:260px;"><option value="">＋ Add from item list…</option>${s.items.map((it,i)=>`<option value="${i}">${esc(it.code)} — ${esc(it.description)}</option>`).join('')}</select><button class="btn btn-sm btn-ghost" data-action="pl-custom">＋ Custom line</button></div></div>
+      <div class="modal-foot"><div></div><div style="display:flex;gap:10px;"><button class="btn btn-ghost" data-close="overlay-qmodal">Cancel</button><button class="btn btn-primary" data-action="preset-save">Save</button></div></div>`;
+  } else if(m && m.kind==='topic'){
+    const v = m.draft; const ed = isAdmin();
+    inner = `<div class="modal-head"><h3>${esc(v.title||'New topic')}</h3><button class="modal-close" data-close="overlay-qmodal">✕</button></div><div class="modal-body">
+      <div class="field"><label>Topic title</label><input id="qm-ttitle" value="${esc(v.title)}" ${ed?'':'disabled'}></div>
+      <div class="field"><label>Short line (shown in the page 1 “Important notes” box)</label><input id="qm-tshort" value="${esc(v.short)}" ${ed?'':'disabled'}></div>
+      <div class="field"><label>Full wording (page 2)</label><textarea id="qm-tfull" style="min-height:140px;" ${ed?'':'disabled'}>${esc(v.full)}</textarea></div>
+      <p class="hint" style="font-size:12px;">Blanks: {deposit} {days} {valid}</p></div>
+      <div class="modal-foot"><div></div><div style="display:flex;gap:10px;"><button class="btn btn-ghost" data-close="overlay-qmodal">${ed?'Cancel':'Close'}</button>${ed?`<button class="btn btn-primary" data-action="topic-save">Save</button>`:''}</div></div>`;
+  }
+  return `<div class="overlay" id="overlay-qmodal"><div class="modal modal-wide">${inner}</div></div>`;
+}
+function syncPresetDraft(){
+  if(!qModal || qModal.kind!=='preset') return; const v = qModal.draft;
+  const g = id=>{ const e = document.getElementById(id); return e ? e.value : null; };
+  if(g('qm-name')!=null){ v.name = g('qm-name'); v.termsId = g('qm-terms'); v.remarks = g('qm-remarks'); }
+  document.querySelectorAll('[data-pl]').forEach(el=>{
+    const [i,f] = el.dataset.pl.split(':'); const l = v.lines[Number(i)]; if(!l) return;
+    if(f==='price') l.price = numOrNull(el.value); else if(f==='qty') l.qty = numOrNull(el.value); else l[f] = el.value;
+  });
+  v.lines.forEach(l=>{ if(l.per==='pax') l.qty = null; else if(l.qty==null) l.qty = 1; });
+}
+function reopenQModal(){ render(); openOverlay('overlay-qmodal'); }
+
+/* ---------- Company details (admin) ---------- */
+function companyModalHTML(){
+  const s = qSettings(); const c = s.company, d = s.defaults;
+  return `
+  <div class="overlay" id="overlay-company">
+    <div class="modal modal-wide">
+      <div class="modal-head"><h3>Company details</h3><button class="modal-close" data-close="overlay-company">✕</button></div>
+      <div class="modal-body">
+        <p class="hint" style="margin:0 0 14px;">These fixed details appear on every quotation. Changes apply to new PDFs; saved drafts pick them up when reopened.</p>
+        <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+          <div style="width:120px;"><div class="q-sec" style="border:0;margin:0 0 6px;padding:0;">Logo</div><img id="co-logo-img" src="${esc(c.logo||DEFAULT_LOGO)}" style="width:110px;border-radius:8px;display:block;margin-bottom:6px;"><input type="file" id="co-logo" accept="image/png,image/jpeg,image/webp" style="display:none;"><button class="btn btn-sm btn-ghost" data-action="co-pick-logo">Replace logo</button></div>
+          <div style="flex:1;min-width:260px;">
+            <div class="form-grid"><div class="field"><label>Company name</label><input id="co-name" value="${esc(c.name)}"></div><div class="field"><label>Email</label><input id="co-email" value="${esc(c.email)}"></div></div>
+            <div class="form-grid"><div class="field"><label>Address (one line per row)</label><textarea id="co-address" style="min-height:76px;">${esc(c.address)}</textarea></div><div class="field"><label>Phone</label><input id="co-phone" value="${esc(c.phone)}"></div></div>
+          </div>
+        </div>
+        <div class="q-sec">Payment info</div>
+        <div class="q-g3"><div class="field"><label>Bank</label><input id="co-bank" value="${esc(c.bank)}"></div><div class="field"><label>Account no.</label><input id="co-acc" value="${esc(c.accountNo)}"></div><div class="field"><label>Account name</label><input id="co-accname" value="${esc(c.accountName)}"></div></div>
+        <div class="q-sec">Quotation defaults</div>
+        <div class="q-g4"><div class="field"><label>Number prefix</label><input id="co-prefix" value="${esc(d.prefix)}" maxlength="12"></div><div class="field"><label>Next number</label><input id="co-next" inputmode="numeric" value="${esc(qBundle.nextNumber)}"></div><div class="field"><label>Valid for (days)</label><input id="co-valid" inputmode="numeric" value="${esc(d.validDays)}"></div><div class="field"><label>Footer line</label><input id="co-footer" value="${esc(d.footer)}"></div></div>
+        <div class="q-g4"><div class="field"><label>Deposit (RM per pax)</label><input id="co-dep" inputmode="decimal" value="${esc(d.depositPerPax)}"></div><div class="field"><label>Balance due (days before travel)</label><input id="co-bal" inputmode="numeric" value="${esc(d.balanceDays)}"></div></div>
+      </div>
+      <div class="modal-foot"><div></div><div style="display:flex;gap:10px;"><button class="btn btn-ghost" data-close="overlay-company">Cancel</button><button class="btn btn-primary" data-action="co-save">Save</button></div></div>
+    </div>
+  </div>`;
+}
+let coLogoData = null;
+async function handleCompanySave(){
+  const g = id=>document.getElementById(id).value;
+  const next = numOrNull(g('co-next'));
+  const ok = await saveQuoteSettings(s=>{
+    s.company = { ...s.company, name:g('co-name').trim(), email:g('co-email').trim(), address:g('co-address'), phone:g('co-phone').trim(), bank:g('co-bank').trim(), accountNo:g('co-acc').trim(), accountName:g('co-accname').trim() };
+    if(coLogoData!=null) s.company.logo = coLogoData;
+    s.defaults = { ...s.defaults, prefix:g('co-prefix').trim(), validDays:Math.max(1,parseInt(g('co-valid'))||14), depositPerPax:numOrNull(g('co-dep'))||0, balanceDays:Math.max(0,parseInt(g('co-bal'))||0), footer:g('co-footer').trim() };
+  }, { nextNumber: next && next>0 ? Math.floor(next) : null });
+  if(ok){ coLogoData = null; closeOverlay('overlay-company'); showToast('Company details saved'); render(); }
+}
+
+/* ---------- Quotation editor ---------- */
+function qTermsFor(tplId){
+  const s = qSettings(); const t = s.terms.templates.find(x=>x.id===tplId) || s.terms.templates[0];
+  return { templateId: t ? t.id : '', on: t ? t.on.slice() : [], overrides:{}, showSummary:true, showFull:true };
+}
+function newQuoteData(){
+  const s = qSettings(); const today = todayYmd();
+  return { customer:{name:'',attn:'',contact:''}, date:today, validUntil:addDaysYmd(today, s.defaults.validDays||14), pic:String(currentUser.username||currentUser.name||''), tripName:'', tripType:'', travelDates:'', pax:null, lines:[], remarks:'', depositPerPax:s.defaults.depositPerPax, balanceDays:s.defaults.balanceDays, terms:qTermsFor('') };
+}
+function normQuoteData(d){
+  const n = Object.assign(newQuoteData(), d || {});
+  n.customer = Object.assign({name:'',attn:'',contact:''}, n.customer||{});
+  n.lines = (n.lines||[]).map(l=>({ code:l.code||'', description:l.description||'', price:l.price==null?null:Number(l.price), qty:l.qty==null?null:Number(l.qty), per:l.per||'qty' }));
+  const t = n.terms || {}; const base = qTermsFor(t.templateId);
+  n.terms = { templateId:t.templateId||base.templateId, on:Array.isArray(t.on)?t.on:base.on, overrides:t.overrides||{}, showSummary:t.showSummary!==false, showFull:t.showFull!==false };
+  return n;
+}
+function startNewQuote(){ qe = { id:null, number:'', d:newQuoteData(), dirty:false, termsOpen:false, editTopic:null }; view = { mode:'quote' }; render(); window.scrollTo(0,0); }
+async function openQuoteDraft(id){
+  try{
+    const r = await apiFetch('/quotes/drafts/'+id);
+    qe = { id:r.id, number:r.number, d:normQuoteData(r.data), dirty:false, termsOpen:false, editTopic:null }; view = { mode:'quote' }; render(); window.scrollTo(0,0);
+  }catch(e){ showToast(e.message || 'Could not open the draft'); await refreshQuoteBundle(); render(); }
+}
+function qTotals(d){
+  const sub = (d.lines||[]).reduce((s,l)=>s+(Number(l.price)||0)*(Number(l.qty)||0),0);
+  return { total: Math.round(sub*100)/100, perPax: d.pax>0 ? Math.round(sub/d.pax*100)/100 : null };
+}
+function qApplyPreset(i){
+  const p = qSettings().presets[i]; if(!p) return;
+  if(qe.d.lines.length && !confirm('Replace the current items with this preset?')) return;
+  const pax = qe.d.pax>0 ? qe.d.pax : 1;
+  qe.d.lines = p.lines.map(l=>({ code:l.code||'', description:l.description||'', price:l.price==null?null:Number(l.price), per:l.per||'qty', qty: l.per==='pax' ? pax : (l.qty||1) }));
+  if(p.remarks) qe.d.remarks = p.remarks;
+  if(p.termsId) qe.d.terms = qTermsFor(p.termsId);
+  if(!qe.d.tripName) qe.d.tripName = p.name;
+  qe.dirty = true; render();
+}
+function qResolve(text, d){
+  return String(text||'').replace(/\{deposit\}/g, String(Number(d.depositPerPax)||0)).replace(/\{days\}/g, String(Number(d.balanceDays)||0)).replace(/\{valid\}/g, longDate(d.validUntil)||'the date stated');
+}
+function qResolveHL(text, d){
+  return esc(String(text||'')).replace(/\{deposit\}/g, `<span class="q-hl">${esc(Number(d.depositPerPax)||0)}</span>`).replace(/\{days\}/g, `<span class="q-hl">${esc(Number(d.balanceDays)||0)}</span>`).replace(/\{valid\}/g, `<span class="q-hl">${esc(longDate(d.validUntil)||'—')}</span>`);
+}
+function quoteEditorHTML(){
+  if(!qe) return '';
+  const d = qe.d, s = qSettings(); const t = qTotals(d);
+  const tpl = s.terms.templates.find(x=>x.id===d.terms.templateId);
+  const v = (x)=>esc(x==null?'':x);
+  const fixPax = d.pax>0 && d.lines.some(l=>l.per==='pax' && l.qty!==d.pax);
+  return `
+  <button class="back-link" data-action="q-back">← Quotations</button>
+  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;"><h2 style="margin:0;font-family:var(--font-display);color:var(--navy-deep);font-size:20px;">${qe.id?'Quotation '+esc(qe.number):'New quotation'}</h2><span style="font-size:12.5px;color:var(--ink-soft);">Standalone — not linked to any trip. ${qe.id?'Drafts are kept 14 days from the last save.':'The number is given when you save.'}</span></div>
+  ${s.presets.length ? `<div class="q-presets"><b>Start from a preset:</b> ${s.presets.map((p,i)=>`<button class="lib-chip" data-q-preset="${i}">${esc(p.name)}</button>`).join('')}<span style="font-size:12px;color:var(--ink-soft);">fills items, remarks and terms — everything stays editable</span></div>` : ''}
+  <div class="q-wrap">
+   <div class="panel" style="padding:18px 20px;">
+    <div class="q-sec">Customer</div>
+    <div class="q-g3"><div class="field"><label>Name / company *</label><input data-qf="customer.name" value="${v(d.customer.name)}"></div><div class="field"><label>Attention</label><input data-qf="customer.attn" value="${v(d.customer.attn)}"></div><div class="field"><label>Phone / email</label><input data-qf="customer.contact" value="${v(d.customer.contact)}"></div></div>
+    <div class="q-sec">Quotation</div>
+    <div class="q-g4"><div class="field"><label>Quote no.</label><input value="${qe.id?v(qe.number):'(given on save)'}" disabled></div><div class="field"><label>Date</label><input type="date" data-qf="date" value="${v(d.date)}"></div><div class="field"><label>Valid until</label><input type="date" data-qf="validUntil" value="${v(d.validUntil)}"></div><div class="field"><label>PIC</label><input data-qf="pic" value="${v(d.pic)}"></div></div>
+    <div class="q-g4"><div class="field" style="grid-column:span 2;"><label>Package / destination</label><input data-qf="tripName" value="${v(d.tripName)}" placeholder="e.g. Bromo–Malang 4D3N"></div><div class="field"><label>Trip type</label><select data-qf="tripType"><option value="">—</option>${['Open trip','Private'].map(x=>`<option ${d.tripType===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="field"><label>Pax</label><input data-qf="pax" inputmode="numeric" value="${v(d.pax)}"></div></div>
+    <div class="field"><label>Travel dates <span style="font-weight:400;">(free text is fine)</span></label><input data-qf="travelDates" value="${v(d.travelDates)}" placeholder="e.g. 12–15 Jan 2027 (tentative)"></div>
+    <div class="q-sec">Items</div>
+    <table class="q-lines"><thead><tr><th style="width:92px;">Code</th><th>Description</th><th style="width:100px;">Price (RM)</th><th style="width:64px;">Qty</th><th style="width:100px;text-align:right;">Total</th><th style="width:26px;"></th></tr></thead><tbody>
+    ${d.lines.map((l,i)=>`<tr><td><input data-ql="${i}:code" value="${v(l.code)}"></td><td><input data-ql="${i}:description" value="${v(l.description)}"></td><td><input data-ql="${i}:price" inputmode="decimal" value="${v(l.price)}"></td><td><input data-ql="${i}:qty" inputmode="decimal" value="${v(l.qty)}"></td><td style="text-align:right;" id="ql-tot-${i}">${fmt2((Number(l.price)||0)*(Number(l.qty)||0))}</td><td><button class="icon-btn danger" data-ql-del="${i}">✕</button></td></tr>`).join('') || `<tr><td colspan="6" style="color:var(--ink-soft);padding:10px 4px;">No items yet — add from the item list or add a custom line.</td></tr>`}
+    </tbody></table>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center;"><select id="q-additem" style="max-width:280px;"><option value="">＋ Add from item list…</option>${s.items.map((it,i)=>`<option value="${i}">${esc(it.code)} — ${esc(it.description)}</option>`).join('')}</select><button class="btn btn-sm btn-ghost" data-action="q-add-custom">＋ Custom line</button>${fixPax?`<button class="btn btn-sm btn-ghost" data-action="q-fix-pax">Set per-pax lines to ${esc(d.pax)} pax</button>`:''}</div>
+    <p class="hint" style="font-size:12px;margin-top:6px;">For a discount, type the price as a negative number, e.g. -500.</p>
+    <div class="q-sec">Payment &amp; remarks</div>
+    <div class="q-g3"><div class="field"><label>Deposit to confirm (RM per pax)</label><input data-qf="depositPerPax" inputmode="decimal" value="${v(d.depositPerPax)}"></div><div class="field"><label>Balance due (days before travel)</label><input data-qf="balanceDays" inputmode="numeric" value="${v(d.balanceDays)}"></div><div class="field"><label>Pay to</label><input value="${esc(s.company.bank)} · ${esc(s.company.accountNo)}" disabled></div></div>
+    <div class="field"><label>Remarks <span style="font-weight:400;">(optional)</span></label><input data-qf="remarks" value="${v(d.remarks)}" placeholder="e.g. Price based on minimum 20 pax"></div>
+    <div class="q-sec">Terms &amp; conditions</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><select data-qf="termsTpl" style="max-width:220px;">${s.terms.templates.map(x=>`<option value="${esc(x.id)}" ${d.terms.templateId===x.id?'selected':''}>${esc(x.name)} terms</option>`).join('')}</select><span class="lib-badge">${d.terms.on.length} of ${s.terms.topics.length} topics on</span><button class="btn btn-sm btn-ghost" data-action="q-terms-toggle">${qe.termsOpen?'Close ▴':'Customise ▾'}</button><span style="font-size:12px;color:var(--ink-soft);margin-left:auto;">${qe.termsOpen?'':'Most quotes need nothing here.'}</span></div>
+    ${qe.termsOpen ? qTermsEditorHTML(d, s) : ''}
+   </div>
+   <div style="position:sticky;top:12px;">
+    <div class="q-sum"><b style="font-size:11px;letter-spacing:.5px;color:var(--ink-soft);">SUMMARY</b><div id="q-sum-total"><span>Total</span><span>RM ${fmt2(t.total)}</span></div><div id="q-sum-pp" style="font-size:12px;color:var(--ink-soft);"><span>${t.perPax!=null?'≈ RM '+fmt2(t.perPax)+' per pax':''}</span><span></span></div><div id="q-sum-dep" style="font-size:12px;color:var(--ink-soft);"><span>${(d.depositPerPax>0&&d.pax>0)?'Deposit RM '+fmt2(d.depositPerPax*d.pax):''}</span><span></span></div></div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px;">
+      <button class="btn btn-primary" data-action="q-preview">Preview &amp; download PDF</button>
+      <button class="btn btn-ghost" data-action="q-save">Save draft</button>
+      <button class="btn btn-ghost" data-action="q-wa">Copy as WhatsApp text</button>
+    </div>
+   </div>
+  </div>`;
+}
+function qTermsEditorHTML(d, s){
+  const rows = s.terms.topics.map(t=>{
+    const on = d.terms.on.includes(t.id); const ov = d.terms.overrides[t.id];
+    const editing = qe.editTopic===t.id;
+    return `<div class="q-trow"><input type="checkbox" data-qton="${esc(t.id)}" ${on?'checked':''}><div><div style="font-weight:700;font-size:12.5px;">${esc(t.title)} ${on?`<a href="#" data-qtedit="${esc(t.id)}" style="font-weight:600;font-size:11.5px;color:var(--coral);margin-left:6px;">✎ edit for this quote</a>`:''}${ov!=null?` <a href="#" data-qtreset="${esc(t.id)}" style="font-size:11.5px;margin-left:6px;">reset</a>`:''}</div>${on?(editing?`<textarea data-qover="${esc(t.id)}">${esc(ov!=null?ov:t.short)}</textarea><div class="hint" style="font-size:11.5px;">Replaces this topic's wording on both pages for this quote only.</div>`:`<div style="font-size:12.5px;color:var(--ink-soft);margin-top:2px;">${qResolveHL(ov!=null?ov:t.short, d)}</div>`):''}</div></div>`;
+  }).join('');
+  return `<div style="margin-top:8px;">${rows}
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1.5px dashed var(--line);font-size:12.5px;"><b>Show on PDF:</b><label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" data-qshow="showSummary" ${d.terms.showSummary?'checked':''}> short “Important notes” box on page 1</label><label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" data-qshow="showFull" ${d.terms.showFull?'checked':''}> full Terms &amp; Conditions on page 2</label></div>
+    <p class="hint" style="font-size:12px;margin-top:6px;">The yellow values come from the Payment fields above and “Valid until”.</p></div>`;
+}
+function qSetField(path, val){
+  const d = qe.d;
+  if(path==='termsTpl'){ d.terms = qTermsFor(val); qe.dirty = true; render(); return; }
+  const num = ['pax','depositPerPax','balanceDays'];
+  const v = num.includes(path) ? numOrNull(val) : val;
+  if(path.startsWith('customer.')) d.customer[path.slice(9)] = v; else d[path] = v;
+  qe.dirty = true;
+  if(['pax','depositPerPax','validUntil','balanceDays'].includes(path)) qRefreshSummary();
+}
+function qRefreshSummary(){
+  if(!qe) return; const d = qe.d; const t = qTotals(d);
+  const set = (id,html)=>{ const e = document.getElementById(id); if(e) e.innerHTML = html; };
+  set('q-sum-total', `<span>Total</span><span>RM ${fmt2(t.total)}</span>`);
+  set('q-sum-pp', `<span>${t.perPax!=null?'≈ RM '+fmt2(t.perPax)+' per pax':''}</span><span></span>`);
+  set('q-sum-dep', `<span>${(d.depositPerPax>0&&d.pax>0)?'Deposit RM '+fmt2(d.depositPerPax*d.pax):''}</span><span></span>`);
+  d.lines.forEach((l,i)=>{ const e = document.getElementById('ql-tot-'+i); if(e) e.textContent = fmt2((Number(l.price)||0)*(Number(l.qty)||0)); });
+}
+function qValidate(){
+  if(!qe.d.customer.name.trim()){ showToast('Please enter the customer name'); return false; }
+  return true;
+}
+async function qSaveDraft(){
+  if(!qValidate()) return false;
+  const body = JSON.parse(JSON.stringify(qe.d));
+  try{
+    const r = qe.id ? await apiFetch('/quotes/drafts/'+qe.id, { method:'PUT', body: JSON.stringify(body) }) : await apiFetch('/quotes/drafts', { method:'POST', body: JSON.stringify(body) });
+    qe.id = r.id; qe.number = r.number; qe.dirty = false; await refreshQuoteBundle(); return true;
+  }catch(e){ showToast(e.message || 'Could not save the draft'); return false; }
+}
+function qWhatsApp(){
+  const d = qe.d, t = qTotals(d);
+  const L = [`*QUOTATION ${qe.number||''}*`.trim(), `For: ${d.customer.name}${d.customer.attn?' (Attn: '+d.customer.attn+')':''}`];
+  if(d.tripName) L.push(`Trip: ${d.tripName}${d.tripType?' · '+d.tripType:''}${d.travelDates?' · '+d.travelDates:''}${d.pax?' · '+d.pax+' pax':''}`);
+  L.push('');
+  d.lines.filter(l=>l.description).forEach(l=>L.push(`• ${l.description} — ${l.qty||0} x RM ${fmt2(l.price)} = RM ${fmt2((Number(l.price)||0)*(Number(l.qty)||0))}`));
+  L.push('', `*Total: RM ${fmt2(t.total)}*`);
+  if(d.depositPerPax>0) L.push(`Deposit: RM ${fmt2(d.depositPerPax)}/pax to confirm; balance ${d.balanceDays} days before travel.`);
+  if(d.validUntil) L.push(`Valid until ${longDate(d.validUntil)}.`);
+  return L.join('\n');
+}
+
+/* ---------- The quotation document (PDF via the browser's print) ---------- */
+const QUOTE_CSS = `*{box-sizing:border-box}body{margin:0;background:#d9dde3;font-family:Arial,Helvetica,sans-serif;color:#222;font-size:11px;line-height:1.45;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pg{width:794px;min-height:1123px;margin:14px auto;background:#fff;position:relative;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+.band{background:#0E346C;color:#fff;padding:28px 40px;display:flex;justify-content:space-between;align-items:center}
+.band img{width:92px;height:auto;border-radius:7px;display:block}.co{display:flex;gap:16px;align-items:center}.co b{font-size:14px}.co div div{font-size:10px;color:#C5D0E4;line-height:1.55}
+.band h1{margin:0 0 8px;font-size:26px;letter-spacing:1px;text-align:right}
+.meta{display:inline-grid;grid-template-columns:auto auto;gap:5px 18px;background:rgba(255,255,255,.10);border-radius:8px;padding:10px 14px;font-size:10.5px;float:right}.meta span{color:#C5D0E4}.meta b{font-weight:700}
+.yl{height:5px;background:#FDCC03}.pb{padding:20px 40px 30px}
+.two{display:flex;justify-content:space-between;gap:20px}.two>div:last-child{text-align:right}
+table.t{width:100%;border-collapse:collapse;margin:16px 0 4px}.t th{background:#0E346C;color:#fff;text-align:left;padding:7px 9px;font-size:9.5px;letter-spacing:.4px}.t td{padding:8px 9px;border-bottom:1px solid #E5E9EE;font-size:11.5px}.r{text-align:right!important}
+.due{background:#0E346C;color:#fff;border-radius:6px;padding:8px 14px;display:flex;justify-content:space-between;font-weight:700;font-size:12.5px;width:250px;margin:10px 0 0 auto}
+.cols{display:flex;gap:24px;margin-top:16px}.cols>div{flex:1}
+.nbox{background:#FFF9DB;border-left:4px solid #FDCC03;border-radius:4px;padding:9px 13px;margin-top:14px}.nbox h6{margin:0 0 4px;font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:#0E346C}.nbox ul{margin:0;padding-left:15px;font-size:9.5px;color:#444}.nbox li{margin:1px 0}
+.foot{text-align:center;color:#999;font-size:9.5px;margin-top:18px}
+.p2h{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FDCC03;padding-bottom:10px;margin-bottom:14px}.p2h b{font-size:15px;color:#0E346C;letter-spacing:1px}
+.tnc{columns:2;column-gap:28px}.tnc h5{margin:0 0 2px;font-size:10.5px;color:#0E346C;break-after:avoid}.tnc p{margin:0 0 9px;font-size:9.6px;color:#444;break-inside:avoid}
+@page{size:A4;margin:0}@media print{body{background:#fff}.pg{margin:0;box-shadow:none;width:auto;min-height:0}.pg+.pg{page-break-before:always}}`;
+function quoteDocHTML(d, number){
+  const s = qSettings(), c = s.company, logo = c.logo || DEFAULT_LOGO, t = qTotals(d);
+  const lines = d.lines.filter(l=>l.description || l.code || l.price!=null);
+  const topics = s.terms.topics.filter(x=>d.terms.on.includes(x.id));
+  const tx = (x, full)=>esc(qResolve(d.terms.overrides[x.id]!=null ? d.terms.overrides[x.id] : (full ? x.full : x.short), d));
+  const dep = Number(d.depositPerPax)||0;
+  const depLine = dep>0 ? `Deposit RM ${fmt2(dep).replace(/\.00$/,'')}/pax${d.pax>0?` (RM ${fmt2(dep*d.pax)})`:''} to confirm; balance ${Number(d.balanceDays)||0} days before travel.` : '';
+  const addr = String(c.address||'').split(/\n/).map(x=>x.trim()).filter(Boolean).join(', ');
+  const showNotes = d.terms.showSummary && topics.length, showP2 = d.terms.showFull && topics.length;
+  const p1 = `<div class="pg"><div class="band"><div class="co"><img src="${esc(logo)}" alt=""><div><b>${esc(c.name)}</b><div>${esc(addr)}<br>${esc([c.email,c.phone].filter(Boolean).join(' · '))}</div></div></div>
+    <div><h1>QUOTATION</h1><div class="meta"><span>Quotation #</span><b>${esc(number||'DRAFT')}</b><span>Date</span><b>${esc(d.date||'')}</b><span>Valid until</span><b>${esc(d.validUntil||'')}</b><span>PIC</span><b>${esc(String(d.pic||'').toUpperCase())}</b></div></div></div><div class="yl"></div>
+    <div class="pb"><div class="two"><div><b>Prepared for</b><br>${esc(d.customer.name)}${d.customer.attn?`<br>Attn: ${esc(d.customer.attn)}`:''}${d.customer.contact?`<br>${esc(d.customer.contact)}`:''}</div>
+    <div>${d.tripName||d.travelDates||d.pax?`<b>Trip</b><br>${esc([d.tripName,d.tripType].filter(Boolean).join(' · '))}<br>${esc([d.travelDates, d.pax>0?d.pax+' pax':''].filter(Boolean).join(' · '))}`:''}</div></div>
+    <table class="t"><thead><tr><th>CODE</th><th>DESCRIPTION</th><th class="r">PRICE (RM)</th><th class="r">QTY</th><th class="r">TOTAL (RM)</th></tr></thead><tbody>${lines.map(l=>`<tr><td>${esc(l.code||'')}</td><td>${esc(l.description||'')}</td><td class="r">${fmt2(l.price)}</td><td class="r">${esc(l.qty==null?'':l.qty)}</td><td class="r">${fmt2((Number(l.price)||0)*(Number(l.qty)||0))}</td></tr>`).join('')}</tbody></table>
+    <div class="due"><span>Total:</span><span>RM ${fmt2(t.total)}</span></div>
+    <div class="cols"><div><b>Payment Info:</b><br>Make the payment to :<br>Account : <b>${esc(c.accountNo)}</b><br>A/C Name : <b>${esc(c.accountName)}</b><br>Bank : <b>${esc(c.bank)}</b></div><div>${depLine||d.remarks?`<b>Remarks</b><br>${esc(depLine)}${depLine&&d.remarks?'<br>':''}${esc(d.remarks||'')}`:''}</div></div>
+    ${showNotes?`<div class="nbox"><h6>Important notes</h6><ul>${topics.map(x=>`<li><b>${esc(x.title)}:</b> ${tx(x,false)}</li>`).join('')}</ul></div>`:''}
+    <div class="foot">${showP2?'Full terms &amp; conditions on page 2 · ':''}${esc(s.defaults.footer||'')}</div></div></div>`;
+  const p2 = showP2 ? `<div class="pg"><div class="pb" style="padding-top:30px;"><div class="p2h"><b>TERMS &amp; CONDITIONS</b><span>${esc(number||'DRAFT')} · Page 2</span></div><div class="tnc">${topics.map((x,i)=>`<h5>${i+1}. ${esc(x.title)}</h5><p>${tx(x,true)}</p>`).join('')}</div></div></div>` : '';
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc((number||'Quotation')+' '+d.customer.name)}</title><style>${QUOTE_CSS}</style></head><body>${p1}${p2}</body></html>`;
+}
+function quotePreviewModalHTML(){
+  return `<div class="overlay" id="overlay-qprev"><div class="modal modal-xl"><div class="modal-head"><h3>Quotation preview</h3><button class="modal-close" data-close="overlay-qprev">✕</button></div><div class="modal-body" style="padding-top:12px;">
+    <iframe class="qprev-frame" id="qprev-frame" srcdoc="${esc(qPrevHTML)}"></iframe>
+    <p class="hint" style="font-size:12px;margin:8px 0 0;">Click <b>Print / Save as PDF</b>, then choose “Save as PDF” as the printer. The draft was saved with this quotation number.</p></div>
+    <div class="modal-foot"><div></div><div style="display:flex;gap:10px;"><button class="btn btn-ghost" data-close="overlay-qprev">Close</button><button class="btn btn-primary" data-action="q-print">Print / Save as PDF</button></div></div></div></div>`;
+}
+
+/* ---------- Events ---------- */
+function bindLibResults(root){
+  root.querySelectorAll('[data-pack-open]').forEach(el=>el.addEventListener('click', e=>{
+    if(e.target.closest('[data-pack-copy]')) return;
+    if(el.tagName==='BUTTON'){ e.stopPropagation(); }
+    openPack(el.dataset.packOpen);
+  }));
+  root.querySelectorAll('[data-pack-toggle]').forEach(el=>el.addEventListener('click', e=>{
+    if(e.target.closest('button')) return;
+    const id = el.dataset.packToggle; libUI.open[id] = !libUI.open[id]; libRefreshResults();
+  }));
+  root.querySelectorAll('[data-pack-copy]').forEach(el=>el.addEventListener('click', async e=>{
+    e.stopPropagation();
+    const p = libPacks.find(x=>x.id===el.dataset.packCopy); if(!p) return;
+    const m = (p.messages||[]).find(x=>x.text && x.text.trim());
+    if(!m){ showToast('This pack has no WhatsApp message yet'); return; }
+    if(msgPlaceholders(m.text).some(k=>!packFillDefaults(p)[k])){ openPack(p.id); showToast('Fill in the blanks, then press Copy message'); return; }
+    await copyToClipboard(fillMessage(m.text, packFillDefaults(p))); showToast('Message copied — paste it into WhatsApp');
+  }));
+  root.querySelectorAll('[data-file-open]').forEach(el=>el.addEventListener('click', e=>{ if(e.target.closest('[data-file-del]')) return; e.stopPropagation(); openLibFile(el.dataset.fileOpen, false); }));
+}
+function bindLibraryEvents(app){
+  const on = (sel, fn)=>app.querySelectorAll(sel).forEach(el=>el.addEventListener('click', e=>fn(el, e)));
+  const one = (sel, ev, fn)=>{ const el = app.querySelector(sel); if(el) el.addEventListener(ev, fn); };
+  /* Library shell */
+  on('[data-lib-sub]', el=>{ libUI.sub = el.dataset.libSub; render(); });
+  on('[data-lib-qsub]', el=>{ libUI.qsub = el.dataset.libQsub; render(); });
+  on('[data-lib-country]', el=>{ libUI.country = el.dataset.libCountry; render(); });
+  on('[data-lib-layout]', el=>{ libUI.layout = el.dataset.libLayout; libSetPref('lib_layout', libUI.layout); render(); });
+  on('[data-action="lib-toggle-archived"]', ()=>{ libUI.archived = !libUI.archived; libUI.country = 'All'; render(); });
+  on('[data-action="lib-add-pack"]', ()=>openPack('new'));
+  on('[data-action="lib-retry"]', ()=>loadLibraryData(true));
+  one('#lib-search','input', e=>{ libUI.search = e.target.value; libRefreshResults(); });
+  const res = app.querySelector('#lib-results'); if(res) bindLibResults(res);
+
+  /* Pack modal */
+  const pm = app.querySelector('#overlay-pack');
+  if(pm && packEdit){
+    const pon = (sel, fn)=>pm.querySelectorAll(sel).forEach(el=>el.addEventListener('click', e=>fn(el,e)));
+    pon('[data-file-open]', (el,e)=>{ if(e.target.closest('[data-file-del]')) return; openLibFile(el.dataset.fileOpen, false); });
+    pon('[data-file-dl-first]', (el,e)=>{ e.preventDefault(); const f = packEdit.files[0]; if(f) openLibFile(f.id, true); });
+    pon('[data-file-del]', async (el,e)=>{
+      e.stopPropagation(); if(!confirm('Remove this file from the pack?')) return; syncPackDraft();
+      try{ await apiFetch('/library/files/'+el.dataset.fileDel, { method:'DELETE' }); packEdit.files = packEdit.files.filter(f=>f.id!==el.dataset.fileDel); const p = libPacks.find(x=>x.id===packEdit.id); if(p) p.files = (p.files||[]).filter(f=>f.id!==el.dataset.fileDel); }
+      catch(err){ showToast(err.message || 'Could not remove the file'); }
+      reopenPack();
+    });
+    pon('[data-pend-del]', (el,e)=>{ e.stopPropagation(); syncPackDraft(); packEdit.pending.splice(Number(el.dataset.pendDel),1); reopenPack(); });
+    pon('[data-action="pk-pick-file"]', ()=>{ const f = document.getElementById('pk-file'); if(f) f.click(); });
+    const fi = pm.querySelector('#pk-file'); if(fi) fi.addEventListener('change', ()=>{ handlePackFiles(fi.files); });
+    pon('[data-action="pk-add-msg"]', ()=>{ syncPackDraft(); packEdit.d.messages.push({id:'',label:'',text:''}); reopenPack(); });
+    pon('[data-pack-msg-del]', el=>{ syncPackDraft(); packEdit.d.messages.splice(Number(el.dataset.packMsgDel),1); reopenPack(); });
+    pon('[data-pack-msg-copy]', el=>packCopyMessage(Number(el.dataset.packMsgCopy)));
+    pon('[data-action="pk-save"]', handlePackSave);
+    pon('[data-action="pk-archive"]', async ()=>{ syncPackDraft(); packEdit.d.archived = !packEdit.d.archived; await handlePackSave(); });
+    pon('[data-action="pk-delete"]', async ()=>{
+      if(!confirm('Delete this pack and its posters? This cannot be undone. (Use Archive to just hide it.)')) return;
+      try{ await apiFetch('/library/'+packEdit.id, { method:'DELETE' }); libPacks = libPacks.filter(p=>p.id!==packEdit.id); packEdit = null; closeOverlay('overlay-pack'); showToast('Pack deleted'); render(); }
+      catch(err){ showToast(err.message || 'Could not delete the pack'); }
+    });
+    pm.querySelectorAll('[data-fill]').forEach(inp=>inp.addEventListener('input', ()=>{ libUI.fill[inp.dataset.fill] = inp.value; }));
+    pm.querySelectorAll('textarea[id^="pk-mt-"]').forEach(ta=>ta.addEventListener('input', ()=>{
+      const i = ta.id.slice(6); const holder = document.getElementById('pk-ph-'+i); if(!holder) return;
+      const keep = {}; holder.querySelectorAll('[data-fill]').forEach(x=>{ keep[x.dataset.fill] = x.value; }); Object.assign(libUI.fill, keep);
+      holder.innerHTML = packPhHTML(msgPlaceholders(ta.value), packFillDefaults(packEdit.d));
+      holder.querySelectorAll('[data-fill]').forEach(inp=>inp.addEventListener('input', ()=>{ libUI.fill[inp.dataset.fill] = inp.value; }));
+    }));
+  }
+
+  /* Quotations: drafts */
+  on('[data-action="q-new"]', startNewQuote);
+  on('[data-q-open]', el=>openQuoteDraft(el.dataset.qOpen));
+  on('[data-q-dup]', async el=>{
+    try{ const r = await apiFetch('/quotes/drafts/'+el.dataset.qDup); const created = await apiFetch('/quotes/drafts', { method:'POST', body: JSON.stringify(r.data) }); await refreshQuoteBundle(); showToast('Copied as '+created.number); }
+    catch(e){ showToast(e.message || 'Could not duplicate'); }
+    render();
+  });
+  on('[data-q-del]', async el=>{
+    if(!confirm('Delete this saved quotation?')) return;
+    try{ await apiFetch('/quotes/drafts/'+el.dataset.qDel, { method:'DELETE' }); await refreshQuoteBundle(); showToast('Quotation deleted'); }catch(e){ showToast(e.message || 'Could not delete'); }
+    render();
+  });
+
+  /* Presets & items */
+  const s = qSettings();
+  on('[data-action="preset-new"]', ()=>{ qModal = { kind:'preset', index:-1, draft:{ id:'p'+Date.now().toString(36), name:'', termsId:(s.terms.templates[0]||{}).id||'', remarks:'', lines:[] } }; reopenQModal(); });
+  on('[data-preset-edit]', el=>{ const i = Number(el.dataset.presetEdit); qModal = { kind:'preset', index:i, draft:JSON.parse(JSON.stringify(s.presets[i])) }; reopenQModal(); });
+  on('[data-preset-dup]', async el=>{ const i = Number(el.dataset.presetDup); if(await saveQuoteSettings(x=>{ const c = JSON.parse(JSON.stringify(x.presets[i])); c.id = 'p'+Date.now().toString(36); c.name += ' (copy)'; x.presets.push(c); })){ showToast('Preset duplicated'); } render(); });
+  on('[data-preset-del]', async el=>{ const i = Number(el.dataset.presetDel); if(!confirm('Delete this preset?')) return; if(await saveQuoteSettings(x=>{ x.presets.splice(i,1); })) showToast('Preset deleted'); render(); });
+  on('[data-action="item-new"]', ()=>{ qModal = { kind:'item', index:-1, draft:{ code:'', description:'', price:null, per:'pax' } }; reopenQModal(); });
+  on('[data-item-edit]', el=>{ const i = Number(el.dataset.itemEdit); qModal = { kind:'item', index:i, draft:JSON.parse(JSON.stringify(s.items[i])) }; reopenQModal(); });
+  on('[data-action="item-save"]', async ()=>{
+    const g = id=>document.getElementById(id).value; const it = { code:g('qm-code').trim(), description:g('qm-desc').trim(), price:numOrNull(g('qm-price')), per:g('qm-per') };
+    if(!it.code){ showToast('Please enter an item code'); return; }
+    const i = qModal.index;
+    if(await saveQuoteSettings(x=>{ if(i<0) x.items.push(it); else x.items[i] = it; })){ qModal = null; closeOverlay('overlay-qmodal'); showToast('Item saved'); render(); }
+  });
+  on('[data-action="item-del"]', async ()=>{ if(!confirm('Delete this item from the list? Existing quotations are not affected.')) return; const i = qModal.index; if(await saveQuoteSettings(x=>{ x.items.splice(i,1); })){ qModal = null; closeOverlay('overlay-qmodal'); showToast('Item deleted'); render(); } });
+  /* preset modal internals */
+  const qm = app.querySelector('#overlay-qmodal');
+  if(qm && qModal && qModal.kind==='preset'){
+    qm.querySelectorAll('select[data-pl$=":per"]').forEach(sel=>sel.addEventListener('change', ()=>{ syncPresetDraft(); const i = Number(sel.dataset.pl.split(':')[0]); qModal.draft.lines[i].per = sel.value; syncPresetDraft(); reopenQModal(); }));
+    const add = qm.querySelector('#qm-additem'); if(add) add.addEventListener('change', ()=>{ if(add.value==='') return; syncPresetDraft(); const it = s.items[Number(add.value)]; qModal.draft.lines.push({ code:it.code, description:it.description, price:it.price, per:it.per, qty: it.per==='qty'?1:null }); reopenQModal(); });
+    qm.querySelectorAll('[data-pl-del]').forEach(b=>b.addEventListener('click', ()=>{ syncPresetDraft(); qModal.draft.lines.splice(Number(b.dataset.plDel),1); reopenQModal(); }));
+    qm.querySelectorAll('[data-action="pl-custom"]').forEach(b=>b.addEventListener('click', ()=>{ syncPresetDraft(); qModal.draft.lines.push({ code:'', description:'', price:null, per:'pax', qty:null }); reopenQModal(); }));
+    qm.querySelectorAll('[data-action="preset-save"]').forEach(b=>b.addEventListener('click', async ()=>{
+      syncPresetDraft(); const v = qModal.draft;
+      if(!v.name.trim()){ showToast('Please give the preset a name'); return; }
+      if(!v.lines.length){ showToast('Add at least one line'); return; }
+      const clean = { id:v.id, name:v.name.trim(), termsId:v.termsId||'', remarks:v.remarks||'', lines:v.lines.map(l=>({ code:l.code||'', description:l.description||'', price:l.price, per:l.per||'pax', qty:l.per==='qty'?(l.qty||1):null })) };
+      const i = qModal.index;
+      if(await saveQuoteSettings(x=>{ if(i<0) x.presets.push(clean); else x.presets[i] = clean; })){ qModal = null; closeOverlay('overlay-qmodal'); showToast('Preset saved'); render(); }
+    }));
+  }
+
+  /* Terms templates */
+  on('[data-tpl-pick]', el=>{ libUI.tplId = el.dataset.tplPick; render(); });
+  on('[data-action="tpl-new"]', async ()=>{
+    const name = (prompt('Name for the new terms template:')||'').trim(); if(!name) return;
+    const cur = s.terms.templates.find(t=>t.id===libUI.tplId); const id = 't'+Date.now().toString(36);
+    if(await saveQuoteSettings(x=>{ x.terms.templates.push({ id, name, on:(cur?cur.on:[]).slice() }); })){ libUI.tplId = id; showToast('Template added (copied from the previous one)'); } render();
+  });
+  on('[data-action="tpl-rename"]', async ()=>{ const t = s.terms.templates.find(x=>x.id===libUI.tplId); const name = (prompt('New name:', t?t.name:'')||'').trim(); if(!name) return; if(await saveQuoteSettings(x=>{ x.terms.templates.find(y=>y.id===libUI.tplId).name = name; })) showToast('Renamed'); render(); });
+  on('[data-action="tpl-del"]', async ()=>{ if(!confirm('Delete this template? Presets using it switch to the first template.')) return; const id = libUI.tplId; if(await saveQuoteSettings(x=>{ x.terms.templates = x.terms.templates.filter(t=>t.id!==id); const f = x.terms.templates[0] ? x.terms.templates[0].id : ''; x.presets.forEach(p=>{ if(p.termsId===id) p.termsId = f; }); })){ libUI.tplId = ''; showToast('Template deleted'); } render(); });
+  on('[data-action="terms-save"]', async ()=>{
+    const shorts = {}; app.querySelectorAll('[data-tshort]').forEach(inp=>{ shorts[inp.dataset.tshort] = inp.value; });
+    const ons = []; app.querySelectorAll('[data-ton]').forEach(c=>{ if(c.checked) ons.push(c.dataset.ton); });
+    if(await saveQuoteSettings(x=>{ x.terms.topics.forEach((t,i)=>{ if(shorts[i]!=null) t.short = shorts[i]; }); x.terms.templates.find(t=>t.id===libUI.tplId).on = ons; })) showToast('Terms template saved'); render();
+  });
+  on('[data-topic-edit]', el=>{ const i = Number(el.dataset.topicEdit); qModal = { kind:'topic', index:i, draft:JSON.parse(JSON.stringify(s.terms.topics[i])) }; reopenQModal(); });
+  on('[data-action="topic-new"]', ()=>{ qModal = { kind:'topic', index:-1, draft:{ id:'x'+Date.now().toString(36), title:'', short:'', full:'' } }; reopenQModal(); });
+  on('[data-topic-del]', async el=>{ const i = Number(el.dataset.topicDel); if(!confirm('Delete this topic from all templates?')) return; const id = s.terms.topics[i].id; if(await saveQuoteSettings(x=>{ x.terms.topics.splice(i,1); x.terms.templates.forEach(t=>{ t.on = t.on.filter(z=>z!==id); }); })) showToast('Topic deleted'); render(); });
+  on('[data-action="topic-save"]', async ()=>{
+    const g = id=>document.getElementById(id).value; const v = { id:qModal.draft.id, title:g('qm-ttitle').trim(), short:g('qm-tshort').trim(), full:g('qm-tfull').trim() };
+    if(!v.title){ showToast('Please enter a topic title'); return; }
+    const i = qModal.index;
+    if(await saveQuoteSettings(x=>{ if(i<0) x.terms.topics.push(v); else x.terms.topics[i] = v; })){ qModal = null; closeOverlay('overlay-qmodal'); showToast('Topic saved'); render(); }
+  });
+
+  /* Company details */
+  on('[data-action="open-company"]', async ()=>{ if(!qBundle){ await loadLibraryData(true); } coLogoData = null; render(); openOverlay('overlay-company'); });
+  on('[data-action="co-pick-logo"]', ()=>{ const f = document.getElementById('co-logo'); if(f) f.click(); });
+  one('#co-logo','change', async e=>{
+    const f = e.target.files[0]; if(!f) return;
+    try{
+      const img = await loadImg(await readFileAsDataURL(f)); const k = Math.min(1, 300/Math.max(img.width,img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width*k); c.height = Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      coLogoData = c.toDataURL('image/png'); document.getElementById('co-logo-img').src = coLogoData;
+      if(coLogoData.length > 380000){ coLogoData = null; showToast('That logo is too detailed — please use a simpler or smaller image'); }
+    }catch(err){ showToast('Could not read that image'); }
+  });
+  on('[data-action="co-save"]', handleCompanySave);
+
+  /* Quotation editor */
+  if(view.mode==='quote' && qe){
+    on('[data-action="q-back"]', ()=>{ if(qe.dirty && !confirm('You have unsaved changes. Leave without saving?')) return; qe = null; view = { mode:'library' }; libUI.sub = 'quotes'; libUI.qsub = 'drafts'; render(); });
+    on('[data-q-preset]', el=>qApplyPreset(Number(el.dataset.qPreset)));
+    on('[data-ql-del]', el=>{ qe.d.lines.splice(Number(el.dataset.qlDel),1); qe.dirty = true; render(); });
+    on('[data-action="q-add-custom"]', ()=>{ qe.d.lines.push({ code:'', description:'', price:null, qty:1, per:'qty' }); qe.dirty = true; render(); });
+    one('#q-additem','change', e=>{ const v = e.target.value; if(v==='') return; const it = s.items[Number(v)]; qe.d.lines.push({ code:it.code, description:it.description, price:it.price, per:it.per, qty: it.per==='pax' ? (qe.d.pax>0?qe.d.pax:1) : 1 }); qe.dirty = true; render(); });
+    on('[data-action="q-fix-pax"]', ()=>{ qe.d.lines.forEach(l=>{ if(l.per==='pax') l.qty = qe.d.pax; }); qe.dirty = true; render(); });
+    on('[data-action="q-terms-toggle"]', ()=>{ qe.termsOpen = !qe.termsOpen; render(); });
+    app.querySelectorAll('[data-qton]').forEach(c=>c.addEventListener('change', ()=>{ const id = c.dataset.qton, on_ = qe.d.terms.on; qe.d.terms.on = c.checked ? (on_.includes(id)?on_:on_.concat([id])) : on_.filter(x=>x!==id); qe.dirty = true; render(); }));
+    app.querySelectorAll('[data-qshow]').forEach(c=>c.addEventListener('change', ()=>{ qe.d.terms[c.dataset.qshow] = c.checked; qe.dirty = true; }));
+    app.querySelectorAll('[data-qtedit]').forEach(a=>a.addEventListener('click', e=>{ e.preventDefault(); qe.editTopic = qe.editTopic===a.dataset.qtedit ? null : a.dataset.qtedit; render(); }));
+    app.querySelectorAll('[data-qtreset]').forEach(a=>a.addEventListener('click', e=>{ e.preventDefault(); delete qe.d.terms.overrides[a.dataset.qtreset]; qe.editTopic = null; qe.dirty = true; render(); }));
+    app.querySelectorAll('[data-qover]').forEach(t=>t.addEventListener('input', ()=>{ qe.d.terms.overrides[t.dataset.qover] = t.value; qe.dirty = true; }));
+    on('[data-action="q-save"]', async ()=>{ if(await qSaveDraft()){ showToast('Draft saved — kept for 14 days'); render(); } });
+    on('[data-action="q-wa"]', async ()=>{ if(!qValidate()) return; await copyToClipboard(qWhatsApp()); showToast('Copied — paste it into WhatsApp'); });
+    on('[data-action="q-preview"]', async ()=>{
+      if(!qValidate()) return;
+      if(!qe.d.lines.some(l=>l.description || l.code)){ showToast('Please add at least one item'); return; }
+      if(!(await qSaveDraft())) return;
+      qPrevHTML = quoteDocHTML(qe.d, qe.number); render(); openOverlay('overlay-qprev');
+    });
+  }
+  on('[data-action="q-print"]', ()=>{ const f = document.getElementById('qprev-frame'); if(f && f.contentWindow){ f.contentWindow.focus(); f.contentWindow.print(); } });
+}
+document.addEventListener('change', e=>{
+  const el = e.target; if(el && el.dataset && el.dataset.qf==='pax' && qe && view.mode==='quote') render(); // shows the “set per-pax lines” shortcut
+});
+document.addEventListener('input', e=>{
+  const el = e.target; if(!el || !el.dataset || !qe || view.mode!=='quote') return;
+  if(el.dataset.qf){ qSetField(el.dataset.qf, el.value); return; }
+  if(el.dataset.ql){
+    const [i,f] = el.dataset.ql.split(':'); const l = qe.d.lines[Number(i)]; if(!l) return;
+    if(f==='price' || f==='qty'){ l[f] = numOrNull(el.value); if(f==='qty') l.per = l.per || 'qty'; } else l[f] = el.value;
+    qe.dirty = true; qRefreshSummary();
+  }
+});
 
 /* =========================================================
    Init

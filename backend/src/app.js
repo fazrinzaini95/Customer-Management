@@ -7,6 +7,8 @@ const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/auth');
 const usersRoutes = require('./routes/users');
 const holdsRoutes = require('./routes/holds');
+const libraryRoutes = require('./routes/library');
+const quotesRoutes = require('./routes/quotes');
 const tripsRoutes = require('./routes/trips');
 const passengersRoutes = require('./routes/passengers');
 const settingsRoutes = require('./routes/settings');
@@ -35,6 +37,9 @@ app.use(helmet());
 // any site to call the API. Set CORS_ORIGIN explicitly to the deployed
 // frontend's URL.
 app.use(cors({ origin: process.env.CORS_ORIGIN || false }));
+// Library file uploads (posters/PDFs as base64) need a bigger body than the 1 MB default.
+// This parser runs first for /library; body-parser then skips the global one below.
+app.use('/library', express.json({ limit: '6mb' }));
 app.use(express.json({ limit: '1mb' }));
 
 // Basic rate limiting — protects auth endpoints from brute-force attempts
@@ -62,6 +67,8 @@ app.use('/public', publicRoutes);
 app.use('/auth', authRoutes);
 app.use('/users', usersRoutes);
 app.use('/holds', holdsRoutes);
+app.use('/library', libraryRoutes);
+app.use('/quotes', quotesRoutes);
 app.use('/trips', tripsRoutes);
 app.use('/', passengersRoutes);   // owns /trips/:tripId/passengers and /passengers/:id
 app.use('/settings', settingsRoutes);
