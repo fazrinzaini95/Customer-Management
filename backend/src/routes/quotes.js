@@ -21,6 +21,7 @@ async function loadSettings() {
     terms: saved.terms && saved.terms.topics ? saved.terms : defaults.terms,
     items: Array.isArray(saved.items) ? saved.items : defaults.items,
     presets: Array.isArray(saved.presets) ? saved.presets : defaults.presets,
+    waTemplate: typeof saved.waTemplate === 'string' && saved.waTemplate.trim() ? saved.waTemplate : defaults.waTemplate,
   };
   return { settings, nextNo: rows[0]?.next_no || 10001 };
 }
@@ -33,7 +34,8 @@ function mapRow(r, withData) {
 const SEL = `SELECT d.*, COALESCE(u.username, u.name) AS by_name FROM quote_drafts d LEFT JOIN users u ON u.id = d.created_by`;
 
 function totals(data) {
-  const lines = Array.isArray(data.lines) ? data.lines : [];
+  // Fixed-price total only: airline estimates are not part of it.
+  const lines = (Array.isArray(data.lines) ? data.lines : []).filter(l => l.kind !== 'est');
   return Math.round(lines.reduce((s, l) => s + (Number(l.price) || 0) * (Number(l.qty) || 0), 0) * 100) / 100;
 }
 
@@ -43,6 +45,8 @@ const lineSchema = z.object({
   price: z.number().min(-100000000).max(100000000).nullable().optional(),
   qty: z.number().min(0).max(100000).nullable().optional(),
   per: z.enum(['pax', 'qty']).optional(),
+  note: z.string().trim().max(300).optional().default(''),
+  kind: z.enum(['fixed', 'est']).optional().default('fixed'),
 });
 const draftSchema = z.object({
   customer: z.object({ name: z.string().trim().max(200).optional().default(''), attn: z.string().trim().max(120).optional().default(''), contact: z.string().trim().max(120).optional().default('') }).optional().default({}),
@@ -72,8 +76,9 @@ router.put('/settings', requireRole('admin'), asyncHandler(async (req, res) => {
     company: z.object({ name: z.string().max(120), address: z.string().max(400), email: z.string().max(120), phone: z.string().max(60), bank: z.string().max(80), accountNo: z.string().max(60), accountName: z.string().max(120), logo: z.string().max(400000).optional().default('') }),
     defaults: z.object({ prefix: z.string().max(12), validDays: z.number().int().min(1).max(365), depositPerPax: z.number().min(0), balanceDays: z.number().int().min(0).max(365), footer: z.string().max(200) }),
     terms: z.object({ topics: z.array(z.object({ id: z.string().max(40), title: z.string().max(80), short: z.string().max(400), full: z.string().max(2000) })).max(40), templates: z.array(z.object({ id: z.string().max(40), name: z.string().max(60), on: z.array(z.string().max(40)) })).max(12) }),
-    items: z.array(z.object({ code: z.string().trim().min(1).max(40), description: z.string().trim().max(200), price: z.number().nullable().optional(), per: z.enum(['pax', 'qty']) })).max(300),
+    items: z.array(z.object({ code: z.string().trim().min(1).max(40), description: z.string().trim().max(200), price: z.number().nullable().optional(), per: z.enum(['pax', 'qty']), note: z.string().trim().max(300).optional().default(''), kind: z.enum(['fixed', 'est']).optional().default('fixed') })).max(500),
     presets: z.array(z.object({ id: z.string().max(40), name: z.string().trim().min(1).max(120), termsId: z.string().max(40).optional().default(''), remarks: z.string().max(1500).optional().default(''), lines: z.array(lineSchema).max(60) })).max(100),
+    waTemplate: z.string().max(3000).optional().default(''),
     nextNumber: z.number().int().min(1).max(99999999).optional(),
   }).parse(req.body);
   const codes = new Set();
@@ -105,6 +110,33 @@ router.post('/drafts', asyncHandler(async (req, res) => {
   const { rows } = await query(
     'INSERT INTO quote_drafts (number, customer, package, total, data, created_by) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
     [number, data.customer.name || '', data.tripName || '', totals(data), JSON.stringify(data), req.user.id]
+  );
+  const full = await query(`${SEL} WHERE d.id = $1`, [rows[0].id]);
+  res.status(201).json(mapRow(full.rows[0], true));
+}));
+
+// "Create revised quotation": copies a draft as <number>-R1 (R2, R3 …). Airline estimate lines become fixed lines.
+router.post('/drafts/:id/revise', asyncHandler(async (req, res) => {
+  const src = await query(`${SEL} WHERE d.id = $1`, [req.params.id]);
+  if (!src.rows[0]) return res.status(404).json({ error: 'This draft was not found — drafts are removed 14 days after the last save' });
+  const orig = src.rows[0];
+  const base = String(orig.number).replace(/-R\d+$/, '');
+  const like = await query('SELECT number FROM quote_drafts WHERE number LIKE $1', [base.replace(/[%_]/g, '') + '-R%']);
+  let n = 1; like.rows.forEach(r => { const m = /-R(\d+)$/.exec(r.number); if (m) n = Math.max(n, Number(m[1]) + 1); });
+  const number = `${base}-R${n}`;
+  const { settings } = await loadSettings();
+  const data = JSON.parse(JSON.stringify(orig.data || {}));
+  data.lines = (data.lines || []).map(l => ({ ...l, kind: 'fixed' }));
+  const today = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
+  data.date = today;
+  data.validUntil = new Date(new Date(today + 'T00:00:00Z').getTime() + (settings.defaults.validDays || 14) * 86400000).toISOString().slice(0, 10);
+  data.revisedFrom = orig.number;
+  const origDate = orig.data && orig.data.date ? orig.data.date : '';
+  const line = `Revised from ${orig.number}${origDate ? ' (' + origDate + ')' : ''}: airline items now confirmed.`;
+  data.remarks = [data.remarks, line].filter(Boolean).join(' ').slice(0, 1500);
+  const { rows } = await query(
+    'INSERT INTO quote_drafts (number, customer, package, total, data, created_by) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
+    [number, (data.customer && data.customer.name) || '', data.tripName || '', totals(data), JSON.stringify(data), req.user.id]
   );
   const full = await query(`${SEL} WHERE d.id = $1`, [rows[0].id]);
   res.status(201).json(mapRow(full.rows[0], true));

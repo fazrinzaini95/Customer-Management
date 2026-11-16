@@ -29,8 +29,9 @@ const defaults = {
   items: [
     { code: 'GRD-0001', description: 'Ground package', price: null, per: 'pax' },
     { code: 'ALL-0001', description: 'All-in package', price: null, per: 'pax' },
-    { code: 'GEN-0001', description: 'Flight ticket', price: null, per: 'pax' },
-    { code: 'ADD-0001', description: 'Add-on: luggage 20kg (return)', price: null, per: 'qty' },
+    { code: 'GEN-0001', description: 'Flight ticket', price: null, per: 'pax', kind: 'est', note: 'Fare checked on the quotation date · taxes included' },
+    { code: 'ADD-0001', description: 'Add-on: luggage 20kg (return)', price: null, per: 'qty', kind: 'est', note: 'Airline price on the quotation date' },
+    { code: 'ADD-0009', description: 'Add-on: seat selection (return)', price: null, per: 'qty', kind: 'est', note: 'Standard seats · airline price on the quotation date' },
     { code: 'ADD-0002', description: 'Add-on: room request / single supplement', price: null, per: 'qty' },
     { code: 'ADD-0003', description: 'Travel insurance', price: null, per: 'pax' },
     { code: 'ADD-0004', description: 'Visa assistance', price: null, per: 'pax' },
@@ -41,5 +42,17 @@ const defaults = {
     { code: 'DISC', description: 'Discount', price: null, per: 'qty' },
   ],
   presets: [],
+  waTemplate: [
+    '*QUOTATION {number}*',
+    'For: {customer}',
+    'Trip: {trip}',
+    '',
+    '{items}',
+    '',
+    '*Total (fixed price): RM {total}*',
+    '{airline_section}',
+    '{deposit_line}',
+    '{valid_line}',
+  ].join('\n'),
 };
 module.exports = { defaults };

@@ -99,6 +99,13 @@ router.get('/files/:fid', asyncHandler(async (req, res) => {
   res.json({ id: rows[0].id, name: rows[0].name, mime: rows[0].mime, dataUrl: rows[0].data });
 }));
 
+router.put('/files/:fid/thumb', requireRole('admin'), asyncHandler(async (req, res) => {
+  const d = z.object({ thumb: z.string().max(60000) }).parse(req.body);
+  const { rows } = await query('UPDATE library_files SET thumb = $1 WHERE id = $2 RETURNING id', [d.thumb, req.params.fid]);
+  if (!rows[0]) return res.status(404).json({ error: 'File not found' });
+  res.json({ id: rows[0].id, thumb: d.thumb });
+}));
+
 router.delete('/files/:fid', requireRole('admin'), asyncHandler(async (req, res) => {
   const { rows } = await query('DELETE FROM library_files WHERE id = $1 RETURNING pack_id', [req.params.fid]);
   if (!rows[0]) return res.status(404).json({ error: 'File not found' });
