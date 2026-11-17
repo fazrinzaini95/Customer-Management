@@ -34,8 +34,7 @@ function mapRow(r, withData) {
 const SEL = `SELECT d.*, COALESCE(u.username, u.name) AS by_name FROM quote_drafts d LEFT JOIN users u ON u.id = d.created_by`;
 
 function totals(data) {
-  // Fixed-price total only: estimate lines are not part of it.
-  const lines = (Array.isArray(data.lines) ? data.lines : []).filter(l => l.kind !== 'est');
+  const lines = Array.isArray(data.lines) ? data.lines : [];
   return Math.round(lines.reduce((s, l) => s + (Number(l.price) || 0) * (Number(l.qty) || 0), 0) * 100) / 100;
 }
 
@@ -59,6 +58,7 @@ const draftSchema = z.object({
   pax: z.number().min(0).max(100000).nullable().optional(),
   lines: z.array(lineSchema).max(60).optional().default([]),
   remarks: z.string().max(1500).optional().default(''),
+  estimateNote: z.string().max(600).optional(),
   depositPerPax: z.number().min(0).nullable().optional(),
   balanceDays: z.number().min(0).nullable().optional(),
   terms: z.any().optional(),
@@ -74,7 +74,7 @@ router.get('/bundle', asyncHandler(async (req, res) => {
 router.put('/settings', requireRole('admin'), asyncHandler(async (req, res) => {
   const s = z.object({
     company: z.object({ name: z.string().max(120), address: z.string().max(400), email: z.string().max(120), phone: z.string().max(60), bank: z.string().max(80), accountNo: z.string().max(60), accountName: z.string().max(120), logo: z.string().max(400000).optional().default('') }),
-    defaults: z.object({ prefix: z.string().max(12), validDays: z.number().int().min(1).max(365), depositPerPax: z.number().min(0), balanceDays: z.number().int().min(0).max(365), footer: z.string().max(200) }),
+    defaults: z.object({ prefix: z.string().max(12), validDays: z.number().int().min(1).max(365), depositPerPax: z.number().min(0), balanceDays: z.number().int().min(0).max(365), footer: z.string().max(200), estimateNote: z.string().max(600).optional() }),
     terms: z.object({ topics: z.array(z.object({ id: z.string().max(40), title: z.string().max(80), short: z.string().max(400), full: z.string().max(2000) })).max(40), templates: z.array(z.object({ id: z.string().max(40), name: z.string().max(60), on: z.array(z.string().max(40)) })).max(12) }),
     items: z.array(z.object({ code: z.string().trim().min(1).max(40), description: z.string().trim().max(200), price: z.number().nullable().optional(), per: z.enum(['pax', 'qty']), note: z.string().trim().max(300).optional().default(''), kind: z.enum(['fixed', 'est']).optional().default('fixed') })).max(500),
     presets: z.array(z.object({ id: z.string().max(40), name: z.string().trim().min(1).max(120), termsId: z.string().max(40).optional().default(''), remarks: z.string().max(1500).optional().default(''), lines: z.array(lineSchema).max(60) })).max(100),

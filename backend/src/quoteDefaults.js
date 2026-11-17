@@ -16,7 +16,8 @@ const topics = [
 const all = topics.map(t => t.id);
 const defaults = {
   company: { name: 'EXCAPISM MY VENTURES', address: 'NO. 13 JALAN SG 6/2\nTAMAN SERI GOMBAK\n68100, BATU CAVES\nMALAYSIA', email: 'excapism.my@gmail.com', phone: '+601153265523', bank: 'MAYBANK', accountNo: '564324778322', accountName: 'EXCAPISM MY VENTURES', logo: '' },
-  defaults: { prefix: 'QT-', validDays: 14, depositPerPax: 100, balanceDays: 30, footer: 'This is a computer-generated quotation. No signature is required.' },
+  defaults: { prefix: 'QT-', validDays: 14, depositPerPax: 100, balanceDays: 30, footer: 'This is a computer-generated quotation. No signature is required.',
+    estimateNote: 'Prices of these items can change (for example airline fares) and were checked on {date}. They are confirmed at booking — airline fares only once ticketed — and we send a revised quotation before charging for any of these.' },
   terms: {
     topics,
     templates: [
@@ -49,8 +50,8 @@ const defaults = {
     '',
     '{items}',
     '',
-    '*Total (fixed price): RM {total}*',
-    '{estimate_section}',
+    '*Total: RM {total}*',
+    '{estimate_note}',
     '{deposit_line}',
     '{valid_line}',
   ].join('\n'),

@@ -1019,3 +1019,12 @@ New third tab, **Calendar**, a monthly calendar of trips by date (frontend only,
 - WhatsApp blanks renamed `{estimate_section}` and `{estimate_items}`. Messages already saved with `{airline_section}` / `{airline_items}` keep working.
 - **Item list upload:** default stays **update and add only** (nothing removed; the window says how many current items are not in the file and will be kept). Ticking **Replace the whole list** now shows exactly how many items will be removed and which codes, and the button changes to "Replace the list" before you apply.
 - Backend: `routes/quotes.js` (revised-quotation remark wording), `quoteDefaults.js` (default message uses `{estimate_section}`). No SQL.
+
+## #71 — Estimate is now a tag; one total; move lines; estimate note
+- **Estimate lines stay in the main table** with a small yellow **ESTIMATE** tag next to the description. The separate estimate box, the yellow estimated-total bar and the "fixed price" / "estimated" totals are removed — **one Total that includes every line** (PDF, summary, draft list, WhatsApp).
+- **Estimate note:** the standard wording is kept in **Company details → Estimate note** (`{date}` = quotation date). Each quotation shows an editable "Estimate note" box only when a line is set to Estimate; it prints in small grey text under the Total. Empty = nothing printed.
+- **Move lines:** ▲ ▼ buttons on every line in the quotation editor and the preset editor.
+- **Create revised quotation:** switches the Estimate lines on the new copy to Fixed (tags and note disappear); each line can still be set back to Estimate by hand. The original is untouched.
+- **WhatsApp message:** one list ("(estimate)" after estimate items), `*Total: RM …*`, and new blank `{estimate_note}`. Old blanks `{estimate_section}`, `{estimate_items}`, `{airline_section}`, `{airline_items}`, `{estimated_total}` are now simply empty, so messages saved earlier still work (those lines drop out).
+- Includes #70 (Estimate renamed everywhere; item-list upload: update-only by default, "Replace the whole list" shows how many and which items will be removed).
+- Backend: `routes/quotes.js` (totals count all lines, estimate note), `quoteDefaults.js`. **No SQL.**
