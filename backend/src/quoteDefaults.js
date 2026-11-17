@@ -50,7 +50,7 @@ const defaults = {
     '{items}',
     '',
     '*Total (fixed price): RM {total}*',
-    '{airline_section}',
+    '{estimate_section}',
     '{deposit_line}',
     '{valid_line}',
   ].join('\n'),

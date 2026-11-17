@@ -34,7 +34,7 @@ function mapRow(r, withData) {
 const SEL = `SELECT d.*, COALESCE(u.username, u.name) AS by_name FROM quote_drafts d LEFT JOIN users u ON u.id = d.created_by`;
 
 function totals(data) {
-  // Fixed-price total only: airline estimates are not part of it.
+  // Fixed-price total only: estimate lines are not part of it.
   const lines = (Array.isArray(data.lines) ? data.lines : []).filter(l => l.kind !== 'est');
   return Math.round(lines.reduce((s, l) => s + (Number(l.price) || 0) * (Number(l.qty) || 0), 0) * 100) / 100;
 }
@@ -115,7 +115,7 @@ router.post('/drafts', asyncHandler(async (req, res) => {
   res.status(201).json(mapRow(full.rows[0], true));
 }));
 
-// "Create revised quotation": copies a draft as <number>-R1 (R2, R3 …). Airline estimate lines become fixed lines.
+// "Create revised quotation": copies a draft as <number>-R1 (R2, R3 …). Estimate lines become fixed lines.
 router.post('/drafts/:id/revise', asyncHandler(async (req, res) => {
   const src = await query(`${SEL} WHERE d.id = $1`, [req.params.id]);
   if (!src.rows[0]) return res.status(404).json({ error: 'This draft was not found — drafts are removed 14 days after the last save' });
@@ -132,7 +132,7 @@ router.post('/drafts/:id/revise', asyncHandler(async (req, res) => {
   data.validUntil = new Date(new Date(today + 'T00:00:00Z').getTime() + (settings.defaults.validDays || 14) * 86400000).toISOString().slice(0, 10);
   data.revisedFrom = orig.number;
   const origDate = orig.data && orig.data.date ? orig.data.date : '';
-  const line = `Revised from ${orig.number}${origDate ? ' (' + origDate + ')' : ''}: airline items now confirmed.`;
+  const line = `Revised from ${orig.number}${origDate ? ' (' + origDate + ')' : ''}: estimate items now confirmed.`;
   data.remarks = [data.remarks, line].filter(Boolean).join(' ').slice(0, 1500);
   const { rows } = await query(
     'INSERT INTO quote_drafts (number, customer, package, total, data, created_by) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
